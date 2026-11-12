@@ -208,7 +208,12 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
   o gerador põe no mundo (`b.windows`, id = posição) e `WindowsNear`/`BuildingAt` respondem. A parede continua inteira: o zumbi não passa
   pela colisão, ele pula (teleporta para dentro depois de `window.climb` s). A horda pergunta `ctx.entry(e, x, z, dt)` antes de andar
   (perseguindo/investigando): alvo numa casa e janela utilizável mais perto que a porta → vai pela janela. Janela com móvel/escada na frente
-  (ponto de dentro bloqueado) não é usada. Vidro quebrado continua quebrado (buraco escuro desenhado por fora).
+  não é usada. Vidro quebrado continua quebrado (buraco escuro desenhado por fora). **Ponto de queda** (`landing` em `barricades.js`):
+  1,05 m para dentro da face de fora da janela, livre num raio de 0,48 (o zumbi tem 0,42) **e em chão do térreo onde dá para ficar**
+  (`FloorAt(...).blocked` = debaixo da escada: o passo é desfeito e o zumbi nunca sai). Antes era 0,8 m checado com 0,35 e todo zumbi que
+  pulava ficava entalado (parede ou escada) para sempre: a horda travava empilhada na base. O Labrego não usa janela (só porta, 1,70 m).
+  Rede de segurança na horda: parado e entalado (parede/móvel/debaixo da escada) por 1,5 s → lugar livre mais perto (`unwedge`);
+  dois zumbis exatamente no mesmo ponto se afastam (a separação antes ignorava distância zero).
 - **Cerco (J5b):** a partida começa ao meio-dia (`siege.start`; as regras chamam `hooks.setClock` no 1º quadro). `siege.js` conta as noites pelo
   relógio (`day.nightFrom`/`nightTo`) e devolve `'win'` no amanhecer depois de `siege.nights`. À noite, com rádio posto, `director()` dá à horda
   `{ x, z, extra, share, ring }`: zumbis a mais nos picos (`pulses`), parte nascendo no anel 40–50 m da base; esses ficam com `e.siege` e vão
@@ -261,7 +266,7 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
 
 ## Plano da sessão de fundação (30/10/2026)
 0. Verificação ✓ · 1. PR "limpeza" ✓ · 2. `docs/GAME-DESIGN.md` ✓ (decisões registradas) · 3. Fundação em 3 PRs: F1 (PR #4) · F2 (PR #5) · F3 (PR aberto).
-4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 · J9 · J10 · J11 · J12a (PRs abertos, aguardando merge em ordem) · próximo: J12b (os 5 cercos e as paróquias). J13 (combinações) já entrou no J7b.
+4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 · J9 · J10 · J11 · J12a + correção das janelas (PRs abertos, aguardando merge em ordem) · próximo: J12b (os 5 cercos e as paróquias). J13 (combinações) já entrou no J7b.
 Estrutura-alvo da Etapa 3 (criar só pastas com conteúdo real; imports só descem `games` → `shared` → `engine`, verificado por `npm run check`):
 ```
 src/engine/   {core, render, input, net, audio, world, ui}     genérico, não sabe que existem zumbis
@@ -274,6 +279,10 @@ F2 estado global → instâncias com `reset()` + caches limpos por distância (m
 ## Histórico de PRs
 - **limpeza** — `node_modules/` fora do Git; `.gitignore` aceita .glb/.gltf; `player-moviment.js` → `player-movement.js`; README sem `reflections.js`;
   `npm run smoke`; este CLAUDE.md; `docs/COMO-FUNCIONA.md`; `docs/TESTE-MANUAL.md`. Nenhuma mudança no jogo.
+- **correcao-janelas** — achado no teste geral (partida inteira sem tela): todo zumbi que pulava uma janela caía encostado na parede e ficava
+  preso para sempre; a partir da 1ª noite a horda inteira travava empilhada dentro da base (sem morrer nem renascer), então dia 2, 2ª noite e os
+  especiais não aconteciam. Agora: ponto de queda livre para o corpo inteiro e fora da escada (42 de 346 janelas usáveis, antes 49 — todas prendiam),
+  Labrego só pela porta, rede de segurança contra zumbi entalado, zumbis no mesmo ponto se separam. Replay atualizado de propósito.
 - **j12a-save-colecao (J12a)** — save no PC (localStorage). Nível da paróquia: o XP da partida (média dos jogadores, mesmo perdendo) soma
   (150/200/250/300/350/400/500…); cada nível libera 2 melhorias (começa com 16 das 28). Coleção de 30 achados (fitas do rádio, cartas, fotos,
   recortes) com 2 linhas de história: o ⭐ achado raro do saque vira um achado novo, mostra a história e dá 1 melhoria na hora (design, item ⭐).

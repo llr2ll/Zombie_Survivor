@@ -123,6 +123,16 @@ export function CreateHorde(ctx) {
     e.goal = { x, z }
     setState(e, 'investigate')
   }
+  // entalado: encostado dentro de parede/móvel ou num chão onde não dá para ficar (debaixo da escada)
+  const wedged = (e, x, z, r) => Blocked(x, z, r, e.lv || 0) || !!FloorAt(x, z, e.fy ?? 0)?.blocked
+  // zumbi entalado: procura o lugar livre mais perto, em anéis de até 1,5 m
+  function unwedge(e) {
+    e.wedgeT = 0
+    for (let r = 0.3; r <= 1.5; r += 0.3) for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2, x = e.x + Math.sin(a) * r, z = e.z + Math.cos(a) * r
+      if (!wedged(e, x, z, e.radius)) { Object.assign(e, { x, z, lx: x, lz: z }); return }
+    }
+  }
   // Escoitador: barulho acima de `quiet`, até `hear` m (ou o alcance do próprio barulho, se maior) → bote rápido até o som
   function hear(e, x, z, r) {
     if (r <= LI.quiet || !(e.state === 'wander' || e.state === 'investigate' || e.state === 'feed' || e.state === 'pounce')) return
@@ -324,6 +334,8 @@ export function CreateHorde(ctx) {
     const ox = e.x, oz = e.z
     if (e.kind) { e.screamT = Math.max(0, e.screamT - dt); if (e.state !== 'inhale') e.puff = 0 }
     if (e.rushT > 0) e.rushT -= dt // ouviu o grito: vem correndo
+    // rede de segurança: entalado (dentro de parede/móvel ou debaixo da escada) e parado → vai para o lugar livre mais perto
+    if ((e.vel || 0) < 0.05 && wedged(e, e.x, e.z, e.radius * 0.9)) { if ((e.wedgeT = (e.wedgeT || 0) + dt) > 1.5) unwedge(e) } else e.wedgeT = 0
     const rush = e.rushT > 0 ? SC.rush : 1
     // empurrão (tiro forte, onda do bardo, explosão, atropelamento) e lentidão (gelo do mago)
     if (e.state !== 'grab') {
@@ -523,6 +535,7 @@ export function CreateHorde(ctx) {
         if (b.state === 'dead' || b.state === 'down') continue
         const dx = b.x - a.x, dz = b.z - a.z, min = (a.radius + b.radius) * 0.9, d2 = dx * dx + dz * dz
         if (d2 < min * min && d2 > 1e-6) { const d = Math.sqrt(d2), q = (min - d) / 2; a.x -= (dx / d) * q; a.z -= (dz / d) * q; b.x += (dx / d) * q; b.z += (dz / d) * q }
+        else if (d2 <= 1e-6) { a.x -= 0.05; b.x += 0.05 } // exatamente no mesmo ponto: separa (senão ficam grudados para sempre)
       }
       for (const p of alive) {
         if (p.vehicle || !sameLv(a, p)) continue
