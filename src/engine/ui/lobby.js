@@ -130,6 +130,7 @@ export function CreateLobby({ onStart, onKick, onChange, choices = [], sound = (
     entries,
     show() { el.classList.remove('hidden'); document.body.classList.add('in-lobby'); render() },
     hide() { el.classList.add('hidden'); document.body.classList.remove('in-lobby') },
+    setSubtitle(t) { $('#lobby .sub').textContent = t }, // frase do menu (o jogo pode mostrar progresso)
     setOnline(on) { $('#net').textContent = on ? 'Servidor conectado' : 'Servidor offline — tentando reconectar…'; $('#net').classList.toggle('on', on) },
     setRoom(c) {
       code = c

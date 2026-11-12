@@ -63,7 +63,7 @@ src/engine/               genérico
   audio/engine.js         Web Audio: barramentos, primitivas, som posicional
   world/                  noise.js (hash/ruído), collision.js (grade de colisão), chunks.js (carrega/descarrega chunks),
                           pathing.js (desvio, A*, rota dentro de casas) — chunks.js é instância (CreateChunks)
-  ui/lobby.js             menu de 4 vagas (celular ou teclado); cada vaga escolhe uma opção com ◀ ▶ (choices vêm do jogo)
+  ui/lobby.js             menu de 4 vagas (celular ou teclado); cada vaga escolhe uma opção com ◀ ▶ (choices vêm do jogo); setSubtitle()
 src/shared/               peças prontas
   characters/             player.js (esqueleto/animação; p.knocked = caído por um instante), looks.js (visual), kits.js (armas + IK), player-movement.js
   creatures/zombie-model.js  humanoide articulado (12 variações), base dos zumbis; look(material), e.puff (encher o peito)
@@ -77,7 +77,8 @@ src/games/survivor/       este jogo
   main.js                 liga tudo: renderer, clima, lobby, rede, teclado, loop; Wire() conecta motor ↔ mundo ↔ sons
   config/balance.js       TODOS os números ajustáveis (classes, armas, habilidades, zumbis, regras, dia), comentados em português
   config/weapons.js       nomes e ordem das armas (números vêm do balance.js)
-  config/upgrades.js      nomes e textos das melhorias (J7; números no balance.js · upgrades)
+  config/upgrades.js      nomes e textos das melhorias (J7; números no balance.js · upgrades; unlock = nível da paróquia que libera)
+  config/finds.js         os 30 achados da coleção (J12a): título + 2 linhas de história
   rules/survival.js       REGRAS: jogadores (classe escolhida + anel da cor da vaga), dano, morte, vitória/derrota + resultado
   abilities/classes.js    as 4 classes e suas habilidades
   loot.js                 saque (J3): revistar/desmontar móveis, estoque do grupo, marcadores
@@ -86,13 +87,15 @@ src/games/survivor/       este jogo
   base.js                 rádio (J5a): a casa onde ele está é a base (o cerco vai atrás dela)
   levels.js               XP e níveis (J7a): ganhar XP, subir de nível (luz, som, invulnerável), sortear/escolher cartas; has(p, id)
   fall.js                 queda (J6): 40 s no chão, levantar (aliado 3 s / remédio / solo sozinho), fora até o amanhecer
+  save.js                 save no PC (J12a): localStorage 'paroquia-save-v1' — nível/XP da paróquia, achados, partidas
   compana.js              Santa Compaña (J11): o chefe da meia-noite da última noite (procissão, velas, Guia, marcado)
   fuel.js                 gasolina (J8): carro gasta andando, abastecer com ⛽, bomba do posto (alarme), gasolina inicial dos carros
   siege.js                cerco (J5b): conta as noites, avisos do rádio, picos da horda, vitória no amanhecer do 3º dia
   tasks.js                "parado fazendo algo" (revistar, desmontar, barricar): cancelamento, barulho por segundo, anel de progresso
   bots.js                 ?bots=1..3: jogadores do computador SÓ PARA TESTE (contrato do celular; tecla B espalha/junta)
   enemies/zombies.js      IA da horda: visão, audição, agarrão, renascer; especiais (e.kind): Berrador (J9), Labrego e Escoitador (J10)
-  ui/hud.js               placar da partida
+  ui/hud.js               placar da partida (+ painel do achado raro e do resultado)
+  ui/collection.js        tela "Coleção" no menu (botão ⭐ ou tecla C)
 ```
 
 **Como as camadas conversam sem import subindo** (ligado em `games/survivor/main.js`):
@@ -245,6 +248,12 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
   slowT, group, `ice: {}` (não desenha gelo). Vela acesa: `compana.haste()` → `HASTE` em `zombies.js` multiplica a velocidade de todos.
   Tocar a fila: `p.chill` (comando ×`boss.slow`, sem correr) e `p.marked` (`sees()` vê a até `markSight` m, sem cone nem parede).
   Amanhecer: some (`'escapou'`). Resultado em `st.result.boss`. Replay igual (não chega à meia-noite da 2ª noite).
+- **Save e progressão (J12a):** `save.js` lê/escreve `localStorage['paroquia-save-v1']` (sem localStorage: só memória, ex.: Node). O progresso
+  é do PC, não dos celulares. `?zerar` no endereço apaga. Nível da paróquia: no fim da partida (`finish`, ganhando ou perdendo; Esc no meio
+  não conta) entra a **média** do XP ganho pelos jogadores (`p.earned`); `account.need` define a curva. Cartas com `unlock: n` só sorteiam
+  com a paróquia no nível n (começa com 16 das 28: as 8 gerais + 2 por classe). ⭐ achado raro (saque) → `onRare`: um achado ainda não
+  coletado (`config/finds.js`), salvo na hora, história na tela (`st.find`) e `loot.rareCard` cartas para quem achou (`levels.grant`).
+  Replay: o nível 1 restringe o sorteio, então mudou de propósito. Prova: com nível 99 e o achado raro do jeito antigo, deu igual ao J11.
 - `window.__game` existe só no `npm run dev` (testes automáticos e depuração); a versão compilada não tem.
 - Interiores (`buildings.js`): térreo (cozinha/sala: fogão, balcão, mesa, sofá, cômoda, baú, estante), andar de cima (quarto: cama,
   guarda-roupa, baú, escrivaninha) e sótão das casas de 3 andares (caixotes, barris, sacos, baú). Lojas: prateleiras, balcão, vitrine.
@@ -252,7 +261,7 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
 
 ## Plano da sessão de fundação (30/10/2026)
 0. Verificação ✓ · 1. PR "limpeza" ✓ · 2. `docs/GAME-DESIGN.md` ✓ (decisões registradas) · 3. Fundação em 3 PRs: F1 (PR #4) · F2 (PR #5) · F3 (PR aberto).
-4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 · J9 · J10 · J11 (PRs abertos, aguardando merge em ordem) · próximo: J12 (save local + progressão). J13 (combinações) já entrou no J7b.
+4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 · J9 · J10 · J11 · J12a (PRs abertos, aguardando merge em ordem) · próximo: J12b (os 5 cercos e as paróquias). J13 (combinações) já entrou no J7b.
 Estrutura-alvo da Etapa 3 (criar só pastas com conteúdo real; imports só descem `games` → `shared` → `engine`, verificado por `npm run check`):
 ```
 src/engine/   {core, render, input, net, audio, world, ui}     genérico, não sabe que existem zumbis
@@ -265,6 +274,11 @@ F2 estado global → instâncias com `reset()` + caches limpos por distância (m
 ## Histórico de PRs
 - **limpeza** — `node_modules/` fora do Git; `.gitignore` aceita .glb/.gltf; `player-moviment.js` → `player-movement.js`; README sem `reflections.js`;
   `npm run smoke`; este CLAUDE.md; `docs/COMO-FUNCIONA.md`; `docs/TESTE-MANUAL.md`. Nenhuma mudança no jogo.
+- **j12a-save-colecao (J12a)** — save no PC (localStorage). Nível da paróquia: o XP da partida (média dos jogadores, mesmo perdendo) soma
+  (150/200/250/300/350/400/500…); cada nível libera 2 melhorias (começa com 16 das 28). Coleção de 30 achados (fitas do rádio, cartas, fotos,
+  recortes) com 2 linhas de história: o ⭐ achado raro do saque vira um achado novo, mostra a história e dá 1 melhoria na hora (design, item ⭐).
+  Menu: "⛪ Paróquia nível N · 🗝 x/28 melhorias · ⭐ y/30 achados" + botão/tecla C "Coleção". Resultado mostra XP da paróquia e cartas novas.
+  `?zerar` apaga o progresso. Replay atualizado de propósito.
 - **j11-santa-compana (J11)** — o chefe: à meia-noite da última noite, procissão (Guia com a cruz + 6 almas com velas, sino e cântico) contorna
   a base. Vela acesa: Guia sem dano (a cruz brilha; aviso) e zumbis ×1,25. Encostar na fila: lento 2 s e marcado 15 s (zumbis veem a 30 m).
   Apagar as velas (6 de vida cada) → Guia vulnerável (60) → derrubado: +50 XP para todos, +300 pontos. Some no amanhecer. Placar e resultado

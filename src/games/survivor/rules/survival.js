@@ -23,6 +23,9 @@ import { CreateFall } from '../fall'
 import { CreateLevels } from '../levels'
 import { CreateFuel } from '../fuel'
 import { CreateCompana } from '../compana'
+import { CreateSave } from '../save'
+import { FINDS } from '../config/finds'
+import { UPGRADES } from '../config/upgrades'
 
 const MAX_PLAYERS = 4
 // números das regras: config/balance.js
@@ -43,7 +46,8 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
   const fx = CreateFX(scene)
   const gore = CreateGore(scene) // sangue no chão/paredes e pedaços de zumbi
   const vehicles = CreateVehicles(scene, fx, wfx)
-  const st = { time: 0, score: 0, over: false, overT: 0, msg: '', msgT: 0, sync: 0, stopT: 0, result: null }
+  const st = { time: 0, score: 0, over: false, overT: 0, msg: '', msgT: 0, sync: 0, stopT: 0, result: null, find: null, finds: 0 } // find: achado raro na tela
+  const save = hooks.save || CreateSave() // progresso no PC (J12a): nível da paróquia e coleção
 
   // sensação de impacto: tremor nas telas perto e, nos golpes fortes, uma pausa curtinha no jogo (números em balance.js · juice)
   function impact(x, z, kind, amount = 1) {
@@ -78,9 +82,9 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
   }
   const abilities = CreateAbilities({ scene, fx, wfx, colliders, enemies, players, hit, noise, impact, night: hooks.night || (() => false), others: () => compana.list })
   const tasks = CreateTasks({ scene, noise, sfx }) // parado fazendo algo (revistar, desmontar, barricar)
-  const levels = CreateLevels({ scene, fx, players, say, sfx, move: MOVE }) // XP, níveis e melhorias
+  const levels = CreateLevels({ scene, fx, players, say, sfx, move: MOVE, account: () => save.data.nivel }) // XP, níveis e melhorias
   const xp = (p, n) => levels.add(p, n)
-  const loot = CreateLoot({ scene, fx, players, say, sfx, tasks, xp }) // saque nas casas (Usar perto de um móvel)
+  const loot = CreateLoot({ scene, fx, players, say, sfx, tasks, xp, rare: (p) => onRare(p) }) // saque nas casas (Usar perto de um móvel)
   const bars = CreateBarricades({ scene, fx, inv: loot.inv, say, sfx, tasks, impact, xp, solo: () => players.size === 1 }) // barricadas em portas e janelas (Usar por dentro)
   const base = CreateBase({ scene, say, sfx }) // rádio: a casa onde ele está é a base
   const siege = CreateSiege({ clock: hooks.clock, base, say, sfx }) // noites, picos da horda contra a base, vitória
@@ -170,6 +174,16 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     sfx('revive', { x, z })
   }
 
+  // ⭐ achado raro (J12a): um achado da coleção (um novo, se ainda faltar algum) com a história na tela + melhoria na hora
+  function onRare(p) {
+    const have = save.data.achados, left = FINDS.filter((f) => !have.includes(f.id)), from = left.length ? left : FINDS
+    const f = from[(Math.random() * from.length) | 0]
+    const fresh = save.found(f.id)
+    if (fresh) st.finds++
+    st.find = { ...f, fresh, t: RU.findTime }
+    say(`⭐ ${p.name} achou: ${f.icon} ${f.title}${fresh ? ` (${save.data.achados.length}/${FINDS.length})` : ' (repetido)'}`, 3)
+    levels.grant(p, BALANCE.loot.rareCard)
+  }
   // Berrador (J9): aviso enquanto enche o peito; o grito treme a tela e, no cerco à noite, chama um pico extra
   function onScream(e, phase) {
     if (phase === 'inhale') return say('📢 Berrador enchendo o peito! Matem antes do grito', 1.8)
@@ -191,7 +205,10 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     st.over = true
     st.overT = RU.resultTime
     const kills = [...players.values()].reduce((n, p) => n + p.kills, 0)
-    st.result = { win, nights: win ? BALANCE.siege.nights : Math.max(0, siege.st.night - (siege.st.wasNight ? 1 : 0)), of: BALANCE.siege.nights, time: clock(st.time), kills, score: st.score, bars: bars.list().length, broken: bars.broken().length, loot: loot.text(), base: !!base.at(), levels: [...players.values()].map((p) => `${p.cls.icon} ${p.name} Nv ${p.level}`), boss: compana.result() }
+    // paróquia (J12a): o XP da partida (média dos jogadores) vai para o save, mesmo perdendo
+    const ps = [...players.values()], acc = save.match(ps.length ? ps.reduce((n, p) => n + (p.earned || 0), 0) / ps.length : 0, win)
+    const unlocked = UPGRADES.filter((u) => u.unlock > acc.from && u.unlock <= acc.to).map((u) => `${u.icon} ${u.name}`)
+    st.result = { account: { ...acc, unlocked }, finds: st.finds, findsTotal: save.data.achados.length, findsOf: FINDS.length, win, nights: win ? BALANCE.siege.nights : Math.max(0, siege.st.night - (siege.st.wasNight ? 1 : 0)), of: BALANCE.siege.nights, time: clock(st.time), kills, score: st.score, bars: bars.list().length, broken: bars.broken().length, loot: loot.text(), base: !!base.at(), levels: [...players.values()].map((p) => `${p.cls.icon} ${p.name} Nv ${p.level}`), boss: compana.result() }
     st.msg = ''; st.msgT = 0 // o painel de resultado (hud.js) mostra tudo
     sfx(win ? 'supply' : 'gameover')
   }
@@ -215,13 +232,13 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     for (const p of [...players.keys()]) removePlayer(p)
     clearAll()
     vehicles.clear()
-    Object.assign(st, { time: 0, score: 0, over: false, msg: '', msgT: 0, stopT: 0, result: null })
+    Object.assign(st, { time: 0, score: 0, over: false, msg: '', msgT: 0, stopT: 0, result: null, find: null, finds: 0 })
   }
   function restart() {
     clearAll()
     for (const p of players.values()) if (p.vehicle) vehicles.exit(p, true)
     vehicles.clear()
-    Object.assign(st, { time: 0, score: 0, over: false, stopT: 0, result: null })
+    Object.assign(st, { time: 0, score: 0, over: false, stopT: 0, result: null, find: null, finds: 0 })
     for (const p of players.values()) {
       Object.assign(p, { dead: false, stamina: 100, tired: false, jy: 0, vy: 0, lv: 0, gy: undefined, x: (p.idx - 1.5) * 1.3, z: 0, vx: 0, vz: 0, held: 0, struggle: 0, out: false, downT: 0, knocked: 0, chill: 0, marked: 0 })
       InitClassState(p)
@@ -235,6 +252,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     if (st.stopT > 0) { st.stopT -= dt; dt *= 0.05 }
     const now = performance.now()
     st.msgT = Math.max(0, st.msgT - dt)
+    if (st.find && (st.find.t -= dt) <= 0) st.find = null
 
     for (const p of players.values()) {
       if (now - p.lastIn > 1500 && p.id !== 'local') p.input.mx = p.input.mz = p.input.ax = p.input.az = 0
@@ -313,7 +331,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
 
   // estoque do grupo + base marcada (placar e celular)
   const invText = () => loot.text() + (base.at() ? '  📻' : '')
-  return { players, enemies, vehicles, loot, bars, base, siege, invText, st, clear, addPlayer, removePlayer, setInput, act, update, alive, zombies: () => horde.alive(), info: (p) => abilities.info(p), hurt, levels, fuel, compana }
+  return { players, enemies, vehicles, loot, bars, base, siege, invText, st, clear, addPlayer, removePlayer, setInput, act, update, alive, zombies: () => horde.alive(), info: (p) => abilities.info(p), hurt, levels, fuel, compana, save }
 }
 
 export const clock = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`

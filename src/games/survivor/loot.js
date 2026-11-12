@@ -33,8 +33,8 @@ function pick(weights) {
 const MARK_GEO = new THREE.OctahedronGeometry(0.22, 0).scale(1, 1.4, 1) // losango em pé, visível de cima
 const MARK = { search: new THREE.MeshBasicMaterial({ color: 0xffc81e, toneMapped: false }), dismantle: new THREE.MeshBasicMaterial({ color: 0xd9894a, toneMapped: false }) } // amarelo: revistar · laranja: desmontar
 
-// ctx: { scene, fx, players (Map), say(texto, s), sfx(nome, opções), tasks (tasks.js: parado fazendo algo), xp(p, n) }
-export function CreateLoot({ scene, fx, players, say, sfx, tasks, xp = () => {} }) {
+// ctx: { scene, fx, players (Map), say(texto, s), sfx(nome, opções), tasks (tasks.js: parado fazendo algo), xp(p, n), rare(p) (achado raro: coleção) }
+export function CreateLoot({ scene, fx, players, say, sfx, tasks, xp = () => {}, rare = null }) {
   const done = new Map() // id do móvel -> 1 revistado · 2 desmontado
   const inv = { tabuas: 0, remedio: 0, municao: 0, gasolina: 0, raro: 0 }
   const marks = Array.from({ length: 12 }, () => { const m = new THREE.Mesh(MARK_GEO, MARK.search); m.visible = false; scene.add(m); return m })
@@ -63,6 +63,9 @@ export function CreateLoot({ scene, fx, players, say, sfx, tasks, xp = () => {} 
       const caps = BALANCE.rules.ammoCap
       for (const g of gunners) for (const w of ['carbine', 'shotgun']) { const cap = caps[w] * (has(g, 'pockets') ? UP.pockets.ammo : 1); g.ammo[w].reserve = Math.min(g.ammo[w].reserve + L.ammo[w], Math.max(g.ammo[w].reserve, cap)) } // Bolsos fundos: cabe mais
       say(`${p.name} achou ${icon} ${name} para o Atirador`)
+    } else if (item === 'raro' && rare) {
+      inv.raro += 1
+      rare(p) // as regras escolhem o achado da coleção e avisam
     } else {
       const n = item === 'tabuas' ? randInt(L.planks) : 1
       inv[item] += n

@@ -148,6 +148,7 @@ export const BALANCE = {
     },
     ammoCap: { carbine: 180, shotgun: 48 }, // munição máxima na reserva do Atirador (munição só vem do saque)
     resultTime: 12, // segundos mostrando o resultado (vitória/derrota) antes de voltar ao menu
+    findTime: 10, // segundos mostrando a história de um achado raro na tela
     vehicle: { carDamage: 0.9, playerDamage: 0.35 }, // dentro do carro: o carro leva 90% do dano e o jogador só 35%
   },
 
@@ -158,6 +159,11 @@ export const BALANCE = {
     need: [20, 30, 40, 55, 70, 90, 110], // XP para cada nível seguinte (1→2, 2→3…); depois do último, repete o último
     cards: 3, // quantas melhorias aparecem para escolher
     invulnerable: 3, // segundos invulnerável ao subir de nível (para escolher em paz)
+  },
+  // Nível da paróquia (J12a, fica salvo no PC): o XP de cada partida (média dos jogadores, mesmo perdendo) soma.
+  // Cada nível libera mais melhorias no sorteio (quais: `unlock` em config/upgrades.js).
+  account: {
+    need: [150, 200, 250, 300, 350, 400, 500], // XP para cada nível seguinte (1→2, 2→3…); depois do último, repete o último
   },
   upgrades: { // números das melhorias (nomes e textos em config/upgrades.js)
     lungs: 1.4, // Pulmão de atleta: fôlego ×1,4 (gasta menos ao correr e nadar)
@@ -241,6 +247,7 @@ export const BALANCE = {
       loja: { tabuas: 30, remedio: 30, municao: 30, gasolina: 5, raro: 5 }, // lojas
     },
     planks: [1, 2], // tábuas por achado (mín–máx)
+    rareCard: 1, // ⭐ achado raro: entra na coleção (config/finds.js) e quem achou escolhe esta quantidade de melhorias na hora
     far: { from: 120, span: 300, max: 0.6, rich: 2 }, // longe da largada (vilas vizinhas): depois de 120 m a chance de achar cresce até +60% (aos 420 m); remédio e munição ficam até ×(1 + 2 × 0,6) mais comuns
     ammo: { carbine: 20, shotgun: 6 }, // munição achada vai direto para cada Atirador do grupo (até rules.ammoCap); sem Atirador, fica guardada
   },
