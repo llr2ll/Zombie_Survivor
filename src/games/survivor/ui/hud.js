@@ -60,7 +60,7 @@ export function CreateHud(game, climate) {
       $('#plist').innerHTML = [...game.players.values()].map((p) => {
         const inf = game.info(p)
         const cds = inf.buttons.filter((b) => b.cd > 0).map((b) => `<span class="cd">${b.l} ${Math.ceil(b.s)}s</span>`).join('')
-        const car = p.vehicle ? ` · 🚗 ${p.vehicle.d.name}${p.seat.mode === 'drive' ? ' (dirigindo)' : ''}` : ''
+        const car = p.vehicle ? ` · 🚗 ${p.vehicle.d.name}${p.seat.mode === 'drive' ? ' (dirigindo)' : ''} ${game.fuel.text(p.vehicle)}` : ''
         const mana = p.cls.id === 'mage' ? `<div class="bar mana"><i style="width:${p.mana}%"></i></div>` : ''
         const task = p.task ? ` · ${p.task.icon} ${Math.round((p.task.t / p.task.need) * 100)}%` : ''
         const lv = ` · Nv ${p.level}${p.cards && p.id !== 'local' ? ' <span style="color:#ffd24a">⬆ escolhendo no celular</span>' : ''}`

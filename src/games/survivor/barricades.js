@@ -151,9 +151,10 @@ export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp =
     if (impact) impact(x, z, 'crash', 0.6)
     say('💥 Uma barricada quebrou!', 2)
   }
+  const force = (e) => (e.kind === 'brute' ? Z.brute.bash : 1) // Labrego bate mais forte
   // uma pancada de zumbi numa barricada
-  function hit(bar) {
-    bar.hp -= Z.bash.damage * (solo() ? BALANCE.solo.bash : 1)
+  function hit(bar, k = 1) {
+    bar.hp -= Z.bash.damage * k * (solo() ? BALANCE.solo.bash : 1)
     sfx('bang', { x: bar.x, z: bar.z })
     fx.burst(bar.x, 1.1, bar.z, 0xb07a48, 3, 2.5, 0.35)
     if (bar.boards) { for (const m of bar.boards) m.material = WOOD_HIT; bar.flashT = 0.08 }
@@ -176,8 +177,8 @@ export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp =
       e.climbT = 0
       if ((e.winT = (e.winT || 0) - dt) > 0) return HOLD
       e.winT = rnd(Z.bash.every[0], Z.bash.every[1])
-      if (bar) { hit(bar); return HOLD }
-      wn.glass -= Z.bash.damage
+      if (bar) { hit(bar, force(e)); return HOLD }
+      wn.glass -= Z.bash.damage * force(e)
       sfx('bang', { x: en.x, z: en.z, vol: 0.6 })
       if (wn.glass <= 0) {
         wn.broken = true
@@ -219,7 +220,7 @@ export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp =
       for (const bar of bars.values()) {
         const c = bar.col
         if (!c || Math.hypot(Math.max(0, Math.abs(e.x - c.x) - c.hw), Math.max(0, Math.abs(e.z - c.z) - c.hd)) > e.radius + 0.25) continue
-        hit(bar)
+        hit(bar, force(e))
         return true
       }
       return false
