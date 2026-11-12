@@ -22,6 +22,9 @@ const kindOf = (key) => {
   return kindCache.get(key)
 }
 const randInt = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1))
+// longe da largada (vilas vizinhas): 0 até 120 m, depois cresce até far.max
+const farOf = (s) => Math.min(1, Math.max(0, (Math.hypot(s.x, s.z) - L.far.from) / L.far.span)) * L.far.max
+const richer = (w, k) => (k > 0 ? { ...w, remedio: w.remedio * (1 + L.far.rich * k), municao: w.municao * (1 + L.far.rich * k) } : w)
 function pick(weights) {
   let r = Math.random() * Object.values(weights).reduce((s, w) => s + w, 0)
   for (const [k, w] of Object.entries(weights)) if ((r -= w) < 0) return k
@@ -30,8 +33,8 @@ function pick(weights) {
 const MARK_GEO = new THREE.OctahedronGeometry(0.22, 0).scale(1, 1.4, 1) // losango em pé, visível de cima
 const MARK = { search: new THREE.MeshBasicMaterial({ color: 0xffc81e, toneMapped: false }), dismantle: new THREE.MeshBasicMaterial({ color: 0xd9894a, toneMapped: false }) } // amarelo: revistar · laranja: desmontar
 
-// ctx: { scene, fx, players (Map), say(texto, s), sfx(nome, opções), tasks (tasks.js: parado fazendo algo), xp(p, n) }
-export function CreateLoot({ scene, fx, players, say, sfx, tasks, xp = () => {} }) {
+// ctx: { scene, fx, players (Map), say(texto, s), sfx(nome, opções), tasks (tasks.js: parado fazendo algo), xp(p, n), rare(p) (achado raro: coleção) }
+export function CreateLoot({ scene, fx, players, say, sfx, tasks, xp = () => {}, rare = null }) {
   const done = new Map() // id do móvel -> 1 revistado · 2 desmontado
   const inv = { tabuas: 0, remedio: 0, municao: 0, gasolina: 0, raro: 0 }
   const marks = Array.from({ length: 12 }, () => { const m = new THREE.Mesh(MARK_GEO, MARK.search); m.visible = false; scene.add(m); return m })
@@ -60,6 +63,9 @@ export function CreateLoot({ scene, fx, players, say, sfx, tasks, xp = () => {} 
       const caps = BALANCE.rules.ammoCap
       for (const g of gunners) for (const w of ['carbine', 'shotgun']) { const cap = caps[w] * (has(g, 'pockets') ? UP.pockets.ammo : 1); g.ammo[w].reserve = Math.min(g.ammo[w].reserve + L.ammo[w], Math.max(g.ammo[w].reserve, cap)) } // Bolsos fundos: cabe mais
       say(`${p.name} achou ${icon} ${name} para o Atirador`)
+    } else if (item === 'raro' && rare) {
+      inv.raro += 1
+      rare(p) // as regras escolhem o achado da coleção e avisam
     } else {
       const n = item === 'tabuas' ? randInt(L.planks) : 1
       inv[item] += n
@@ -72,8 +78,9 @@ export function CreateLoot({ scene, fx, players, say, sfx, tasks, xp = () => {} 
     if (a === 'search') {
       done.set(s.id, 1)
       xp(p, BALANCE.levels.xp.search)
-      if (Math.random() >= L.chance * (players.size === 1 ? BALANCE.solo.loot : 1)) { say(`${p.name}: ${k.name} sem nada`, 1.4); sfx('ui', { f: 300 }); return }
-      give(p, pick(L.rooms[s.room] || L.rooms.terreo))
+      const far = farOf(s) // vilas vizinhas: mais saque, mais remédio e munição
+      if (Math.random() >= L.chance * (players.size === 1 ? BALANCE.solo.loot : 1) * (1 + far)) { say(`${p.name}: ${k.name} sem nada`, 1.4); sfx('ui', { f: 300 }); return }
+      give(p, pick(richer(L.rooms[s.room] || L.rooms.terreo, far)))
       fx.burst(s.fx, y, s.fz, 0xffe08a, 8, 3, 0.5)
     } else {
       done.set(s.id, 2)

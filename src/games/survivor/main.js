@@ -24,6 +24,10 @@ import { CLASS_ORDER, CLASSES } from './abilities/classes'
 import { BALANCE } from './config/balance'
 import { CreateBots } from './bots'
 import { CreateHud } from './ui/hud'
+import { CreateCollection } from './ui/collection'
+import { CreateSave } from './save'
+import { UPGRADES } from './config/upgrades'
+import { FINDS } from './config/finds'
 import { CreateLobby } from '../../engine/ui/lobby'
 import { BindKeyboard } from '../../engine/input/keyboard'
 import { CreateSoundscape } from '../../shared/audio/soundscape'
@@ -33,6 +37,9 @@ const CLASS_LABELS = CLASS_ORDER.map((k) => `${CLASSES[k].icon} ${CLASSES[k].nam
 const KEYS = { r: 'reload', 1: 'carbine', 2: 'shotgun', 3: 'pistol' } // teclas do Atirador (as outras são padrão do motor)
 // ?bots=1..3 na URL: jogadores controlados pelo computador, só para teste (bots.js)
 const BOTS = Math.min(3, Math.max(0, parseInt(new URLSearchParams(location.search).get('bots'), 10) || 0))
+// progresso no PC (J12a): nível da paróquia e coleção. ?zerar no endereço apaga o progresso (para testar do começo)
+const save = CreateSave()
+if (new URLSearchParams(location.search).has('zerar')) save.reset()
 
 // O motor e o mundo não conhecem este jogo: aqui o jogo liga as peças (água, casas, sons do mundo).
 function Wire() {
@@ -86,6 +93,7 @@ export async function LoadGame() {
     split.reset()
     phase = 'lobby'
     lobby.show()
+    paroquia()
     notifyPhones()
   }
 
@@ -120,10 +128,18 @@ export async function LoadGame() {
     // no menu, o celular só troca a classe (◀ ▶); na partida, as ações vão para o jogo
     onAct: (id, a) => (phase === 'lobby' ? lobby.pick(id, a === 'prev' ? -1 : a === 'next' ? 1 : 0) : game.act(id, a)),
   })
-  game = CreateGame(scene, colliders, net, { onEnd: toLobby, night: () => climate.time < BALANCE.day.nightTo || climate.time > BALANCE.day.nightFrom, loaded: chunks.loaded, shake: split.shake, clock: () => climate.time, setClock: (t) => { climate.time = t } })
+  game = CreateGame(scene, colliders, net, { onEnd: toLobby, night: () => climate.time < BALANCE.day.nightTo || climate.time > BALANCE.day.nightFrom, loaded: chunks.loaded, shake: split.shake, clock: () => climate.time, setClock: (t) => { climate.time = t }, save })
   events.on('vehicle-spot', (p) => game.vehicles.register(p)) // vaga na estrada → carro dirigível
   if (import.meta.env.DEV) window.__game = game // só no npm run dev: para testes automáticos e depuração
   hud = CreateHud(game, climate)
+  // menu: nível da paróquia, melhorias liberadas e achados (J12a)
+  const collection = CreateCollection(save)
+  function paroquia() {
+    const d = save.data, open = UPGRADES.filter((u) => (u.unlock || 1) <= d.nivel).length
+    lobby.setSubtitle(`⛪ Paróquia nível ${d.nivel} · 🗝 ${open}/${UPGRADES.length} melhorias · ⭐ ${d.achados.length}/${FINDS.length} achados`)
+    collection.refresh()
+  }
+  paroquia()
   bots = CreateBots(game, BOTS)
   // teclado: com cartas de melhoria na tela, 1/2/3 escolhem a carta (senão, trocam a arma do Atirador)
   const PICK = { carbine: 'up1', shotgun: 'up2', pistol: 'up3' }
