@@ -28,6 +28,7 @@ const MAX_PLAYERS = 4
 const RU = BALANCE.rules, PL = BALANCE.player, J = BALANCE.juice, XP = BALANCE.levels.xp
 // movimento (shared) com os números deste jogo; a balada do Bardo também acelera
 const MOVE = { ...PL, buffSpeed: BALANCE.bard.courage.speed }
+const STILL = { mx: 0, mz: 0, ax: 0, az: 0, run: 0, fire: 0 } // sem controle (derrubado)
 // anel da cor da vaga no chão, sob os pés: com classes repetidas, cada um se acha na tela (desenhado depois da sombra)
 const RING_GEO = new THREE.RingGeometry(0.5, 0.68, 28).rotateX(-Math.PI / 2)
 const RING_MAT = PLAYER_COLORS.map((c) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.85, depthWrite: false }))
@@ -53,7 +54,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
   const say = (t, s = 2.2) => { st.msg = t; st.msgT = s }
   const alive = () => [...players.values()].filter((p) => !p.dead)
 
-  const horde = CreateHorde({ scene, fx, gore, players, hurt: (p, d) => hurt(p, d), hit: (...a) => hit(...a), night: hooks.night || (() => false), loaded: hooks.loaded || (() => true), impact, bash: (e) => bars.bash(e), entry: (e, x, z, dt) => bars.entry(e, x, z, dt), director: () => siege.director(), nightNo: () => siege.st.night, scream: (e, phase) => onScream(e, phase) })
+  const horde = CreateHorde({ scene, fx, gore, players, hurt: (p, d) => hurt(p, d), hit: (...a) => hit(...a), night: hooks.night || (() => false), loaded: hooks.loaded || (() => true), impact, bash: (e) => bars.bash(e), entry: (e, x, z, dt) => bars.entry(e, x, z, dt), director: () => siege.director(), nightNo: () => siege.st.night, scream: (e, phase) => onScream(e, phase), knock: (p, e) => knock(p, e) })
   const enemies = horde.list
 
   // dano num zumbi (todas as fontes: tiro, espada, magia, onda, pisão, atropelamento); p = quem leva o crédito
@@ -96,7 +97,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     const p = {
       id, name, idx, cls, model, ring, x: (idx - 1.5) * 1.3, z: 0, vx: 0, vz: 0, aimAngle: Math.PI, facing: Math.PI, turn: 0, speed: 0, aiming: false, firing: false,
       jy: 0, vy: 0, gy: 0, y: 0, lv: 0, stamina: 100, tired: false, running: false, cool: 0, kills: 0, lastIn: performance.now(),
-      dead: false, out: false, downT: 0, vehicle: null, seat: null, pad: 0, hurtCar: 0, held: 0, struggle: 0, shoveCd: 0,
+      dead: false, out: false, downT: 0, knocked: 0, vehicle: null, seat: null, pad: 0, hurtCar: 0, held: 0, struggle: 0, shoveCd: 0,
       input: { mx: 0, mz: 0, ax: 0, az: 0, run: 0 },
     }
     InitClassState(p)
@@ -124,6 +125,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     if (!p) return
     if (a === 'up1' || a === 'up2' || a === 'up3') return levels.choose(p, +a[2] - 1) // carta de melhoria (vale caído também)
     if (p.dead) { if (a === 'use') fall.use(p); return } // caído: só Usar (no solo, levantar sozinho)
+    if (p.knocked > 0) return // derrubado pelo Labrego: um instante sem controle
     if (a === 'shove') return horde.shove(p)
     if (a === 'use') { if (!p.vehicle && !p.held && (fall.use(p) || bars.use(p, true) || loot.use(p) || base.use(p) || bars.use(p) || fuel.use(p))) return; return (!p.held || p.vehicle) && vehicles.use(p) } // aliado caído primeiro, depois barricada, móvel, rádio, gasolina; agarrado não entra no carro
     if (a === 'b1' || a === 'b2' || a === 'b3') return abilities.skill(p, +a[1] - 1)
@@ -172,6 +174,15 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     impact(e.x, e.z, 'scream')
     siege.boost()
   }
+  // Labrego (J10) acertou: o jogador voa um pouco e fica um instante no chão, sem controle
+  function knock(p, e) {
+    if (p.dead || p.vehicle) return
+    const BR = BALANCE.zombies.brute, dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz) || 1
+    p.vx += (dx / d) * BR.push; p.vz += (dz / d) * BR.push
+    p.knocked = BR.down; p.task = null
+    p.model.die() // direção da queda
+    impact(p.x, p.z, 'crash', 0.5)
+  }
   // fim da partida: resultado na tela por um tempo e depois volta ao menu
   function finish(win) {
     st.over = true
@@ -208,7 +219,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     vehicles.clear()
     Object.assign(st, { time: 0, score: 0, over: false, stopT: 0, result: null })
     for (const p of players.values()) {
-      Object.assign(p, { dead: false, stamina: 100, tired: false, jy: 0, vy: 0, lv: 0, gy: undefined, x: (p.idx - 1.5) * 1.3, z: 0, vx: 0, vz: 0, held: 0, struggle: 0, out: false, downT: 0 })
+      Object.assign(p, { dead: false, stamina: 100, tired: false, jy: 0, vy: 0, lv: 0, gy: undefined, x: (p.idx - 1.5) * 1.3, z: 0, vx: 0, vz: 0, held: 0, struggle: 0, out: false, downT: 0, knocked: 0 })
       InitClassState(p)
       levels.init(p)
       if (p.weapon) p.model.setWeapon(p.weapon)
@@ -224,7 +235,8 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     for (const p of players.values()) {
       if (now - p.lastIn > 1500 && p.id !== 'local') p.input.mx = p.input.mz = p.input.ax = p.input.az = 0
       if (p.hurtCar) { hurt(p, p.hurtCar); p.hurtCar = 0 }
-      if (!p.dead && !p.vehicle) UpdatePlayerMovement(p, dt, colliders, p.move || MOVE)
+      if (p.knocked > 0) p.knocked -= dt
+      if (!p.dead && !p.vehicle) { const inp = p.input; if (p.knocked > 0) p.input = STILL; UpdatePlayerMovement(p, dt, colliders, p.move || MOVE); p.input = inp } // derrubado: não anda nem ataca
       else if (p.dead) { p.gy = GroundAt(p.x, p.z); p.jy = 0; p.y = p.gy; p.model.root.position.set(p.x, p.y, p.z); p.speed = 0; p.vx = p.vz = 0; p.aiming = p.firing = false }
       abilities.tick(p, dt)
       tasks.tick(p, dt)

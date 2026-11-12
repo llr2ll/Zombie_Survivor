@@ -75,7 +75,7 @@ Exemplo: o mundo avisa "a porta abriu" e o jogo decide qual som tocar. O gerador
 | `src/games/survivor/fall.js` | Quem cai: 40 s no chão, levantar com ajuda ou remédio, fora até o amanhecer, ajustes do solo | "🆘 Ana caiu! Levantem em 40 s" |
 | `src/games/survivor/rules/` | **As regras**: dano, morte, vitória/derrota e a tela de resultado | "🚁 VITÓRIA · 2/2 noites" |
 | `src/games/survivor/abilities/` | As 4 classes e as habilidades | Samurai dando a investida |
-| `src/games/survivor/enemies/` | O que os zumbis veem, ouvem e fazem (e o Berrador, que grita e chama a horda) | Zumbi vindo atrás do barulho do tiro |
+| `src/games/survivor/enemies/` | O que os zumbis veem, ouvem e fazem (e os especiais: Berrador, Labrego, Escoitador) | Zumbi vindo atrás do barulho do tiro |
 | `scripts/` | Testes automáticos: `smoke` (abre o jogo e procura erros) e `check` (andares + mapa igual) | — |
 | `smoke/` | Fotos e anotações do último teste automático | As capturas no PR |
 | `docs/` | Documentos para você | Este arquivo |

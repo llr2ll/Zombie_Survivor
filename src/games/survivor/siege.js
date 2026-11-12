@@ -19,7 +19,7 @@ export function CreateSiege({ clock, base, say, sfx }) {
       let ev = null
       if (n && !st.wasNight) {
         st.night++
-        say(`🌙 ${ord(st.night)} noite de ${S.nights}${base.at() ? ': a horda vem atrás da base!' : ' — sem rádio posto, a horda vem atrás de vocês'}`, 4)
+        say(`🌙 ${ord(st.night)} noite de ${S.nights}${base.at() ? ': a horda vem atrás da base!' : ' — sem rádio posto, a horda vem atrás de vocês'}` + (st.night >= BALANCE.zombies.brute.nightFrom ? ' 🪓👂 Labregos e Escoitadores na horda!' : ''), 4)
         sfx('gameover', { vol: 0.5 })
       }
       if (!n && st.wasNight) {

@@ -110,6 +110,23 @@ export const BALANCE = {
       retry: 3, // perdeu de vista no meio: espera isto para tentar de novo
       pulse: 25, // no cerco (à noite, com base): o grito chama um pico extra de 25 s
     },
+    // Labrego (J10): grandão; quebra barricada rápido, não cai com empurrão e derruba quem ele acerta
+    brute: {
+      chance: 0.1, max: 2, nightFrom: 2, // chance de nascer Labrego (só à noite, a partir desta noite do cerco) · no máximo ao mesmo tempo
+      hp: [26, 30], speed: [1.25, 1.45], score: 60, // vida (mín–máx) · velocidade · pontos
+      bash: 4, // dano em barricada e vidro ×4
+      hit: 14, down: 1, push: 7, // golpe: dano · segundos caído (sem controle) · empurrão
+      stun: 1.4, // golpe forte (3º da katana, granada, espingarda de perto, carro) atordoa por 1,4 s em vez de derrubar
+      radius: 0.58, // largura (zumbi normal: 0,42)
+    },
+    // Escoitador (J10): cego; ouve barulho maior que `quiet` até `hear` metros e dá um bote rápido até o som
+    listener: {
+      chance: 0.1, max: 2, nightFrom: 2, // chance de nascer Escoitador (só à noite, a partir desta noite) · no máximo ao mesmo tempo
+      hp: [6, 7], speed: [1.7, 2], score: 40, // vida · velocidade · pontos
+      hear: 25, // ouve de até 25 m
+      quiet: 3, // barulho deste tamanho para baixo ele não ouve (andar = 3; correr = 8; martelo = 12)
+      pounce: 7, pounceTime: 1.4, // bote até o som: velocidade · segundos no máximo
+    },
     attack: { reach: 0.95, hold: 0.68, lunge: 0.42, scratch: 3, bite: [6, 9], biteEvery: [1.1, 1.6], firstBite: [0.7, 1.0], car: 5 }, // alcance do bote · distância segurando · duração do bote · arranhão · mordida (mín–máx) · intervalo · 1ª mordida · dano batendo no carro
     bash: { every: [0.9, 1.3], damage: 2 }, // zumbi encostado numa barricada: uma pancada a cada 0,9–1,3 s · dano por pancada
     downDamage: 1.3, // zumbi caído leva mais dano (x1,3)

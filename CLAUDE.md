@@ -65,7 +65,7 @@ src/engine/               genérico
                           pathing.js (desvio, A*, rota dentro de casas) — chunks.js é instância (CreateChunks)
   ui/lobby.js             menu de 4 vagas (celular ou teclado); cada vaga escolhe uma opção com ◀ ▶ (choices vêm do jogo)
 src/shared/               peças prontas
-  characters/             player.js (esqueleto/animação), looks.js (visual), kits.js (armas + IK), player-movement.js
+  characters/             player.js (esqueleto/animação; p.knocked = caído por um instante), looks.js (visual), kits.js (armas + IK), player-movement.js
   creatures/zombie-model.js  humanoide articulado (12 variações), base dos zumbis; look(material), e.puff (encher o peito)
   worldgen/               mundo: layout.js (estradas), town.js, city-lots.js, buildings.js, buildings-registry.js (portas, andares),
                           generator.js (monta um chunk), map.js (descritor do chunk), climate.js, signs*.js, names.js, water*.js,
@@ -90,7 +90,7 @@ src/games/survivor/       este jogo
   siege.js                cerco (J5b): conta as noites, avisos do rádio, picos da horda, vitória no amanhecer do 3º dia
   tasks.js                "parado fazendo algo" (revistar, desmontar, barricar): cancelamento, barulho por segundo, anel de progresso
   bots.js                 ?bots=1..3: jogadores do computador SÓ PARA TESTE (contrato do celular; tecla B espalha/junta)
-  enemies/zombies.js      IA da horda: visão, audição, agarrão, renascer; Berrador (J9: e.kind = 'screamer')
+  enemies/zombies.js      IA da horda: visão, audição, agarrão, renascer; especiais (e.kind): Berrador (J9), Labrego e Escoitador (J10)
   ui/hud.js               placar da partida
 ```
 
@@ -232,6 +232,11 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
   modelo (`shared`) só conhece `look()` e `e.puff`. Viu alguém → estado `inhale` (1,5 s, peito enchendo, anel vermelho, aviso); perdeu de vista
   → desiste por `retry` s; terminou → grito: todo zumbi a 45 m persegue quem ele viu, correndo (`e.rushT`, ×1,5). No cerco à noite com base,
   `siege.boost()` faz um pico extra. Matar dá XP de especial (10). Prova feita: com `chance` 0, o replay deu igual ao do J8.
+- **Labrego e Escoitador (J10):** especiais na mesma tabela `SPECIAL` de `zombies.js` (número, cor, proporção); `special()` sorteia na ordem
+  Berrador → Labrego → Escoitador e só gasta sorteio quando o tipo pode nascer ali (por isso o replay, que só chega à 1ª noite, ficou igual).
+  Labrego: `react()` vira atordoar (stagger `brute.stun`) e nunca cai; empurrão quase não mexe; o bote vira pancada (`ctx.knock` → `p.knocked`
+  s sem controle: as regras trocam a entrada por `STILL` e o modelo do jogador deita); barricada e vidro `brute.bash`×. Escoitador: `sees()`
+  só por perto (`FEEL`); `noise()` → `hear()`: barulho > `quiet` até `max(r, hear)` m → estado `pounce` (bote até o som).
 - `window.__game` existe só no `npm run dev` (testes automáticos e depuração); a versão compilada não tem.
 - Interiores (`buildings.js`): térreo (cozinha/sala: fogão, balcão, mesa, sofá, cômoda, baú, estante), andar de cima (quarto: cama,
   guarda-roupa, baú, escrivaninha) e sótão das casas de 3 andares (caixotes, barris, sacos, baú). Lojas: prateleiras, balcão, vitrine.
@@ -239,7 +244,7 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
 
 ## Plano da sessão de fundação (30/10/2026)
 0. Verificação ✓ · 1. PR "limpeza" ✓ · 2. `docs/GAME-DESIGN.md` ✓ (decisões registradas) · 3. Fundação em 3 PRs: F1 (PR #4) · F2 (PR #5) · F3 (PR aberto).
-4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 · J9 (PRs abertos, aguardando merge em ordem) · próximo: J10 (Labrego + Escoitador). J13 (combinações) já entrou no J7b.
+4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 · J9 · J10 (PRs abertos, aguardando merge em ordem) · próximo: J11 (Santa Compaña). J13 (combinações) já entrou no J7b.
 Estrutura-alvo da Etapa 3 (criar só pastas com conteúdo real; imports só descem `games` → `shared` → `engine`, verificado por `npm run check`):
 ```
 src/engine/   {core, render, input, net, audio, world, ui}     genérico, não sabe que existem zumbis
@@ -252,6 +257,10 @@ F2 estado global → instâncias com `reset()` + caches limpos por distância (m
 ## Histórico de PRs
 - **limpeza** — `node_modules/` fora do Git; `.gitignore` aceita .glb/.gltf; `player-moviment.js` → `player-movement.js`; README sem `reflections.js`;
   `npm run smoke`; este CLAUDE.md; `docs/COMO-FUNCIONA.md`; `docs/TESTE-MANUAL.md`. Nenhuma mudança no jogo.
+- **j10-labrego-escoitador (J10)** — a partir da 2ª noite (2 de cada no máximo; aviso "🪓👂 Labregos e Escoitadores na horda!"):
+  Labrego (terroso, grandão, 26–30 de vida, lento) quebra barricada/vidro 4x mais rápido, não cai com empurrão, golpe forte só atordoa (1,4 s),
+  a pancada tira 14 e derruba o jogador 1 s. Escoitador (branco, cego) só sente quem encosta; ouve barulho maior que 3 m (andar não) de até 25 m
+  e dá um bote a 7 m/s até o som. XP 10 cada. Berrador e Escoitador ganharam brilho leve (emissive) para aparecer no escuro. Números em `balance.js · zombies.brute / listener`. Replay igual (não chega à 2ª noite).
 - **j9-berrador (J9)** — primeiro inimigo especial: Berrador (lilás, mais alto). De dia nas vilas/cidades; à noite a partir da 2ª; 1 por vez.
   Ao ver alguém, para e enche o peito por 1,5 s (inflando, anel vermelho, som, aviso "matem antes do grito"); se terminar, grita: zumbis a 45 m
   vêm correndo (×1,5 por 8 s) atrás de quem ele viu; tremor; no cerco, pico extra de 25 s. Sair da vista ou matar antes cancela. Grita de novo só
