@@ -83,6 +83,9 @@ Cada jogador ganha **XP**: abate (1; corredor 2), revistar (3), consertar barric
 
 Código em `src/games/survivor/levels.js`; nomes em `config/upgrades.js`; números em `balance.js`, seções `levels` e `upgrades`.
 
+## 🕯️ Santa Compaña (o chefe)
+À **meia-noite da última noite** chega a Santa Compaña: uma procissão de 6 almas encapuzadas com **velas acesas**, guiada pelo **Guia**, que leva a cruz. Ela contorna a base devagar, ao som de sino e cântico; são fantasmas e atravessam paredes. Enquanto houver **vela acesa**, o Guia não leva dano (a cruz brilha) e **todos os zumbis ficam 25% mais rápidos**. Quem **encosta na fila** fica lento por 2 s e **marcado** por 15 s: os zumbis o veem de longe, até através de paredes. Para vencer: **sair da casa, matar as almas** (cada uma apaga uma vela) e então **derrubar o Guia** (+50 XP para todos). Se ninguém derrubar, ela some no amanhecer. Código em `src/games/survivor/compana.js`; números em `balance.js`, seção `boss`.
+
 ## Gasolina e vilas vizinhas
 O carro **gasta gasolina** andando: o tanque leva 3 latas e 1 lata anda uns 320 m (≈ 10 km nas placas, o bastante para ir à vila vizinha e voltar). O medidor ⛽ aparece no placar e no celular de quem está dentro. Sem gasolina o motor desliga: o carro desliza, freia e vira, mas não acelera. **Abastecer:** perto do carro, com ⛽ no estoque do grupo e o tanque não cheio, **Usar** abastece 1 lata (2 s parado); senão, Usar entra no carro. **Bomba do posto:** Usar perto da bomba (3 s) dá 2 ⛽, uma vez por posto, mas dispara um **alarme** de 10 s que chama a horda a 30 m. Os carros da largada têm meia lata; um em cada quatro carros abandonados já tem 1 lata no tanque. **Longe da largada** (depois de ~120 m) os móveis têm mais chance de ter algo (até +60%) e mais remédio e munição. Código em `src/games/survivor/fuel.js`; números em `balance.js`, seções `fuel` e `loot.far`.
 

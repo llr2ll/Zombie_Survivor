@@ -22,10 +22,11 @@ import { CreateSiege } from '../siege'
 import { CreateFall } from '../fall'
 import { CreateLevels } from '../levels'
 import { CreateFuel } from '../fuel'
+import { CreateCompana } from '../compana'
 
 const MAX_PLAYERS = 4
 // números das regras: config/balance.js
-const RU = BALANCE.rules, PL = BALANCE.player, J = BALANCE.juice, XP = BALANCE.levels.xp
+const RU = BALANCE.rules, PL = BALANCE.player, J = BALANCE.juice, XP = BALANCE.levels.xp, CP = BALANCE.boss
 // movimento (shared) com os números deste jogo; a balada do Bardo também acelera
 const MOVE = { ...PL, buffSpeed: BALANCE.bard.courage.speed }
 const STILL = { mx: 0, mz: 0, ax: 0, az: 0, run: 0, fire: 0 } // sem controle (derrubado)
@@ -54,12 +55,13 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
   const say = (t, s = 2.2) => { st.msg = t; st.msgT = s }
   const alive = () => [...players.values()].filter((p) => !p.dead)
 
-  const horde = CreateHorde({ scene, fx, gore, players, hurt: (p, d) => hurt(p, d), hit: (...a) => hit(...a), night: hooks.night || (() => false), loaded: hooks.loaded || (() => true), impact, bash: (e) => bars.bash(e), entry: (e, x, z, dt) => bars.entry(e, x, z, dt), director: () => siege.director(), nightNo: () => siege.st.night, scream: (e, phase) => onScream(e, phase), knock: (p, e) => knock(p, e) })
+  const horde = CreateHorde({ scene, fx, gore, players, hurt: (p, d) => hurt(p, d), hit: (...a) => hit(...a), night: hooks.night || (() => false), loaded: hooks.loaded || (() => true), impact, bash: (e) => bars.bash(e), entry: (e, x, z, dt) => bars.entry(e, x, z, dt), director: () => siege.director(), nightNo: () => siege.st.night, scream: (e, phase) => onScream(e, phase), knock: (p, e) => knock(p, e), haste: () => compana.haste() })
   const enemies = horde.list
 
   // dano num zumbi (todas as fontes: tiro, espada, magia, onda, pisão, atropelamento); p = quem leva o crédito
   function hit(e, dmg, p, kx = 0, kz = 0) {
     if (e.dying > 0) return
+    if (e.boss) { if (compana.damage(e, dmg, p) && p) p.kills++; return } // alma ou Guia da Santa Compaña
     if (horde.damage(e, dmg, kx, kz, p)) { st.score += e.score; if (p) { p.kills++; levels.add(p, e.kind ? XP.special : e.fast ? XP.runner : XP.kill) } }
   }
   // barulho das habilidades: chama a horda e desenha o anel até onde o som chegou (no máx. 1 por lugar a cada pouco)
@@ -74,7 +76,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     ringT.set(k, st.time + R.every)
     fx.ring(x, GroundAt(x, z), z, R.color, 0.6, r, R.time, { alpha: R.alpha })
   }
-  const abilities = CreateAbilities({ scene, fx, wfx, colliders, enemies, players, hit, noise, impact, night: hooks.night || (() => false) })
+  const abilities = CreateAbilities({ scene, fx, wfx, colliders, enemies, players, hit, noise, impact, night: hooks.night || (() => false), others: () => compana.list })
   const tasks = CreateTasks({ scene, noise, sfx }) // parado fazendo algo (revistar, desmontar, barricar)
   const levels = CreateLevels({ scene, fx, players, say, sfx, move: MOVE }) // XP, níveis e melhorias
   const xp = (p, n) => levels.add(p, n)
@@ -82,6 +84,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
   const bars = CreateBarricades({ scene, fx, inv: loot.inv, say, sfx, tasks, impact, xp, solo: () => players.size === 1 }) // barricadas em portas e janelas (Usar por dentro)
   const base = CreateBase({ scene, say, sfx }) // rádio: a casa onde ele está é a base
   const siege = CreateSiege({ clock: hooks.clock, base, say, sfx }) // noites, picos da horda contra a base, vitória
+  const compana = CreateCompana({ scene, fx, players, base, say, sfx, xp: (p, n) => levels.add(p, n), score: (n) => { st.score += n }, impact }) // o chefe (J11)
   const fuel = CreateFuel({ vehicles, inv: loot.inv, tasks, say, sfx, noise }) // gasolina: gastar, abastecer, bomba do posto
   const fall = CreateFall({ players, tasks, inv: loot.inv, fx, say, sfx }) // caído: levantar com ajuda, remédio ou no amanhecer
 
@@ -97,7 +100,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     const p = {
       id, name, idx, cls, model, ring, x: (idx - 1.5) * 1.3, z: 0, vx: 0, vz: 0, aimAngle: Math.PI, facing: Math.PI, turn: 0, speed: 0, aiming: false, firing: false,
       jy: 0, vy: 0, gy: 0, y: 0, lv: 0, stamina: 100, tired: false, running: false, cool: 0, kills: 0, lastIn: performance.now(),
-      dead: false, out: false, downT: 0, knocked: 0, vehicle: null, seat: null, pad: 0, hurtCar: 0, held: 0, struggle: 0, shoveCd: 0,
+      dead: false, out: false, downT: 0, knocked: 0, chill: 0, marked: 0, vehicle: null, seat: null, pad: 0, hurtCar: 0, held: 0, struggle: 0, shoveCd: 0,
       input: { mx: 0, mz: 0, ax: 0, az: 0, run: 0 },
     }
     InitClassState(p)
@@ -188,12 +191,13 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     st.over = true
     st.overT = RU.resultTime
     const kills = [...players.values()].reduce((n, p) => n + p.kills, 0)
-    st.result = { win, nights: win ? BALANCE.siege.nights : Math.max(0, siege.st.night - (siege.st.wasNight ? 1 : 0)), of: BALANCE.siege.nights, time: clock(st.time), kills, score: st.score, bars: bars.list().length, broken: bars.broken().length, loot: loot.text(), base: !!base.at(), levels: [...players.values()].map((p) => `${p.cls.icon} ${p.name} Nv ${p.level}`) }
+    st.result = { win, nights: win ? BALANCE.siege.nights : Math.max(0, siege.st.night - (siege.st.wasNight ? 1 : 0)), of: BALANCE.siege.nights, time: clock(st.time), kills, score: st.score, bars: bars.list().length, broken: bars.broken().length, loot: loot.text(), base: !!base.at(), levels: [...players.values()].map((p) => `${p.cls.icon} ${p.name} Nv ${p.level}`), boss: compana.result() }
     st.msg = ''; st.msgT = 0 // o painel de resultado (hud.js) mostra tudo
     sfx(win ? 'supply' : 'gameover')
   }
   function clearAll() {
     siege.clear()
+    compana.clear()
     fall.clear()
     fuel.clear()
     levels.clear()
@@ -219,7 +223,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     vehicles.clear()
     Object.assign(st, { time: 0, score: 0, over: false, stopT: 0, result: null })
     for (const p of players.values()) {
-      Object.assign(p, { dead: false, stamina: 100, tired: false, jy: 0, vy: 0, lv: 0, gy: undefined, x: (p.idx - 1.5) * 1.3, z: 0, vx: 0, vz: 0, held: 0, struggle: 0, out: false, downT: 0, knocked: 0 })
+      Object.assign(p, { dead: false, stamina: 100, tired: false, jy: 0, vy: 0, lv: 0, gy: undefined, x: (p.idx - 1.5) * 1.3, z: 0, vx: 0, vz: 0, held: 0, struggle: 0, out: false, downT: 0, knocked: 0, chill: 0, marked: 0 })
       InitClassState(p)
       levels.init(p)
       if (p.weapon) p.model.setWeapon(p.weapon)
@@ -236,7 +240,15 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
       if (now - p.lastIn > 1500 && p.id !== 'local') p.input.mx = p.input.mz = p.input.ax = p.input.az = 0
       if (p.hurtCar) { hurt(p, p.hurtCar); p.hurtCar = 0 }
       if (p.knocked > 0) p.knocked -= dt
-      if (!p.dead && !p.vehicle) { const inp = p.input; if (p.knocked > 0) p.input = STILL; UpdatePlayerMovement(p, dt, colliders, p.move || MOVE); p.input = inp } // derrubado: não anda nem ataca
+      if (p.chill > 0) p.chill -= dt // tocou a Santa Compaña: lento
+      if (p.marked > 0) p.marked -= dt // e marcado (zumbis o veem de longe)
+      if (!p.dead && !p.vehicle) {
+        const inp = p.input
+        if (p.knocked > 0) p.input = STILL // derrubado: não anda nem ataca
+        else if (p.chill > 0) p.input = { ...inp, mx: inp.mx * CP.slow, mz: inp.mz * CP.slow, run: 0 }
+        UpdatePlayerMovement(p, dt, colliders, p.move || MOVE)
+        p.input = inp
+      }
       else if (p.dead) { p.gy = GroundAt(p.x, p.z); p.jy = 0; p.y = p.gy; p.model.root.position.set(p.x, p.y, p.z); p.speed = 0; p.vx = p.vz = 0; p.aiming = p.firing = false }
       abilities.tick(p, dt)
       tasks.tick(p, dt)
@@ -253,6 +265,8 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
       st.time += dt
       fall.tick(dt)
       const ev = siege.update()
+      if (ev === 'boss') compana.start() // meia-noite da última noite
+      if (ev === 'dawn' || ev === 'win') compana.dawn() // amanheceu: a procissão some
       if (ev === 'dawn') {
         const list = alive()
         for (const p of fall.dawn()) list.length ? revive(p, list) : fall.rise(p)
@@ -279,6 +293,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     bars.update(dt)
     base.update(dt)
     levels.update(dt)
+    compana.update(dt)
     fuel.update(dt)
     tasks.update(list)
     fx.update(dt)
@@ -298,7 +313,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
 
   // estoque do grupo + base marcada (placar e celular)
   const invText = () => loot.text() + (base.at() ? '  📻' : '')
-  return { players, enemies, vehicles, loot, bars, base, siege, invText, st, clear, addPlayer, removePlayer, setInput, act, update, alive, zombies: () => horde.alive(), info: (p) => abilities.info(p), hurt, levels, fuel }
+  return { players, enemies, vehicles, loot, bars, base, siege, invText, st, clear, addPlayer, removePlayer, setInput, act, update, alive, zombies: () => horde.alive(), info: (p) => abilities.info(p), hurt, levels, fuel, compana }
 }
 
 export const clock = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`

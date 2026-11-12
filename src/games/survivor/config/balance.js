@@ -190,6 +190,20 @@ export const BALANCE = {
     wheel: { window: 1.5, damage: 2 }, // Fogo na roda: zumbi empurrado pela onda há até 1,5 s leva ×2 do meteoro
   },
 
+  // ---------------------------------------------------------------- Santa Compaña (J11): o chefe, à meia-noite da última noite
+  // Procissão de almas com velas, guiada pelo Guia (com a cruz), contornando a base. Vela acesa = Guia sem dano e zumbis mais rápidos.
+  boss: {
+    souls: 6, // almas com vela
+    soulHp: 6, guideHp: 60, // vida de cada alma · do Guia (só leva dano com todas as velas apagadas)
+    speed: 1.1, // metros por segundo da procissão
+    gap: 1.8, // distância entre as almas na fila
+    ring: 5, // distância da procissão até a parede da base (sem base: 12 m em volta do grupo)
+    haste: 1.25, // zumbis ×1,25 mais rápidos enquanto houver vela acesa
+    touch: 1.3, chill: 2, slow: 0.5, // encostar na fila (m): fica lento (×0,5, sem correr) por 2 s
+    mark: 15, markSight: 30, // e "marcado" por 15 s: os zumbis o veem a até 30 m (sem cone nem parede)
+    xp: 50, score: 300, // derrubar o Guia: XP para cada jogador · pontos
+  },
+
   // ---------------------------------------------------------------- gasolina (J8)
   // O carro gasta andando; sem gasolina o motor não acelera. Usar perto do carro com ⛽ no estoque abastece (tanque não cheio).
   fuel: {

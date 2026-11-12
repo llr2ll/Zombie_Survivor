@@ -229,6 +229,8 @@ const S = {
   start: [0, 1.6, (o, t) => { arp(o, t, [50, 57, 62, 66, 69, 74], 0.07, 0.5); tone(o, t, { f: 80, f1: 40, dur: 0.6, vol: 0.6 }); hiss(o, t + 0.4, { dur: 1, a: 0.05, vol: 0.2, type: 'lowpass', f: 600, brown: true }) }],
   gameover: [0, 3.2, (o, t) => { [69, 65, 62, 57].forEach((m, i) => { pluck(o, t + i * 0.42, midi(m), 0.55, 0.998); tone(o, t + i * 0.42, { type: 'triangle', f: midi(m - 12), dur: 0.5, vol: 0.08 }) }); tone(o, t + 1.6, { f: 55, f1: 35, dur: 1.6, a: 0.1, vol: 0.5 }) }],
   alarm: [60, 1.6, (o, t) => { for (let i = 0; i < 6; i++) tone(o, t + i * 0.26, { type: 'square', f: i % 2 ? 740 : 988, dur: 0.22, vol: 0.18 }) }], // alarme (bomba do posto)
+  knell: [70, 3.2, (o, t) => { bell(o, t, 98, 0.5, 3); bell(o, t, 147, 0.2, 2.4) }], // sino de finados (Santa Compaña)
+  chant: [45, 3.4, (o, t) => { for (const f of [87, 110, 131]) vocal(o, t, { f, f1: f * 0.98, dur: 3, a: 0.8, vol: 0.18, form: [420, 760], rough: 2, breath: 0.4, wob: 3, depth: 0.03 }) }], // cântico grave da procissão
   levelup: [0, 1.6, (o, t) => { [67, 72, 76, 79, 84].forEach((m, i) => bell(o, t + i * 0.08, midi(m), 0.22, 0.7)) }], // subir de nível
   supply: [0, 1, (o, t) => { thud(o, t, 0.6); [74, 79, 83].forEach((m, i) => bell(o, t + 0.12 + i * 0.08, midi(m), 0.18, 0.5)) }],
 }

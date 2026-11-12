@@ -86,6 +86,7 @@ src/games/survivor/       este jogo
   base.js                 rádio (J5a): a casa onde ele está é a base (o cerco vai atrás dela)
   levels.js               XP e níveis (J7a): ganhar XP, subir de nível (luz, som, invulnerável), sortear/escolher cartas; has(p, id)
   fall.js                 queda (J6): 40 s no chão, levantar (aliado 3 s / remédio / solo sozinho), fora até o amanhecer
+  compana.js              Santa Compaña (J11): o chefe da meia-noite da última noite (procissão, velas, Guia, marcado)
   fuel.js                 gasolina (J8): carro gasta andando, abastecer com ⛽, bomba do posto (alarme), gasolina inicial dos carros
   siege.js                cerco (J5b): conta as noites, avisos do rádio, picos da horda, vitória no amanhecer do 3º dia
   tasks.js                "parado fazendo algo" (revistar, desmontar, barricar): cancelamento, barulho por segundo, anel de progresso
@@ -237,6 +238,13 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
   Labrego: `react()` vira atordoar (stagger `brute.stun`) e nunca cai; empurrão quase não mexe; o bote vira pancada (`ctx.knock` → `p.knocked`
   s sem controle: as regras trocam a entrada por `STILL` e o modelo do jogador deita); barricada e vidro `brute.bash`×. Escoitador: `sees()`
   só por perto (`FEEL`); `noise()` → `hear()`: barulho > `quiet` até `max(r, hear)` m → estado `pounce` (bote até o som).
+- **Santa Compaña (J11):** `siege.update()` devolve `'boss'` quando o relógio passa da meia-noite (0,5 → 0) na última noite (uma vez por
+  partida, `st.boss`). `compana.js` cria Guia + almas (fantasmas: andam num círculo em volta da casa-base, raio = meia diagonal + `boss.ring`;
+  sem base, 12 m em volta do grupo). Não estão na lista da horda: as habilidades miram em `foes()` = zumbis + `ctx.others()` (a lista da
+  Compaña), e `hit()` desvia `e.boss` para `compana.damage`. Campos de "zumbi" que as habilidades leem: x, z, lv, radius, dying, hp, maxHp,
+  slowT, group, `ice: {}` (não desenha gelo). Vela acesa: `compana.haste()` → `HASTE` em `zombies.js` multiplica a velocidade de todos.
+  Tocar a fila: `p.chill` (comando ×`boss.slow`, sem correr) e `p.marked` (`sees()` vê a até `markSight` m, sem cone nem parede).
+  Amanhecer: some (`'escapou'`). Resultado em `st.result.boss`. Replay igual (não chega à meia-noite da 2ª noite).
 - `window.__game` existe só no `npm run dev` (testes automáticos e depuração); a versão compilada não tem.
 - Interiores (`buildings.js`): térreo (cozinha/sala: fogão, balcão, mesa, sofá, cômoda, baú, estante), andar de cima (quarto: cama,
   guarda-roupa, baú, escrivaninha) e sótão das casas de 3 andares (caixotes, barris, sacos, baú). Lojas: prateleiras, balcão, vitrine.
@@ -244,7 +252,7 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
 
 ## Plano da sessão de fundação (30/10/2026)
 0. Verificação ✓ · 1. PR "limpeza" ✓ · 2. `docs/GAME-DESIGN.md` ✓ (decisões registradas) · 3. Fundação em 3 PRs: F1 (PR #4) · F2 (PR #5) · F3 (PR aberto).
-4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 · J9 · J10 (PRs abertos, aguardando merge em ordem) · próximo: J11 (Santa Compaña). J13 (combinações) já entrou no J7b.
+4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 · J9 · J10 · J11 (PRs abertos, aguardando merge em ordem) · próximo: J12 (save local + progressão). J13 (combinações) já entrou no J7b.
 Estrutura-alvo da Etapa 3 (criar só pastas com conteúdo real; imports só descem `games` → `shared` → `engine`, verificado por `npm run check`):
 ```
 src/engine/   {core, render, input, net, audio, world, ui}     genérico, não sabe que existem zumbis
@@ -257,6 +265,10 @@ F2 estado global → instâncias com `reset()` + caches limpos por distância (m
 ## Histórico de PRs
 - **limpeza** — `node_modules/` fora do Git; `.gitignore` aceita .glb/.gltf; `player-moviment.js` → `player-movement.js`; README sem `reflections.js`;
   `npm run smoke`; este CLAUDE.md; `docs/COMO-FUNCIONA.md`; `docs/TESTE-MANUAL.md`. Nenhuma mudança no jogo.
+- **j11-santa-compana (J11)** — o chefe: à meia-noite da última noite, procissão (Guia com a cruz + 6 almas com velas, sino e cântico) contorna
+  a base. Vela acesa: Guia sem dano (a cruz brilha; aviso) e zumbis ×1,25. Encostar na fila: lento 2 s e marcado 15 s (zumbis veem a 30 m).
+  Apagar as velas (6 de vida cada) → Guia vulnerável (60) → derrubado: +50 XP para todos, +300 pontos. Some no amanhecer. Placar e resultado
+  mostram a Compaña. Luta completa já no Cerco 1 (decisão do dono; a versão "passando ao longe" fica para a demo). Replay igual.
 - **j10-labrego-escoitador (J10)** — a partir da 2ª noite (2 de cada no máximo; aviso "🪓👂 Labregos e Escoitadores na horda!"):
   Labrego (terroso, grandão, 26–30 de vida, lento) quebra barricada/vidro 4x mais rápido, não cai com empurrão, golpe forte só atordoa (1,4 s),
   a pancada tira 14 e derruba o jogador 1 s. Escoitador (branco, cego) só sente quem encosta; ouve barulho maior que 3 m (andar não) de até 25 m

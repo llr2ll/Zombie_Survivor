@@ -29,6 +29,8 @@ const BITE = Z.attack.bite, SCRATCH = Z.attack.scratch
 const SPAWN_MIN = Z.spawn.min, SPAWN_MAX = Z.spawn.max, FAR = Z.spawn.far, MAX_ZOMBIES = Z.max, CORPSE_T = Z.corpseTime, MAX_CORPSES = Z.maxCorpses
 const BLOOD = 0x6a1612
 const SC = Z.screamer, BR = Z.brute, LI = Z.listener
+const MARK_SIGHT = BALANCE.boss.markSight
+let HASTE = 1 // multiplicador de velocidade de toda a horda (Santa Compaña)
 // especiais (J9, J10): números · cor do corpo · proporção (largura, altura)
 const SPECIAL = {
   screamer: { c: SC, mat: new THREE.MeshLambertMaterial({ vertexColors: true, color: 0xd9b0ff, emissive: 0x2a1640 }), s: [0.9, 1.18] }, // Berrador: lilás (brilha um pouco), alto e magro
@@ -45,7 +47,7 @@ const sameLv = (a, b) => (a.lv || 0) === (b.lv || 0)
 //        entry(e, x, z, dt) (ir pela janela? null = normal · {x, z} = ande até aqui · {hold} = parado na janela),
 //        director() (cerco: { x, z (base), extra, share, ring } à noite com base, senão null),
 //        nightNo() (qual noite do cerco), scream(e, fase) (Berrador: 'inhale' começou a encher o peito · 'yell' gritou),
-//        knock(p, e) (Labrego acertou: derruba o jogador) }
+//        knock(p, e) (Labrego acertou: derruba o jogador), haste() (velocidade da horda ×; Santa Compaña) }
 export function CreateHorde(ctx) {
   const { scene, fx, gore } = ctx
   const list = []
@@ -156,6 +158,7 @@ export function CreateHorde(ctx) {
   function sees(e, p, range) {
     const dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz)
     if (e.kind === 'listener') return d < FEEL && sameLv(e, p) // cego: só sente quem está encostado
+    if (p.marked > 0 && d < MARK_SIGHT && sameLv(e, p)) return true // marcado pela Santa Compaña: visto de longe, através de tudo
     if (d > range || !sameLv(e, p)) return false
     if (d < FEEL) return true
     if (Math.abs(wrap(Math.atan2(dx, dz) - e.heading)) > FOV) return false
@@ -330,8 +333,9 @@ export function CreateHorde(ctx) {
     if (e.imp > 0) react(e)
     e.slowT = Math.max(0, e.slowT - dt)
     if (e.freezeT > 0) { e.freezeT -= dt; e.cool = Math.max(e.cool, 0.2); if (e.state === 'grab') release(e) } // congelado (Gelo profundo): parado, sem atacar
-    const slow = e.freezeT > 0 ? 0 : e.slowT > 0 ? Z.iceSlow : 1
-    if (e.ice) e.ice.visible = slow < 1
+    const ice = e.freezeT > 0 ? 0 : e.slowT > 0 ? Z.iceSlow : 1
+    if (e.ice) e.ice.visible = ice < 1
+    const slow = ice * HASTE // Santa Compaña com vela acesa: todos mais rápidos
     if ((e.senseT -= dt) <= 0 && (e.state === 'wander' || e.state === 'investigate' || e.state === 'chase' || e.state === 'feed')) {
       e.senseT = rnd(0.22, 0.34)
       sense(e, players, range)
@@ -504,6 +508,7 @@ export function CreateHorde(ctx) {
     const players = [...ctx.players.values()], alive = players.filter((p) => !p.dead)
     st.time += dt
     const range = ctx.night() ? SIGHT.night : SIGHT.day
+    HASTE = ctx.haste ? ctx.haste() : 1
     const dir = ctx.director ? ctx.director() : null
     for (let i = list.length - 1; i >= 0; i--) if (step(list[i], dt, players, range)) remove(i)
     // cerco: quem é do cerco e ficou à toa volta a atacar a base
