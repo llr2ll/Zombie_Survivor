@@ -22,6 +22,9 @@ const kindOf = (key) => {
   return kindCache.get(key)
 }
 const randInt = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1))
+// longe da largada (vilas vizinhas): 0 até 120 m, depois cresce até far.max
+const farOf = (s) => Math.min(1, Math.max(0, (Math.hypot(s.x, s.z) - L.far.from) / L.far.span)) * L.far.max
+const richer = (w, k) => (k > 0 ? { ...w, remedio: w.remedio * (1 + L.far.rich * k), municao: w.municao * (1 + L.far.rich * k) } : w)
 function pick(weights) {
   let r = Math.random() * Object.values(weights).reduce((s, w) => s + w, 0)
   for (const [k, w] of Object.entries(weights)) if ((r -= w) < 0) return k
@@ -72,8 +75,9 @@ export function CreateLoot({ scene, fx, players, say, sfx, tasks, xp = () => {} 
     if (a === 'search') {
       done.set(s.id, 1)
       xp(p, BALANCE.levels.xp.search)
-      if (Math.random() >= L.chance * (players.size === 1 ? BALANCE.solo.loot : 1)) { say(`${p.name}: ${k.name} sem nada`, 1.4); sfx('ui', { f: 300 }); return }
-      give(p, pick(L.rooms[s.room] || L.rooms.terreo))
+      const far = farOf(s) // vilas vizinhas: mais saque, mais remédio e munição
+      if (Math.random() >= L.chance * (players.size === 1 ? BALANCE.solo.loot : 1) * (1 + far)) { say(`${p.name}: ${k.name} sem nada`, 1.4); sfx('ui', { f: 300 }); return }
+      give(p, pick(richer(L.rooms[s.room] || L.rooms.terreo, far)))
       fx.burst(s.fx, y, s.fz, 0xffe08a, 8, 3, 0.5)
     } else {
       done.set(s.id, 2)

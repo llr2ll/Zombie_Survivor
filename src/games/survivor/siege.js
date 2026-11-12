@@ -9,17 +9,18 @@ const ord = (n) => `${n}ª`
 
 // ctx: { clock() (hora do dia, 0..1; sem relógio = sem cerco), base (base.js), say(texto, s), sfx(nome, opções) }
 export function CreateSiege({ clock, base, say, sfx }) {
-  const st = { night: 0, wasNight: false, warned: false, done: false, pulse: null }
+  const st = { night: 0, wasNight: false, warned: false, done: false, pulse: null, boost: null, boss: false, lastT: 0 } // boost: pico extra do grito do Berrador · boss: Santa Compaña já veio
   return {
     st,
-    // a cada quadro: conta as noites, avisa, acha o pico. Devolve 'dawn' em cada amanhecer e 'win' no amanhecer depois da última noite
+    // a cada quadro: conta as noites, avisa, acha o pico. Devolve 'dawn' em cada amanhecer, 'boss' à meia-noite da última noite
+    // e 'win' no amanhecer depois da última noite
     update() {
       if (!clock || st.done) return null
       const t = clock(), n = isNight(t)
       let ev = null
       if (n && !st.wasNight) {
         st.night++
-        say(`🌙 ${ord(st.night)} noite de ${S.nights}${base.at() ? ': a horda vem atrás da base!' : ' — sem rádio posto, a horda vem atrás de vocês'}`, 4)
+        say(`🌙 ${ord(st.night)} noite de ${S.nights}${base.at() ? ': a horda vem atrás da base!' : ' — sem rádio posto, a horda vem atrás de vocês'}` + (st.night >= BALANCE.zombies.brute.nightFrom ? ' 🪓👂 Labregos e Escoitadores na horda!' : ''), 4)
         sfx('gameover', { vol: 0.5 })
       }
       if (!n && st.wasNight) {
@@ -34,7 +35,11 @@ export function CreateSiege({ clock, base, say, sfx }) {
       }
       if (n) st.warned = false
       st.wasNight = n
-      st.pulse = n ? S.pulses.find((p) => inside(t, p.from, p.to)) || null : null
+      if (st.boost && (!n || !inside(t, st.boost.from, st.boost.to))) st.boost = null
+      st.pulse = n ? S.pulses.find((p) => inside(t, p.from, p.to)) || st.boost : null
+      // meia-noite da última noite: a Santa Compaña
+      if (n && st.night >= S.nights && !st.boss && t < 0.5 && st.lastT >= 0.5) { st.boss = true; ev = 'boss' }
+      st.lastT = t
       return ev
     },
     // para a horda (à noite, com base): { x, z (base), extra (zumbis a mais), share (fração que nasce na base), ring } · senão null
@@ -50,6 +55,12 @@ export function CreateSiege({ clock, base, say, sfx }) {
       if (!clock) return ''
       return st.wasNight ? `🌙 Noite ${st.night}/${S.nights}${st.pulse ? ' · 🧟 pico!' : ''}` : `☀ Dia ${st.night + 1}`
     },
-    clear() { Object.assign(st, { night: 0, wasNight: false, warned: false, done: false, pulse: null }) },
+    // grito do Berrador à noite, com base: pico extra por alguns segundos
+    boost() {
+      if (!clock || !st.wasNight || !base.at()) return
+      const t = clock()
+      st.boost = { from: t, to: (t + BALANCE.zombies.screamer.pulse / D.seconds) % 1 }
+    },
+    clear() { Object.assign(st, { night: 0, wasNight: false, warned: false, done: false, pulse: null, boost: null, boss: false, lastT: 0 }) },
   }
 }
