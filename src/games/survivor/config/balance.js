@@ -160,6 +160,19 @@ export const BALANCE = {
     wheel: { window: 1.5, damage: 2 }, // Fogo na roda: zumbi empurrado pela onda há até 1,5 s leva ×2 do meteoro
   },
 
+  // ---------------------------------------------------------------- gasolina (J8)
+  // O carro gasta andando; sem gasolina o motor não acelera. Usar perto do carro com ⛽ no estoque abastece (tanque não cheio).
+  fuel: {
+    tank: 3, // latas que cabem no tanque
+    perCan: 320, // metros que o carro anda com 1 lata (≈ 10 km nas placas: ir à vila vizinha e voltar)
+    start: 0.5, // latas nos carros da largada
+    startArea: 30, // carros a até 30 m da largada contam como "da largada"
+    found: { chance: 0.25, full: 1, little: [0.05, 0.3] }, // carro abandonado: chance de já ter 1 lata no tanque · senão, um restinho (mín–máx)
+    low: 0.25, // aviso "pouca gasolina" abaixo disso
+    refuel: { time: 2, noise: 3 }, // abastecer com 1 ⛽ do estoque: segundos parado · barulho
+    pump: { cans: 2, time: 3, reach: 1.3, alarm: 30, ring: 10 }, // bomba do posto (uma vez por posto): latas · segundos · alcance · barulho do alarme (m) · segundos tocando
+  },
+
   // ---------------------------------------------------------------- jogando sozinho (J6)
   solo: {
     medkit: 1, // remédios no estoque no começo da partida
@@ -184,6 +197,7 @@ export const BALANCE = {
       loja: { tabuas: 30, remedio: 30, municao: 30, gasolina: 5, raro: 5 }, // lojas
     },
     planks: [1, 2], // tábuas por achado (mín–máx)
+    far: { from: 120, span: 300, max: 0.6, rich: 2 }, // longe da largada (vilas vizinhas): depois de 120 m a chance de achar cresce até +60% (aos 420 m); remédio e munição ficam até ×(1 + 2 × 0,6) mais comuns
     ammo: { carbine: 20, shotgun: 6 }, // munição achada vai direto para cada Atirador do grupo (até rules.ammoCap); sem Atirador, fica guardada
   },
 
