@@ -97,6 +97,36 @@ export const BALANCE = {
     speed: { wander: 0.6, investigate: 1.2 }, // velocidade vagando · indo ver um barulho (perseguindo: ver normal/runner)
     normal: { hp: [7, 9.5], speed: [1.6, 2.15], score: 10 }, // zumbi normal: vida (mín–máx) · velocidade perseguindo · pontos
     runner: { hp: [4.5, 5.5], speed: [3.0, 3.5], score: 15, chance: 0.08, rampSeconds: 1200, chanceMax: 0.3 }, // corredor; chance de nascer corredor sobe 100% a cada 1200 s (≈ +5%/min) até 30%
+    // Berrador (J9): ao ver alguém, para e enche o peito; se terminar, grita e a horda em volta vem correndo
+    screamer: {
+      chance: 0.07, // chance de um zumbi nascer Berrador (de dia só em vilas e cidades; à noite só a partir de nightFrom)
+      max: 1, // no máximo ao mesmo tempo
+      nightFrom: 2, // à noite, aparece a partir desta noite do cerco
+      hp: [8, 9], speed: [1.6, 1.9], score: 40, // vida (mín–máx) · velocidade · pontos
+      inhale: 1.5, // segundos enchendo o peito (dá para matar ou sair da vista dele)
+      radius: 45, // o grito chama todos os zumbis até esta distância
+      rush: 1.5, rushTime: 8, // quem ouve o grito vem correndo: velocidade ×1,5 por 8 s
+      again: 40, // segundos até poder gritar de novo
+      retry: 3, // perdeu de vista no meio: espera isto para tentar de novo
+      pulse: 25, // no cerco (à noite, com base): o grito chama um pico extra de 25 s
+    },
+    // Labrego (J10): grandão; quebra barricada rápido, não cai com empurrão e derruba quem ele acerta
+    brute: {
+      chance: 0.1, max: 2, nightFrom: 2, // chance de nascer Labrego (só à noite, a partir desta noite do cerco) · no máximo ao mesmo tempo
+      hp: [26, 30], speed: [1.25, 1.45], score: 60, // vida (mín–máx) · velocidade · pontos
+      bash: 4, // dano em barricada e vidro ×4
+      hit: 14, down: 1, push: 7, // golpe: dano · segundos caído (sem controle) · empurrão
+      stun: 1.4, // golpe forte (3º da katana, granada, espingarda de perto, carro) atordoa por 1,4 s em vez de derrubar
+      radius: 0.58, // largura (zumbi normal: 0,42)
+    },
+    // Escoitador (J10): cego; ouve barulho maior que `quiet` até `hear` metros e dá um bote rápido até o som
+    listener: {
+      chance: 0.1, max: 2, nightFrom: 2, // chance de nascer Escoitador (só à noite, a partir desta noite) · no máximo ao mesmo tempo
+      hp: [6, 7], speed: [1.7, 2], score: 40, // vida · velocidade · pontos
+      hear: 25, // ouve de até 25 m
+      quiet: 3, // barulho deste tamanho para baixo ele não ouve (andar = 3; correr = 8; martelo = 12)
+      pounce: 7, pounceTime: 1.4, // bote até o som: velocidade · segundos no máximo
+    },
     attack: { reach: 0.95, hold: 0.68, lunge: 0.42, scratch: 3, bite: [6, 9], biteEvery: [1.1, 1.6], firstBite: [0.7, 1.0], car: 5 }, // alcance do bote · distância segurando · duração do bote · arranhão · mordida (mín–máx) · intervalo · 1ª mordida · dano batendo no carro
     bash: { every: [0.9, 1.3], damage: 2 }, // zumbi encostado numa barricada: uma pancada a cada 0,9–1,3 s · dano por pancada
     downDamage: 1.3, // zumbi caído leva mais dano (x1,3)
@@ -118,16 +148,22 @@ export const BALANCE = {
     },
     ammoCap: { carbine: 180, shotgun: 48 }, // munição máxima na reserva do Atirador (munição só vem do saque)
     resultTime: 12, // segundos mostrando o resultado (vitória/derrota) antes de voltar ao menu
+    findTime: 10, // segundos mostrando a história de um achado raro na tela
     vehicle: { carDamage: 0.9, playerDamage: 0.35 }, // dentro do carro: o carro leva 90% do dano e o jogador só 35%
   },
 
   // ---------------------------------------------------------------- XP, níveis e melhorias (J7)
   // Cada jogador ganha XP; ao subir de nível escolhe 1 de 3 melhorias (no celular; no teclado: 1, 2 ou 3). A partida não pausa.
   levels: {
-    xp: { kill: 1, runner: 2, search: 3, repair: 2, night: 20 }, // XP por: abate · abate de corredor · revistar · consertar barricada · noite sobrevivida (todos)
+    xp: { kill: 1, runner: 2, special: 10, search: 3, repair: 2, night: 20 }, // XP por: abate · abate de corredor · abate de especial (Berrador) · revistar · consertar barricada · noite sobrevivida (todos)
     need: [20, 30, 40, 55, 70, 90, 110], // XP para cada nível seguinte (1→2, 2→3…); depois do último, repete o último
     cards: 3, // quantas melhorias aparecem para escolher
     invulnerable: 3, // segundos invulnerável ao subir de nível (para escolher em paz)
+  },
+  // Nível da paróquia (J12a, fica salvo no PC): o XP de cada partida (média dos jogadores, mesmo perdendo) soma.
+  // Cada nível libera mais melhorias no sorteio (quais: `unlock` em config/upgrades.js).
+  account: {
+    need: [150, 200, 250, 300, 350, 400, 500], // XP para cada nível seguinte (1→2, 2→3…); depois do último, repete o último
   },
   upgrades: { // números das melhorias (nomes e textos em config/upgrades.js)
     lungs: 1.4, // Pulmão de atleta: fôlego ×1,4 (gasta menos ao correr e nadar)
@@ -160,6 +196,33 @@ export const BALANCE = {
     wheel: { window: 1.5, damage: 2 }, // Fogo na roda: zumbi empurrado pela onda há até 1,5 s leva ×2 do meteoro
   },
 
+  // ---------------------------------------------------------------- Santa Compaña (J11): o chefe, à meia-noite da última noite
+  // Procissão de almas com velas, guiada pelo Guia (com a cruz), contornando a base. Vela acesa = Guia sem dano e zumbis mais rápidos.
+  boss: {
+    souls: 6, // almas com vela
+    soulHp: 6, guideHp: 60, // vida de cada alma · do Guia (só leva dano com todas as velas apagadas)
+    speed: 1.1, // metros por segundo da procissão
+    gap: 1.8, // distância entre as almas na fila
+    ring: 5, // distância da procissão até a parede da base (sem base: 12 m em volta do grupo)
+    haste: 1.25, // zumbis ×1,25 mais rápidos enquanto houver vela acesa
+    touch: 1.3, chill: 2, slow: 0.5, // encostar na fila (m): fica lento (×0,5, sem correr) por 2 s
+    mark: 15, markSight: 30, // e "marcado" por 15 s: os zumbis o veem a até 30 m (sem cone nem parede)
+    xp: 50, score: 300, // derrubar o Guia: XP para cada jogador · pontos
+  },
+
+  // ---------------------------------------------------------------- gasolina (J8)
+  // O carro gasta andando; sem gasolina o motor não acelera. Usar perto do carro com ⛽ no estoque abastece (tanque não cheio).
+  fuel: {
+    tank: 3, // latas que cabem no tanque
+    perCan: 320, // metros que o carro anda com 1 lata (≈ 10 km nas placas: ir à vila vizinha e voltar)
+    start: 0.5, // latas nos carros da largada
+    startArea: 30, // carros a até 30 m da largada contam como "da largada"
+    found: { chance: 0.25, full: 1, little: [0.05, 0.3] }, // carro abandonado: chance de já ter 1 lata no tanque · senão, um restinho (mín–máx)
+    low: 0.25, // aviso "pouca gasolina" abaixo disso
+    refuel: { time: 2, noise: 3 }, // abastecer com 1 ⛽ do estoque: segundos parado · barulho
+    pump: { cans: 2, time: 3, reach: 1.3, alarm: 30, ring: 10 }, // bomba do posto (uma vez por posto): latas · segundos · alcance · barulho do alarme (m) · segundos tocando
+  },
+
   // ---------------------------------------------------------------- jogando sozinho (J6)
   solo: {
     medkit: 1, // remédios no estoque no começo da partida
@@ -184,6 +247,8 @@ export const BALANCE = {
       loja: { tabuas: 30, remedio: 30, municao: 30, gasolina: 5, raro: 5 }, // lojas
     },
     planks: [1, 2], // tábuas por achado (mín–máx)
+    rareCard: 1, // ⭐ achado raro: entra na coleção (config/finds.js) e quem achou escolhe esta quantidade de melhorias na hora
+    far: { from: 120, span: 300, max: 0.6, rich: 2 }, // longe da largada (vilas vizinhas): depois de 120 m a chance de achar cresce até +60% (aos 420 m); remédio e munição ficam até ×(1 + 2 × 0,6) mais comuns
     ammo: { carbine: 20, shotgun: 6 }, // munição achada vai direto para cada Atirador do grupo (até rules.ammoCap); sem Atirador, fica guardada
   },
 
@@ -226,7 +291,7 @@ export const BALANCE = {
   // ---------------------------------------------------------------- sensação ("juice"): só aparência, a não ser a pausa
   juice: {
     // tremor de tela: quanto a câmera balança (metros) em cada caso; scale 0 desliga todos. Só treme a tela de quem está perto (radius)
-    shake: { scale: 1, explosion: 0.45, crash: 0.4, runover: 0.18, shotgun: 0.1, heavyHit: 0.12, stomp: 0.1, time: 0.3, radius: 25 },
+    shake: { scale: 1, explosion: 0.45, crash: 0.4, runover: 0.18, shotgun: 0.1, heavyHit: 0.12, stomp: 0.1, scream: 0.25, time: 0.3, radius: 25 },
     // pausa no impacto: o jogo quase para por alguns segundos (0,04 = 40 ms) nos golpes fortes; 0 desliga. Vale para todos ao mesmo tempo
     hitStop: { heavyHit: 0.04, stomp: 0.04, runover: 0.04 },
     hitFlash: 0.08, // segundos que o zumbi fica branco ao levar golpe
