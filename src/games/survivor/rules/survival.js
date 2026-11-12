@@ -21,6 +21,7 @@ import { CreateBase } from '../base'
 import { CreateSiege } from '../siege'
 import { CreateFall } from '../fall'
 import { CreateLevels } from '../levels'
+import { CreateFuel } from '../fuel'
 
 const MAX_PLAYERS = 4
 // números das regras: config/balance.js
@@ -52,13 +53,13 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
   const say = (t, s = 2.2) => { st.msg = t; st.msgT = s }
   const alive = () => [...players.values()].filter((p) => !p.dead)
 
-  const horde = CreateHorde({ scene, fx, gore, players, hurt: (p, d) => hurt(p, d), hit: (...a) => hit(...a), night: hooks.night || (() => false), loaded: hooks.loaded || (() => true), impact, bash: (e) => bars.bash(e), entry: (e, x, z, dt) => bars.entry(e, x, z, dt), director: () => siege.director() })
+  const horde = CreateHorde({ scene, fx, gore, players, hurt: (p, d) => hurt(p, d), hit: (...a) => hit(...a), night: hooks.night || (() => false), loaded: hooks.loaded || (() => true), impact, bash: (e) => bars.bash(e), entry: (e, x, z, dt) => bars.entry(e, x, z, dt), director: () => siege.director(), nightNo: () => siege.st.night, scream: (e, phase) => onScream(e, phase) })
   const enemies = horde.list
 
   // dano num zumbi (todas as fontes: tiro, espada, magia, onda, pisão, atropelamento); p = quem leva o crédito
   function hit(e, dmg, p, kx = 0, kz = 0) {
     if (e.dying > 0) return
-    if (horde.damage(e, dmg, kx, kz, p)) { st.score += e.score; if (p) { p.kills++; levels.add(p, e.fast ? XP.runner : XP.kill) } }
+    if (horde.damage(e, dmg, kx, kz, p)) { st.score += e.score; if (p) { p.kills++; levels.add(p, e.kind ? XP.special : e.fast ? XP.runner : XP.kill) } }
   }
   // barulho das habilidades: chama a horda e desenha o anel até onde o som chegou (no máx. 1 por lugar a cada pouco)
   const ringT = new Map()
@@ -80,6 +81,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
   const bars = CreateBarricades({ scene, fx, inv: loot.inv, say, sfx, tasks, impact, xp, solo: () => players.size === 1 }) // barricadas em portas e janelas (Usar por dentro)
   const base = CreateBase({ scene, say, sfx }) // rádio: a casa onde ele está é a base
   const siege = CreateSiege({ clock: hooks.clock, base, say, sfx }) // noites, picos da horda contra a base, vitória
+  const fuel = CreateFuel({ vehicles, inv: loot.inv, tasks, say, sfx, noise }) // gasolina: gastar, abastecer, bomba do posto
   const fall = CreateFall({ players, tasks, inv: loot.inv, fx, say, sfx }) // caído: levantar com ajuda, remédio ou no amanhecer
 
   // slot = vaga do lobby: cor e ponto de largada · choice = classe escolhida (0 Atirador · 1 Samurai · 2 Mago · 3 Bardo; sem escolha = a da vaga)
@@ -123,7 +125,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     if (a === 'up1' || a === 'up2' || a === 'up3') return levels.choose(p, +a[2] - 1) // carta de melhoria (vale caído também)
     if (p.dead) { if (a === 'use') fall.use(p); return } // caído: só Usar (no solo, levantar sozinho)
     if (a === 'shove') return horde.shove(p)
-    if (a === 'use') { if (!p.vehicle && !p.held && (fall.use(p) || bars.use(p, true) || loot.use(p) || base.use(p) || bars.use(p))) return; return (!p.held || p.vehicle) && vehicles.use(p) } // aliado caído primeiro, depois barricada e móvel; agarrado não entra no carro
+    if (a === 'use') { if (!p.vehicle && !p.held && (fall.use(p) || bars.use(p, true) || loot.use(p) || base.use(p) || bars.use(p) || fuel.use(p))) return; return (!p.held || p.vehicle) && vehicles.use(p) } // aliado caído primeiro, depois barricada, móvel, rádio, gasolina; agarrado não entra no carro
     if (a === 'b1' || a === 'b2' || a === 'b3') return abilities.skill(p, +a[1] - 1)
     if (a === 'swap') return abilities.skill(p, 0) // controles antigos
     if (a === 'reload') return p.cls.id === 'gunner' && abilities.skill(p, 1)
@@ -163,6 +165,13 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     sfx('revive', { x, z })
   }
 
+  // Berrador (J9): aviso enquanto enche o peito; o grito treme a tela e, no cerco à noite, chama um pico extra
+  function onScream(e, phase) {
+    if (phase === 'inhale') return say('📢 Berrador enchendo o peito! Matem antes do grito', 1.8)
+    say('📢 O Berrador gritou! A horda vem correndo', 2.5)
+    impact(e.x, e.z, 'scream')
+    siege.boost()
+  }
   // fim da partida: resultado na tela por um tempo e depois volta ao menu
   function finish(win) {
     st.over = true
@@ -175,6 +184,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
   function clearAll() {
     siege.clear()
     fall.clear()
+    fuel.clear()
     levels.clear()
     loot.clear()
     bars.clear()
@@ -257,6 +267,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     bars.update(dt)
     base.update(dt)
     levels.update(dt)
+    fuel.update(dt)
     tasks.update(list)
     fx.update(dt)
     gore.update(dt)
@@ -268,14 +279,14 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
         if (p.id === 'local') continue
         const inf = abilities.info(p)
         const car = p.vehicle ? 2 : !p.dead && vehicles.nearest(p) ? 1 : 0
-        net.send(p.id, { t: 'state', hp: Math.ceil(p.hp), max: p.max, cls: `${p.cls.icon} ${p.cls.name} · Nv ${p.level}`, w: inf.text, btn: inf.buttons.map((b) => [b.l, +b.cd.toFixed(2)]), car, dead: p.dead, st: Math.round(p.stamina), time: Math.floor(st.time), score: st.score, held: p.held ? 1 : 0, rv: p.dead && !st.over ? (p.out ? -1 : Math.ceil(p.downT)) : 0, u: fall.label(p) || bars.label(p, true) || loot.label(p) || base.label(p) || bars.label(p), inv: invText(), up: p.cards ? p.cards.map((u) => [`${u.icon} ${u.name}`, u.text]) : 0 })
+        net.send(p.id, { t: 'state', hp: Math.ceil(p.hp), max: p.max, cls: `${p.cls.icon} ${p.cls.name} · Nv ${p.level}`, w: p.vehicle ? `${inf.text} · ${fuel.text(p.vehicle)}` : inf.text, btn: inf.buttons.map((b) => [b.l, +b.cd.toFixed(2)]), car, dead: p.dead, st: Math.round(p.stamina), time: Math.floor(st.time), score: st.score, held: p.held ? 1 : 0, rv: p.dead && !st.over ? (p.out ? -1 : Math.ceil(p.downT)) : 0, u: fall.label(p) || bars.label(p, true) || loot.label(p) || base.label(p) || bars.label(p) || fuel.label(p), inv: invText(), up: p.cards ? p.cards.map((u) => [`${u.icon} ${u.name}`, u.text]) : 0 })
       }
     }
   }
 
   // estoque do grupo + base marcada (placar e celular)
   const invText = () => loot.text() + (base.at() ? '  📻' : '')
-  return { players, enemies, vehicles, loot, bars, base, siege, invText, st, clear, addPlayer, removePlayer, setInput, act, update, alive, zombies: () => horde.alive(), info: (p) => abilities.info(p), hurt, levels }
+  return { players, enemies, vehicles, loot, bars, base, siege, invText, st, clear, addPlayer, removePlayer, setInput, act, update, alive, zombies: () => horde.alive(), info: (p) => abilities.info(p), hurt, levels, fuel }
 }
 
 export const clock = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`
