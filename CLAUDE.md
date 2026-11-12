@@ -12,7 +12,7 @@ O `README.md` descreve cada sistema em detalhe. Para o dono, a explicação leig
 - Português do Brasil, frases curtas, sem jargão. Termo técnico → explique em uma frase.
 - Testa no GitHub Codespaces: `npm run server` (relay, porta 8080) + `npm run dev` (Vite, porta 5173), celulares como controle.
 - **Antes de qualquer etapa que altere arquivos**: diga em até 5 linhas o que vai mudar e espere o "ok".
-- Toda mudança chega como pull request em `llr2ll/Game`. **Nunca** faça push direto na `main`.
+- Toda mudança chega como pull request em `llr2ll/Zombie_Survivor` (antes `llr2ll/Game`; o GitHub redireciona o nome antigo). **Nunca** faça push direto na `main`.
 - Na dúvida entre abordagens: pergunte com opções e marque sua recomendação.
 
 ## Como rodar
