@@ -81,6 +81,9 @@ Cada jogador ganha **XP**: abate (1; corredor 2), revistar (3), consertar barric
 
 Código em `src/games/survivor/levels.js`; nomes em `config/upgrades.js`; números em `balance.js`, seções `levels` e `upgrades`.
 
+## Gasolina e vilas vizinhas
+O carro **gasta gasolina** andando: o tanque leva 3 latas e 1 lata anda uns 320 m (≈ 10 km nas placas, o bastante para ir à vila vizinha e voltar). O medidor ⛽ aparece no placar e no celular de quem está dentro. Sem gasolina o motor desliga: o carro desliza, freia e vira, mas não acelera. **Abastecer:** perto do carro, com ⛽ no estoque do grupo e o tanque não cheio, **Usar** abastece 1 lata (2 s parado); senão, Usar entra no carro. **Bomba do posto:** Usar perto da bomba (3 s) dá 2 ⛽, uma vez por posto, mas dispara um **alarme** de 10 s que chama a horda a 30 m. Os carros da largada têm meia lata; um em cada quatro carros abandonados já tem 1 lata no tanque. **Longe da largada** (depois de ~120 m) os móveis têm mais chance de ter algo (até +60%) e mais remédio e munição. Código em `src/games/survivor/fuel.js`; números em `balance.js`, seções `fuel` e `loot.far`.
+
 ## Sensação ("juice")
 Anel fraco no chão mostra até onde o barulho chegou (tiro, música, explosão: os zumbis ouvem até ali). Zumbi pisca branco ao levar golpe. Explosão, batida, atropelamento, espingarda, 3º golpe da katana e pisão tremem a tela (só as telas perto). Golpes fortes dão uma pausa de 40 ms. À noite o tiro clareia o chão. Tudo ajustável (ou desligável) em `src/games/survivor/config/balance.js`, seção `juice`.
 
