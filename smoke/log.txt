@@ -1,12 +1,12 @@
 [0s] 1/4 compilando o jogo…
 [1s] 2/4 subindo relay e página…
 [2s] 3/4 abrindo o jogo no navegador sem tela…
-[8s]    sala PBNJ aberta no relay
-[66s] 4/4 jogando 60 s…
-[100s]    captura 02-inicio.jpg
-[148s]    captura 03-acao.jpg
-[169s]    captura 04-noite.jpg
-[185s]    captura 05-fim.jpg
-[196s]    HUD: {"topo":"🌙 Noite 1/2 · 🧟 25\nPontos 0\n🪵 0 🩹 0\n🌙 00:10 · Limpo","jogadores":"🔫 Jogador 1 · Nv 1 · Espingarda 6/30 · 0 abates\nGranada 3s\n🪕 Celular · Nv 1 · Alaúde · 0 abates\nCanção de cura 9s"}
+[8s]    sala BBGK aberta no relay
+[82s] 4/4 jogando 60 s…
+[112s]    captura 02-inicio.jpg
+[163s]    captura 03-acao.jpg
+[182s]    captura 04-noite.jpg
+[197s]    captura 05-fim.jpg
+[208s]    HUD: {"topo":"🌙 Noite 1/2 · 🧟 25\nPontos 0\n🪵 0 🩹 0\n🌙 00:10 · Limpo","jogadores":"🔫 Jogador 1 · Nv 1 · Espingarda 6/30 · 0 abates\nGranada 3s\n🪕 Celular · Nv 1 · Alaúde · 0 abates\nCanção de cura 9s"}
 
 PASSOU

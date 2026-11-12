@@ -53,13 +53,13 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
   const say = (t, s = 2.2) => { st.msg = t; st.msgT = s }
   const alive = () => [...players.values()].filter((p) => !p.dead)
 
-  const horde = CreateHorde({ scene, fx, gore, players, hurt: (p, d) => hurt(p, d), hit: (...a) => hit(...a), night: hooks.night || (() => false), loaded: hooks.loaded || (() => true), impact, bash: (e) => bars.bash(e), entry: (e, x, z, dt) => bars.entry(e, x, z, dt), director: () => siege.director() })
+  const horde = CreateHorde({ scene, fx, gore, players, hurt: (p, d) => hurt(p, d), hit: (...a) => hit(...a), night: hooks.night || (() => false), loaded: hooks.loaded || (() => true), impact, bash: (e) => bars.bash(e), entry: (e, x, z, dt) => bars.entry(e, x, z, dt), director: () => siege.director(), nightNo: () => siege.st.night, scream: (e, phase) => onScream(e, phase) })
   const enemies = horde.list
 
   // dano num zumbi (todas as fontes: tiro, espada, magia, onda, pisão, atropelamento); p = quem leva o crédito
   function hit(e, dmg, p, kx = 0, kz = 0) {
     if (e.dying > 0) return
-    if (horde.damage(e, dmg, kx, kz, p)) { st.score += e.score; if (p) { p.kills++; levels.add(p, e.fast ? XP.runner : XP.kill) } }
+    if (horde.damage(e, dmg, kx, kz, p)) { st.score += e.score; if (p) { p.kills++; levels.add(p, e.kind ? XP.special : e.fast ? XP.runner : XP.kill) } }
   }
   // barulho das habilidades: chama a horda e desenha o anel até onde o som chegou (no máx. 1 por lugar a cada pouco)
   const ringT = new Map()
@@ -165,6 +165,13 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     sfx('revive', { x, z })
   }
 
+  // Berrador (J9): aviso enquanto enche o peito; o grito treme a tela e, no cerco à noite, chama um pico extra
+  function onScream(e, phase) {
+    if (phase === 'inhale') return say('📢 Berrador enchendo o peito! Matem antes do grito', 1.8)
+    say('📢 O Berrador gritou! A horda vem correndo', 2.5)
+    impact(e.x, e.z, 'scream')
+    siege.boost()
+  }
   // fim da partida: resultado na tela por um tempo e depois volta ao menu
   function finish(win) {
     st.over = true

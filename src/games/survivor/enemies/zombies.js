@@ -15,7 +15,8 @@ import { has } from '../levels'
 // Empurrão faz tropeçar ou derruba; zumbi caído toma pisão. Quem fica longe dos jogadores renasce perto deles.
 //
 // Estados: wander (vaga) · investigate (vai até um barulho) · chase · lunge (bote) · grab · stagger (tropeça)
-//          down (caído) · getup · feed (come quem caiu) · dead (corpo no chão, afunda e some)
+//          down (caído) · getup · feed (come quem caiu) · dead (corpo no chão, afunda e some) · inhale (Berrador enchendo o peito)
+// Berrador (e.kind = 'screamer', J9): ao ver alguém para e enche o peito; se terminar, grita e a horda em volta vem correndo.
 const RADIUS = 0.42
 // números de jogo (visão, audição, velocidade, vida, quantidade, renascimento…): config/balance.js
 const Z = BALANCE.zombies, PL = BALANCE.player
@@ -25,6 +26,8 @@ const REACH = Z.attack.reach, HOLD = Z.attack.hold, LUNGE_T = Z.attack.lunge
 const BITE = Z.attack.bite, SCRATCH = Z.attack.scratch
 const SPAWN_MIN = Z.spawn.min, SPAWN_MAX = Z.spawn.max, FAR = Z.spawn.far, MAX_ZOMBIES = Z.max, CORPSE_T = Z.corpseTime, MAX_CORPSES = Z.maxCorpses
 const BLOOD = 0x6a1612
+const SC = Z.screamer
+const SCREAM_MAT = new THREE.MeshLambertMaterial({ vertexColors: true, color: 0xd9b0ff }) // Berrador: pele lilás, fácil de achar
 
 const _v = new THREE.Vector3()
 const rnd = (a, b) => a + Math.random() * (b - a)
@@ -33,7 +36,8 @@ const sameLv = (a, b) => (a.lv || 0) === (b.lv || 0)
 // ctx: { scene, fx, gore, players (Map), hurt(p, dmg), hit(e, dmg, p, kx, kz), night(), loaded(x, z) (chunk carregado?),
 //        impact(x, z, tipo) (tremor/pausa), bash(e) (bate numa barricada encostada; true = bateu),
 //        entry(e, x, z, dt) (ir pela janela? null = normal · {x, z} = ande até aqui · {hold} = parado na janela),
-//        director() (cerco: { x, z (base), extra, share, ring } à noite com base, senão null) }
+//        director() (cerco: { x, z (base), extra, share, ring } à noite com base, senão null),
+//        nightNo() (qual noite do cerco), scream(e, fase) (Berrador: 'inhale' começou a encher o peito · 'yell' gritou) }
 export function CreateHorde(ctx) {
   const { scene, fx, gore } = ctx
   const list = []
@@ -43,7 +47,8 @@ export function CreateHorde(ctx) {
   function make(x, z) {
     const m = CreateZombieModel((Math.random() * VARIANTS) | 0)
     const e = { type: 'zombie', radius: RADIUS, group: m.root, rig: m, kx: 0, kz: 0, slowT: 0, side: 1, carT: 0 }
-    m.root.scale.setScalar(rnd(0.92, 1.08))
+    e.size = rnd(0.92, 1.08)
+    m.root.scale.setScalar(e.size)
     scene.add(m.root)
     list.push(e)
     reset(e, x, z)
@@ -53,19 +58,29 @@ export function CreateHorde(ctx) {
   function reset(e, x, z) {
     const R = Z.runner, N = Z.normal
     const fast = Math.random() < Math.min(R.chance + st.time / R.rampSeconds, R.chanceMax) // corredores ficam mais comuns com o tempo
-    const hp = fast ? rnd(R.hp[0], R.hp[1]) : rnd(N.hp[0], N.hp[1]) // ~4 tiros de pistola, 3 golpes de katana
+    let hp = fast ? rnd(R.hp[0], R.hp[1]) : rnd(N.hp[0], N.hp[1]) // ~4 tiros de pistola, 3 golpes de katana
+    // Berrador: de dia só em vila/cidade, à noite só a partir de uma certa noite; poucos ao mesmo tempo
+    const scream = SC.chance > 0 && canScream(e, x, z) && Math.random() < SC.chance
+    if (scream) hp = rnd(SC.hp[0], SC.hp[1])
     Object.assign(e, {
       x, z, lx: x, lz: z, fy: GroundAt(x, z), lv: 0, heading: Math.random() * Math.PI * 2, vel: 0,
-      hp, maxHp: hp, fast, score: fast ? R.score : N.score, speed: fast ? rnd(R.speed[0], R.speed[1]) : rnd(N.speed[0], N.speed[1]),
+      hp, maxHp: hp, fast: fast && !scream, score: scream ? SC.score : fast ? R.score : N.score, speed: scream ? rnd(SC.speed[0], SC.speed[1]) : fast ? rnd(R.speed[0], R.speed[1]) : rnd(N.speed[0], N.speed[1]),
+      kind: scream ? 'screamer' : null, screamT: 0, puff: 0, rushT: 0,
       state: 'wander', stT: 0, dur: 0, target: null, seenT: 0, tx: x, tz: z, goal: null, waitT: rnd(0, 3),
       senseT: Math.random() * 0.3, cool: 0.5, biteT: 0, bite: 0, hitT: 0, imp: 0, dying: 0, fallDir: -1,
       kx: 0, kz: 0, slowT: 0, freezeT: 0, waveAt: -99, path: null, pathT: 0, unstick: 0, stuckT: 0, sx: x, sz: z, moving: 0, t: Math.random() * 10, siege: false,
     })
     if (e.ice) e.ice.visible = false
     e.rig.restore() // reaproveitado: volta inteiro
+    e.rig.look(scream ? SCREAM_MAT : null)
+    e.group.scale.set(e.size * (scream ? 0.9 : 1), e.size * (scream ? 1.18 : 1), e.size * (scream ? 0.9 : 1)) // Berrador: mais alto e magro
     e.group.position.set(x, e.fy, z)
   }
   function remove(i) { scene.remove(list[i].group); list.splice(i, 1) }
+  function canScream(e, x, z) {
+    if (list.filter((o) => o !== e && o.kind === 'screamer' && o.state !== 'dead').length >= SC.max) return false
+    return ctx.night() ? (ctx.nightNo ? ctx.nightNo() : 0) >= SC.nightFrom : InZone(x, z, 8)
+  }
 
   // ---------------------------------------------------------------- estados
   function setState(e, s, dur = 0) { e.state = s; e.stT = 0; e.dur = dur }
@@ -92,6 +107,27 @@ export function CreateHorde(ctx) {
     e.goal = { x, z }
     setState(e, 'investigate')
   }
+  // Berrador viu alguém: para, vira para ele e enche o peito
+  function inhale(e, p) {
+    e.target = p; e.tx = p.x; e.tz = p.z
+    setState(e, 'inhale', SC.inhale)
+    sfx('inhale', { x: e.x, z: e.z })
+    fx.ring(e.x, e.fy + 0.05, e.z, 0xff3a3a, 0.4, 3.2, SC.inhale, { add: false })
+    if (ctx.scream) ctx.scream(e, 'inhale')
+  }
+  // grito: todos os zumbis em volta vêm correndo atrás de quem ele viu
+  function scream(e, p) {
+    e.puff = 0; e.screamT = SC.again
+    sfx('scream', { x: e.x, z: e.z })
+    fx.ring(e.x, e.fy + 0.05, e.z, 0xff3a3a, 0.5, 14, 0.9)
+    for (const o of list) {
+      if (o === e || o.state === 'dead' || Math.hypot(o.x - e.x, o.z - e.z) > SC.radius) continue
+      chase(o, p)
+      o.rushT = SC.rushTime
+    }
+    setState(e, 'chase')
+    if (ctx.scream) ctx.scream(e, 'yell')
+  }
 
   // ---------------------------------------------------------------- sentidos
   // visão: cone à frente, alcance menor à noite, paredes bloqueiam (amostra a linha a cada 1 m)
@@ -105,6 +141,7 @@ export function CreateHorde(ctx) {
     return true
   }
   function sense(e, players, range) {
+    if (e.kind === 'screamer' && e.screamT <= 0) for (const p of players) if (!p.dead && sees(e, p, range)) return inhale(e, p) // Berrador viu: vai gritar
     const cur = e.state === 'chase' && e.target && !e.target.dead ? e.target : null
     if (cur && sees(e, cur, range)) { e.seenT = 0; e.tx = cur.x; e.tz = cur.z }
     let best = null, bd = Infinity
@@ -256,6 +293,9 @@ export function CreateHorde(ctx) {
     }
     e.cool -= dt
     const ox = e.x, oz = e.z
+    if (e.kind) { e.screamT = Math.max(0, e.screamT - dt); if (e.state !== 'inhale') e.puff = 0 }
+    if (e.rushT > 0) e.rushT -= dt // ouviu o grito: vem correndo
+    const rush = e.rushT > 0 ? SC.rush : 1
     // empurrão (tiro forte, onda do bardo, explosão, atropelamento) e lentidão (gelo do mago)
     if (e.state !== 'grab') {
       const kd = Math.exp(-7 * dt)
@@ -302,8 +342,8 @@ export function CreateHorde(ctx) {
         const gx = knows ? p.x : e.tx, gz = knows ? p.z : e.tz
         const reach = REACH + (p.pad || 0) // pad: quem está num veículo é alcançado pela lataria
         const via = ctx.entry && ctx.entry(e, gx, gz, dt) // alvo dentro de uma casa: talvez pela janela
-        if (via) { if (!via.hold) Navigate(e, via.x, via.z, 0, e.speed * slow, 0.3, dt, e.fast ? 7 : 5); break }
-        const d = Navigate(e, gx, gz, knows ? p.gy ?? 0 : 0, e.speed * slow, reach * 0.85, dt, e.fast ? 7 : 5)
+        if (via) { if (!via.hold) Navigate(e, via.x, via.z, 0, e.speed * slow * rush, 0.3, dt, e.fast ? 7 : 5); break }
+        const d = Navigate(e, gx, gz, knows ? p.gy ?? 0 : 0, e.speed * slow * rush, reach * 0.85, dt, e.fast ? 7 : 5)
         if (!knows && d < 1.2) { e.target = null; setState(e, 'wander'); e.goal = null; e.waitT = rnd(1, 3); break }
         // bote: no alcance, mesmo andar; pular ou a investida do samurai escapam
         if (knows && d <= reach && e.cool <= 0 && sameLv(e, p) && p.jy < 0.9 && !(p.invulnT > 0)) { setState(e, 'lunge', LUNGE_T); sfx('snarl', { x: e.x, z: e.z, fast: e.fast }) }
@@ -335,6 +375,14 @@ export function CreateHorde(ctx) {
           ctx.hurt(p, rnd(BITE[0], BITE[1]))
           fx.burst(p.x, (p.y || 0) + 1.4, p.z, BLOOD, 6, 2.5, 0.45, 0.9)
         }
+        break
+      }
+      case 'inhale': { // Berrador enchendo o peito: parado, virado para o alvo; perdeu de vista = desiste por um tempo
+        e.vel = 0
+        if (!p || p.dead || !sees(e, p, range * 1.3)) { e.puff = 0; e.screamT = SC.retry; setState(e, p && !p.dead ? 'chase' : 'wander'); break }
+        e.heading = turnTo(e.heading, Math.atan2(p.x - e.x, p.z - e.z), 10, dt)
+        e.puff = Math.min(1, e.stT / e.dur)
+        if (e.stT >= e.dur) scream(e, p)
         break
       }
       case 'stagger': {

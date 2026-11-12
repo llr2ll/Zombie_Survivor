@@ -66,7 +66,7 @@ src/engine/               genérico
   ui/lobby.js             menu de 4 vagas (celular ou teclado); cada vaga escolhe uma opção com ◀ ▶ (choices vêm do jogo)
 src/shared/               peças prontas
   characters/             player.js (esqueleto/animação), looks.js (visual), kits.js (armas + IK), player-movement.js
-  creatures/zombie-model.js  humanoide articulado (12 variações), base dos zumbis
+  creatures/zombie-model.js  humanoide articulado (12 variações), base dos zumbis; look(material), e.puff (encher o peito)
   worldgen/               mundo: layout.js (estradas), town.js, city-lots.js, buildings.js, buildings-registry.js (portas, andares),
                           generator.js (monta um chunk), map.js (descritor do chunk), climate.js, signs*.js, names.js, water*.js,
                           sidewalk.js (altura do chão), terrain.js, roadwear.js, props.js, poles.js, streetlights.js, assets*.js …
@@ -90,7 +90,7 @@ src/games/survivor/       este jogo
   siege.js                cerco (J5b): conta as noites, avisos do rádio, picos da horda, vitória no amanhecer do 3º dia
   tasks.js                "parado fazendo algo" (revistar, desmontar, barricar): cancelamento, barulho por segundo, anel de progresso
   bots.js                 ?bots=1..3: jogadores do computador SÓ PARA TESTE (contrato do celular; tecla B espalha/junta)
-  enemies/zombies.js      IA da horda: visão, audição, agarrão, renascer
+  enemies/zombies.js      IA da horda: visão, audição, agarrão, renascer; Berrador (J9: e.kind = 'screamer')
   ui/hud.js               placar da partida
 ```
 
@@ -227,6 +227,11 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
   o motor. Gasolina inicial: carros a até 30 m da largada `start`; os outros, fixa por lugar (`hash` da chave da vaga): 25% com 1 lata, senão
   um restinho. Bombas: centro do posto (`StationOf`) + (-2,4 / -0,2; 1,6), uma vez por posto; alarme = barulho a cada 1,5 s por 10 s.
   Saque mais rico longe da largada (`loot.far`, distância de (0, 0)). Prova feita: com a gasolina desligada, o replay deu igual ao do J7b.
+- **Berrador (J9):** um zumbi reaproveitado (`reset`) pode nascer Berrador (`e.kind = 'screamer'`): de dia só em vila/cidade (`InZone`), à noite
+  a partir da `screamer.nightFrom`-ª noite (`ctx.nightNo`), no máximo `screamer.max`. Visual: `rig.look(material lilás)` + mais alto e magro; o
+  modelo (`shared`) só conhece `look()` e `e.puff`. Viu alguém → estado `inhale` (1,5 s, peito enchendo, anel vermelho, aviso); perdeu de vista
+  → desiste por `retry` s; terminou → grito: todo zumbi a 45 m persegue quem ele viu, correndo (`e.rushT`, ×1,5). No cerco à noite com base,
+  `siege.boost()` faz um pico extra. Matar dá XP de especial (10). Prova feita: com `chance` 0, o replay deu igual ao do J8.
 - `window.__game` existe só no `npm run dev` (testes automáticos e depuração); a versão compilada não tem.
 - Interiores (`buildings.js`): térreo (cozinha/sala: fogão, balcão, mesa, sofá, cômoda, baú, estante), andar de cima (quarto: cama,
   guarda-roupa, baú, escrivaninha) e sótão das casas de 3 andares (caixotes, barris, sacos, baú). Lojas: prateleiras, balcão, vitrine.
@@ -234,7 +239,7 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
 
 ## Plano da sessão de fundação (30/10/2026)
 0. Verificação ✓ · 1. PR "limpeza" ✓ · 2. `docs/GAME-DESIGN.md` ✓ (decisões registradas) · 3. Fundação em 3 PRs: F1 (PR #4) · F2 (PR #5) · F3 (PR aberto).
-4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 (PR aberto) · próximo: J9 (Berrador). J13 (combinações) já entrou no J7b.
+4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 · J9 (PRs abertos, aguardando merge em ordem) · próximo: J10 (Labrego + Escoitador). J13 (combinações) já entrou no J7b.
 Estrutura-alvo da Etapa 3 (criar só pastas com conteúdo real; imports só descem `games` → `shared` → `engine`, verificado por `npm run check`):
 ```
 src/engine/   {core, render, input, net, audio, world, ui}     genérico, não sabe que existem zumbis
@@ -247,6 +252,10 @@ F2 estado global → instâncias com `reset()` + caches limpos por distância (m
 ## Histórico de PRs
 - **limpeza** — `node_modules/` fora do Git; `.gitignore` aceita .glb/.gltf; `player-moviment.js` → `player-movement.js`; README sem `reflections.js`;
   `npm run smoke`; este CLAUDE.md; `docs/COMO-FUNCIONA.md`; `docs/TESTE-MANUAL.md`. Nenhuma mudança no jogo.
+- **j9-berrador (J9)** — primeiro inimigo especial: Berrador (lilás, mais alto). De dia nas vilas/cidades; à noite a partir da 2ª; 1 por vez.
+  Ao ver alguém, para e enche o peito por 1,5 s (inflando, anel vermelho, som, aviso "matem antes do grito"); se terminar, grita: zumbis a 45 m
+  vêm correndo (×1,5 por 8 s) atrás de quem ele viu; tremor; no cerco, pico extra de 25 s. Sair da vista ou matar antes cancela. Grita de novo só
+  depois de 40 s. XP 10, 40 pontos. Números em `balance.js · zombies.screamer`. Replay atualizado de propósito (no replay, um Berrador começa a encher o peito).
 - **j8-gasolina (J8)** — carro gasta gasolina andando (tanque 3 latas; 1 lata ≈ 320 m ≈ ir à vila vizinha e voltar); sem gasolina não acelera
   (freia e vira), motor desliga; avisos "pouca gasolina"/"acabou". Usar perto do carro com ⛽ no estoque abastece (2 s; tanque não cheio), senão entra.
   Bomba do posto: Usar (3 s) → +2 ⛽, uma vez por posto, alarme de 10 s que chama a horda (30 m). Carros da largada com 0,5 lata; abandonados:

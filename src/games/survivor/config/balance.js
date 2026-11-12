@@ -97,6 +97,19 @@ export const BALANCE = {
     speed: { wander: 0.6, investigate: 1.2 }, // velocidade vagando · indo ver um barulho (perseguindo: ver normal/runner)
     normal: { hp: [7, 9.5], speed: [1.6, 2.15], score: 10 }, // zumbi normal: vida (mín–máx) · velocidade perseguindo · pontos
     runner: { hp: [4.5, 5.5], speed: [3.0, 3.5], score: 15, chance: 0.08, rampSeconds: 1200, chanceMax: 0.3 }, // corredor; chance de nascer corredor sobe 100% a cada 1200 s (≈ +5%/min) até 30%
+    // Berrador (J9): ao ver alguém, para e enche o peito; se terminar, grita e a horda em volta vem correndo
+    screamer: {
+      chance: 0.07, // chance de um zumbi nascer Berrador (de dia só em vilas e cidades; à noite só a partir de nightFrom)
+      max: 1, // no máximo ao mesmo tempo
+      nightFrom: 2, // à noite, aparece a partir desta noite do cerco
+      hp: [8, 9], speed: [1.6, 1.9], score: 40, // vida (mín–máx) · velocidade · pontos
+      inhale: 1.5, // segundos enchendo o peito (dá para matar ou sair da vista dele)
+      radius: 45, // o grito chama todos os zumbis até esta distância
+      rush: 1.5, rushTime: 8, // quem ouve o grito vem correndo: velocidade ×1,5 por 8 s
+      again: 40, // segundos até poder gritar de novo
+      retry: 3, // perdeu de vista no meio: espera isto para tentar de novo
+      pulse: 25, // no cerco (à noite, com base): o grito chama um pico extra de 25 s
+    },
     attack: { reach: 0.95, hold: 0.68, lunge: 0.42, scratch: 3, bite: [6, 9], biteEvery: [1.1, 1.6], firstBite: [0.7, 1.0], car: 5 }, // alcance do bote · distância segurando · duração do bote · arranhão · mordida (mín–máx) · intervalo · 1ª mordida · dano batendo no carro
     bash: { every: [0.9, 1.3], damage: 2 }, // zumbi encostado numa barricada: uma pancada a cada 0,9–1,3 s · dano por pancada
     downDamage: 1.3, // zumbi caído leva mais dano (x1,3)
@@ -124,7 +137,7 @@ export const BALANCE = {
   // ---------------------------------------------------------------- XP, níveis e melhorias (J7)
   // Cada jogador ganha XP; ao subir de nível escolhe 1 de 3 melhorias (no celular; no teclado: 1, 2 ou 3). A partida não pausa.
   levels: {
-    xp: { kill: 1, runner: 2, search: 3, repair: 2, night: 20 }, // XP por: abate · abate de corredor · revistar · consertar barricada · noite sobrevivida (todos)
+    xp: { kill: 1, runner: 2, special: 10, search: 3, repair: 2, night: 20 }, // XP por: abate · abate de corredor · abate de especial (Berrador) · revistar · consertar barricada · noite sobrevivida (todos)
     need: [20, 30, 40, 55, 70, 90, 110], // XP para cada nível seguinte (1→2, 2→3…); depois do último, repete o último
     cards: 3, // quantas melhorias aparecem para escolher
     invulnerable: 3, // segundos invulnerável ao subir de nível (para escolher em paz)
@@ -240,7 +253,7 @@ export const BALANCE = {
   // ---------------------------------------------------------------- sensação ("juice"): só aparência, a não ser a pausa
   juice: {
     // tremor de tela: quanto a câmera balança (metros) em cada caso; scale 0 desliga todos. Só treme a tela de quem está perto (radius)
-    shake: { scale: 1, explosion: 0.45, crash: 0.4, runover: 0.18, shotgun: 0.1, heavyHit: 0.12, stomp: 0.1, time: 0.3, radius: 25 },
+    shake: { scale: 1, explosion: 0.45, crash: 0.4, runover: 0.18, shotgun: 0.1, heavyHit: 0.12, stomp: 0.1, scream: 0.25, time: 0.3, radius: 25 },
     // pausa no impacto: o jogo quase para por alguns segundos (0,04 = 40 ms) nos golpes fortes; 0 desliga. Vale para todos ao mesmo tempo
     hitStop: { heavyHit: 0.04, stomp: 0.04, runover: 0.04 },
     hitFlash: 0.08, // segundos que o zumbi fica branco ao levar golpe
