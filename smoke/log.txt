@@ -1,12 +1,12 @@
 [0s] 1/4 compilando o jogo…
 [1s] 2/4 subindo relay e página…
-[3s] 3/4 abrindo o jogo no navegador sem tela…
-[22s]    sala RGDM aberta no relay
-[94s] 4/4 jogando 60 s…
-[124s]    captura 02-inicio.jpg
-[183s]    captura 03-acao.jpg
-[206s]    captura 04-noite.jpg
-[224s]    captura 05-fim.jpg
-[238s]    HUD: {"topo":"🌙 Noite 1/2\n🧟 30\n⭐ 0\n🪵 0 🩹 0\n🌙 00:10 · Limpo","jogadores":"🔫\nJogador 1\nNV 1\nEspingarda 6/30Granada 3s\n🪕\nCelular\nNV 1\nAlaúdeCanção de cura 8s\n🔮\nControle 1\nNV 1\nMana 100Meteoro 3s"}
+[2s] 3/4 abrindo o jogo no navegador sem tela…
+[9s]    sala QZTY aberta no relay
+[100s] 4/4 jogando 60 s…
+[135s]    captura 02-inicio.jpg
+[196s]    captura 03-acao.jpg
+[220s]    captura 04-noite.jpg
+[236s]    captura 05-fim.jpg
+[252s]    HUD: {"topo":"🌙 Noite 1/2\n🧟 30\n⭐ 0\n🪵 0 🩹 0\n🌙 00:10 · Limpo","jogadores":"🔫\nJogador 1\nNV 1\nEspingarda 6/30Granada 3s\n🪕\nCelular\nNV 1\nAlaúdeCanção de cura 8s\n🔮\nControle 1\nNV 1\nMana 100Meteoro 3s"}
 
 PASSOU
