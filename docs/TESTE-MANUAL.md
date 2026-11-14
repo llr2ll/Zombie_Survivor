@@ -45,6 +45,7 @@ Você precisa de **1 celular** e do teclado do PC. Para o item 12 (4 jogadores),
 | 31 | **Menu da partida**: Esc (ou ☰ Menu e QR, Start no controle, ☰ no celular) | Caixa "PAUSA" com o desenho das teclas (abas Teclado / Controle / Celular) e o QR. Um celular novo escaneia esse QR e entra na partida em andamento | ☐ |
 | 32 | **Votação para voltar**: com 2 ou mais jogadores, no menu toque "Voltar ao menu inicial" | Aparece "Voltar ao menu inicial?" com quem pediu e quantos votos faltam (maioria: 2 de 2, 2 de 3, 3 de 4). Teclado: Y/N · controle: A/B · celular: SIM/NÃO na tela. Com a maioria, volta ao menu; com "não" demais ou 20 s sem maioria, aparece "Votação recusada" e o jogo continua pausado | ☐ |
 | 33 | **Entrar no meio da partida**: ande para longe da largada, aperte Esc e entre com outro celular pelo QR do menu | O celular novo já mostra "PAUSADO". Ao continuar, o jogador novo está ao lado do grupo (não lá na largada) | |
+| 34 | **Zumbis não ficam presos**: ponha o rádio numa casa perto da largada e espere a 1ª noite (N adianta a hora) | A horda chega à base pela porta e pelas janelas. Nenhum zumbi fica girando na porta de outra casa nem parado na beira do lago perto do posto | |
 
 Para testar outra classe pelo teclado: Esc → Voltar ao menu inicial (jogando sozinho volta na hora) → no menu, aperte A ou D → Enter.
 

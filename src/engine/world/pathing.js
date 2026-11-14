@@ -1,4 +1,4 @@
-import { Blocked } from './collision'
+import { Blocked, DoorAt } from './collision'
 
 // rota dentro de casas (porta, escada, andar do alvo) — vem do jogo; o motor não conhece casas. null = vai reto
 let indoorRoute = () => null
@@ -8,14 +8,17 @@ export const wrap = (a) => { a = (a + Math.PI) % (Math.PI * 2); if (a < 0) a += 
 // gira em direção ao alvo com velocidade máxima (rad/s)
 export const turnTo = (a, b, rate, dt) => { const d = wrap(b - a); return a + Math.sign(d) * Math.min(Math.abs(d), rate * dt) }
 
+// obstáculo para o desvio: colisores + portas de casas fora da rota (door = porta da rota, que pode passar; null = nenhuma)
+const shut = (x, z, r, lv, door) => Blocked(x, z, r, lv) || DoorAt(x, z, r, lv, door ? door.x : NaN, door ? door.z : NaN)
+
 // "Olho" do zumbi: testa a direção do alvo e, se tiver obstáculo, tenta desviar para os lados
 const OFFSETS = [0, 0.6, -0.6, 1.1, -1.1, 1.7, -1.7, 2.4, -2.4]
-function steer(e, want) {
+function steer(e, want, door) {
   const r = e.radius * 0.8 + 0.15
   for (const o of OFFSETS) {
     const off = o * e.side, a = want + off
     const dx = Math.sin(a), dz = Math.cos(a)
-    if (!Blocked(e.x + dx * 0.9, e.z + dz * 0.9, r, e.lv) && !Blocked(e.x + dx * 1.8, e.z + dz * 1.8, r, e.lv)) {
+    if (!shut(e.x + dx * 0.9, e.z + dz * 0.9, r, e.lv, door) && !shut(e.x + dx * 1.8, e.z + dz * 1.8, r, e.lv, door)) {
       if (o !== 0) e.side = Math.sign(off)
       return a
     }
@@ -25,13 +28,13 @@ function steer(e, want) {
 
 // Busca de caminho (A*) numa grade local — só roda quando o zumbi trava (bolsões entre obstáculos).
 const GC = 1.2, GN = 17, GW = GN * 2 + 1
-function findPath(e, tx, tz) {
+function findPath(e, tx, tz, door) {
   const r = e.radius * 0.8 + 0.12, ox = e.x, oz = e.z
   const idx = (i, j) => (i + GN) * GW + (j + GN)
   const blk = new Int8Array(GW * GW), g = new Float32Array(GW * GW).fill(Infinity), from = new Int32Array(GW * GW).fill(-1), done = new Uint8Array(GW * GW)
   const free = (i, j) => {
     const k = idx(i, j)
-    if (!blk[k]) blk[k] = Blocked(ox + i * GC, oz + j * GC, r, e.lv) ? 2 : 1
+    if (!blk[k]) blk[k] = shut(ox + i * GC, oz + j * GC, r, e.lv, door) ? 2 : 1
     return blk[k] === 1
   }
   const gi = Math.max(-GN, Math.min(GN, Math.round((tx - ox) / GC))), gj = Math.max(-GN, Math.min(GN, Math.round((tz - oz) / GC)))
@@ -87,7 +90,7 @@ export function Navigate(e, tx, tz, tfeet, speed, stop, dt, turn = 6) {
     else if (Math.hypot(w.x - e.x, w.z - e.z) < 0.8) e.path.shift()
     else go = Math.atan2(w.x - e.x, w.z - e.z)
   } else if (rt ? gd > 1.2 : dist > 2.2) {
-    if (e.unstick > 0) { e.unstick -= dt; go = gw + e.side * 1.5 } else go = steer(e, gw)
+    if (e.unstick > 0) { e.unstick -= dt; go = gw + e.side * 1.5 } else go = steer(e, gw, rt)
   } else if (rt) go = gw
   e.heading = turnTo(e.heading, go, turn, dt)
   const walking = dist > stop || !!rt
@@ -99,9 +102,18 @@ export function Navigate(e, tx, tz, tfeet, speed, stop, dt, turn = 6) {
   if ((e.stuckT += dt) >= 0.6) {
     if (walking && speed > 0.2 && Math.hypot(e.x - e.sx, e.z - e.sz) < speed * 0.15) {
       if (rt && rt.inside) { e.unstick = 0.6; e.side = -e.side } // dentro de casa: só um passo de lado
-      else { e.path = findPath(e, gx, gz); e.pathT = 6; if (!e.path.length) { e.path = null; e.unstick = 0.8; e.side = -e.side } }
+      // travou seguindo o caminho (ex.: um fio de água funda no meio do trecho, o zumbi não nada): passo de lado e, se travar de novo,
+      // calcula outro a partir dali (recalcular do mesmo lugar dava o mesmo caminho e ele ficava parado para sempre)
+      else if (e.path) { e.path = null; e.unstick = 0.8; e.side = -e.side }
+      else { e.path = findPath(e, gx, gz, rt); e.pathT = 6; if (!e.path.length) { e.path = null; e.unstick = 0.8; e.side = -e.side } }
     }
     e.stuckT = 0; e.sx = e.x; e.sz = e.z
+  }
+  // anda em círculo sem chegar mais perto (ponta de terra na água, canto de cerca): também está preso → calcula um caminho
+  // (só longe do destino: perto, quem não avança é o bando amontoado em volta do alvo, e o A* ali só gastaria tempo)
+  if ((e.progT = (e.progT || 0) + dt) >= 2) {
+    if (walking && speed > 0.2 && gd > 4 && !e.path && !(rt && rt.inside) && gd > (e.progD ?? Infinity) - 0.5) { e.path = findPath(e, gx, gz, rt); e.pathT = 6; if (!e.path.length) e.path = null }
+    e.progT = 0; e.progD = gd
   }
   return dist
 }

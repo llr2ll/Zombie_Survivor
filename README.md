@@ -46,7 +46,8 @@ A partida é o **cerco** (seção abaixo): de dia a horda vaga; à noite ela vai
 - **📢 Berrador** (zumbi especial, pele lilás e mais alto): de dia aparece nas vilas e cidades, à noite a partir da 2ª; um por vez. Quando **vê** alguém, para e **enche o peito** por 1,5 s (incha, anel vermelho no chão, aviso na tela). Se terminar, **grita**: todos os zumbis a 45 m vêm **correndo** atrás de quem ele viu, e no cerco isso chama um pico extra. **Matar antes** ou **sair da vista** dele (paredes e portas bloqueiam) cancela o grito. Números em `balance.js`, `zombies.screamer`.
 - **🪓 Labrego** (grandão, cor de terra) e **👂 Escoitador** (branco, cego) aparecem a partir da **2ª noite** (até 2 de cada). O Labrego quebra barricada e vidro **4x mais rápido**, não cai com empurrão (golpe forte — 3º da katana, granada, espingarda de perto, carro — só o atordoa) e a pancada dele **derruba** o jogador por 1 s; é grande demais para pular janela (entra pela porta). O Escoitador **não enxerga**: só sente quem encosta; **ouve** qualquer barulho maior que andar (correr, tiro, martelo…) de até 25 m e dá um **bote rápido** até o som. Números em `balance.js`, `zombies.brute` e `zombies.listener`.
 - `zombie-model.js` – zumbi articulado (12 variações de roupa/pele com sangue e rasgos), mancando, curvado, braços estendidos, bote, mordida, tropeço, queda de costas/de bruços, levantar, comer quem caiu.
-- `pathing.js` – desvio de obstáculos, A* quando trava, portas e escadas das casas.
+- `pathing.js` – desvio de obstáculos, A* quando trava (ou quando anda em círculo sem chegar mais perto), portas e escadas das casas;
+  porta de casa que não é a do alvo conta como parede no desvio (o zumbi não corta caminho por dentro de casas).
 - Quem cai fica no chão (o anel da cor pulsa) — veja **Queda** abaixo. Munição só vem do saque. Derrota quando todos estão caídos ao mesmo tempo.
 
 ## Classes (cada jogador escolhe no menu; repetir pode)
