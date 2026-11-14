@@ -75,7 +75,7 @@ src/engine/               genérico
                           cada vaga escolhe uma opção com ◀ ▶ (choices vêm do jogo); setSubtitle(); [data-nojoin] = área que não faz o teclado entrar
 src/shared/               peças prontas
   characters/             player.js (esqueleto/animação; p.knocked = caído por um instante), looks.js (visual), kits.js (armas + IK), player-movement.js
-  creatures/zombie-model.js  humanoide articulado (12 variações), base dos zumbis; look(material), e.puff (encher o peito)
+  creatures/zombie-model.js  humanoide articulado (12 variações), base dos zumbis; look(material), e.puff (encher o peito), e.vault (pular janela)
   worldgen/               mundo: layout.js (estradas), town.js, city-lots.js, buildings.js, buildings-registry.js (portas, andares),
                           generator.js (monta um chunk), map.js (descritor do chunk), climate.js, signs*.js, names.js, water*.js,
                           sidewalk.js (altura do chão), terrain.js, roadwear.js, props.js, poles.js, streetlights.js, assets*.js …
@@ -246,7 +246,9 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
   (id = posição) em `barricades.js`; o desenho e o colisor saem/voltam com a casa. Zumbi em perseguição encostado bate (`ctx.bash`).
 - **Janelas (J5a):** `buildings.js` registra as janelas do térreo no protótipo (`pr.windows`: centro na parede, normal para fora, largura);
   o gerador põe no mundo (`b.windows`, id = posição) e `WindowsNear`/`BuildingAt` respondem. A parede continua inteira: o zumbi não passa
-  pela colisão, ele pula (teleporta para dentro depois de `window.climb` s). A horda pergunta `ctx.entry(e, x, z, dt)` antes de andar
+  pela colisão, ele pula: `barricades.js` marca `e.climb` (de onde está → encostado no parapeito → ponto de queda) e a horda (`step` em
+  `zombies.js`) leva o corpo pelo vão em `window.climb` s, sem colisão; o modelo recebe `e.vault` (0..1: sobe, deita para a frente e mergulha).
+  Golpe forte no meio (tropeça/cai/morre) = termina do lado em que estava. Antes ele sumia de fora e aparecia dentro. A horda pergunta `ctx.entry(e, x, z, dt)` antes de andar
   (perseguindo/investigando): alvo numa casa e janela utilizável mais perto que a porta → vai pela janela. Janela com móvel/escada na frente
   não é usada. Vidro quebrado continua quebrado (buraco escuro desenhado por fora). **Ponto de queda** (`landing` em `barricades.js`):
   1,05 m para dentro da face de fora da janela, livre num raio de 0,48 (o zumbi tem 0,42) **e em chão do térreo onde dá para ficar**
@@ -347,6 +349,9 @@ Decidido: a Etapa 3 vai em 3 PRs — F1 mover pastas + `npm run check` (+ cortar
 F2 estado global → instâncias com `reset()` + caches limpos por distância (medir antes) · F3 `balance.js` + `?bots=3`.
 
 ## Histórico de PRs
+- **janela-animacao** — bug achado pelo dono: o zumbi que entrava pela janela aparecia dentro da casa sem animação. Agora ele se apoia no
+  parapeito, mergulha pelo vão e cai dentro (o mesmo 1,5 s de antes, com o corpo passando); golpe forte no meio do pulo derruba do lado em
+  que estava. Replay atualizado de propósito.
 - **sangue-chuva** — bug achado pelo dono: o sangue não sumia com a chuva (na verdade nunca sumia). Agora a chuva lava aos poucos as
   manchas ao ar livre (chão e paredes de fora): ~55 s na chuva comum, 30 s na tempestade (`balance.js · juice.bloodWash`). Dentro de casa
   ficam. Só visual: replay igual.

@@ -41,6 +41,8 @@ const SPECIAL = {
 const _v = new THREE.Vector3()
 const rnd = (a, b) => a + Math.random() * (b - a)
 const sameLv = (a, b) => (a.lv || 0) === (b.lv || 0)
+const ease = (t) => { t = Math.min(1, Math.max(0, t)); return t * t * (3 - 2 * t) }
+const CLIMB_LEAN = 0.35 // pulando a janela: fração do tempo se apoiando no parapeito antes de passar
 
 // ctx: { scene, fx, gore, players (Map), hurt(p, dmg), hit(e, dmg, p, kx, kz), night(), loaded(x, z) (chunk carregado?),
 //        impact(x, z, tipo) (tremor/pausa), bash(e) (bate numa barricada encostada; true = bateu),
@@ -79,7 +81,7 @@ export function CreateHorde(ctx) {
       kind, screamT: 0, puff: 0, rushT: 0, radius: kind === 'brute' ? BR.radius : RADIUS,
       state: 'wander', stT: 0, dur: 0, target: null, seenT: 0, tx: x, tz: z, goal: null, waitT: rnd(0, 3),
       senseT: Math.random() * 0.3, cool: 0.5, biteT: 0, bite: 0, hitT: 0, imp: 0, dying: 0, fallDir: -1,
-      kx: 0, kz: 0, slowT: 0, freezeT: 0, waveAt: -99, path: null, pathT: 0, unstick: 0, stuckT: 0, sx: x, sz: z, moving: 0, t: Math.random() * 10, siege: false,
+      kx: 0, kz: 0, slowT: 0, freezeT: 0, waveAt: -99, climb: null, vault: 0, path: null, pathT: 0, unstick: 0, stuckT: 0, sx: x, sz: z, moving: 0, t: Math.random() * 10, siege: false,
     })
     if (e.ice) e.ice.visible = false
     e.rig.restore() // reaproveitado: volta inteiro
@@ -323,6 +325,27 @@ export function CreateHorde(ctx) {
     e.t += dt; e.stT += dt
     e.hitT = Math.max(0, e.hitT - dt)
     e.bite = Math.max(0, e.bite - dt * 4)
+    // pulando a janela (barricades.js marca e.climb): o corpo atravessa o vão sem colisão — apoia no parapeito e mergulha para dentro.
+    // Golpe forte no meio do pulo (tropeçou, caiu, morreu): termina do lado em que estava
+    if (e.climb) {
+      const c = e.climb
+      c.t += dt
+      if (e.imp > 0) react(e)
+      const k = Math.min(1, c.t / c.time), a = ease(k / CLIMB_LEAN), m = ease((k - CLIMB_LEAN) / (1 - CLIMB_LEAN)), live = e.state === 'chase' || e.state === 'investigate'
+      if (live && k < 1) {
+        // 1º encosta no parapeito (a), depois passa para dentro (m)
+        const ax = c.x0 + (c.xm - c.x0) * a, az = c.z0 + (c.zm - c.z0) * a
+        e.x = ax + (c.x1 - ax) * m; e.z = az + (c.z1 - az) * m; e.fy = c.y0 + (c.y1 - c.y0) * m
+        e.lx = e.x; e.lz = e.z; e.vault = k; e.vel = 0; e.moving = 0; e.kx = e.kz = 0
+        e.group.position.set(e.x, e.fy, e.z)
+        e.group.rotation.y = e.heading
+        return false
+      }
+      const inn = live || m > 0.5
+      Object.assign(e, inn ? { x: c.x1, z: c.z1, fy: c.y1 } : { x: c.x0, z: c.z0, fy: c.y0 }, { lv: 0, vault: 0, climb: null, kx: 0, kz: 0, ent: null, entT: 0.6 })
+      e.lx = e.x; e.lz = e.z
+      if (inn) sfx('bodyfall', { x: e.x, z: e.z })
+    }
     if (e.state === 'dead') {
       e.dying -= dt
       e.vel = 0

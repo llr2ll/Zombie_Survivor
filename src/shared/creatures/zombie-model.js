@@ -225,10 +225,12 @@ export function CreateZombieModel(v = 0) {
     }
 
     // ---- queda: de costas (empurrado de frente) ou de bruços ----
-    body.rotation.x = (e.fallDir || -1) * fall * Math.PI / 2
-    body.position.y = 0.14 * fall
-    // pés no chão: mancar/abaixar o quadril não enterra o sapato (deitado ou ajoelhado comendo fica como está)
-    const plant = (1 - fall) * (1 - crouchW)
+    // ---- pulando uma janela (e.vault 0..1): sobe no parapeito, o corpo deita para a frente e mergulha para dentro ----
+    const hop = Math.sin((e.vault || 0) * Math.PI)
+    body.rotation.x = (e.fallDir || -1) * fall * Math.PI / 2 + hop * 1.15
+    body.position.y = 0.14 * fall + hop * 0.8
+    // pés no chão: mancar/abaixar o quadril não enterra o sapato (deitado, ajoelhado comendo ou no ar fica como está)
+    const plant = (1 - fall) * (1 - crouchW) * (1 - hop)
     if (plant > 0.01) { root.updateMatrixWorld(true); hips.position.y += SoleDepth(root, knees) * plant }
   }
 
