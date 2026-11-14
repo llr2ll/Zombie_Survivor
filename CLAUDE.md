@@ -147,6 +147,8 @@ Teclado e celular usam exatamente o mesmo formato. Não mude sem pedir.
 - Celular → relay: `{t:'join', code, name}`, `{t:'in', mx, mz, ax, az, run}` a cada 33 ms, `{t:'act', a}`.
   Com a conexão direta aberta, `in` e `act` (e tudo da tela → celular) vão pelo WebRTC com o mesmo formato; o servidor só passa
   `rtc` (oferta/resposta) e `ice` (endereços). `ConnectHost` entrega ao jogo igual de onde vier (+ `onLink(id, direto)`).
+- Entrou no meio da partida (celular ou controle): nasce ao lado de alguém do grupo (`beside` em `survival.js`, o mesmo lugar do amanhecer);
+  `game.sync(id)` manda o `state` na hora e, com o menu aberto, o `main.js` manda o `menu` (com a pausa o jogo não roda e o estado não sairia).
 - Tela → celular: `{t:'state', hp, max, cls, w, btn, car, dead, st, time, score, held, rv, u, inv, up}` a cada 0,15 s; `hit`, `lobby`, `kick`, `closed`;
   `{t:'menu', open, vote}` = menu da partida aberto (pausa); `vote` = 0 ou `{ by, yes, need, total, left, mine }` (mine: 'yes'/'no'/'').
   `{t:'buzz', ms}` = vibrar ms (tiro, explosão…: `buzz()`/`impact()` em `survival.js`, números em `balance.js · juice.buzz`).
@@ -329,6 +331,9 @@ Decidido: a Etapa 3 vai em 3 PRs — F1 mover pastas + `npm run check` (+ cortar
 F2 estado global → instâncias com `reset()` + caches limpos por distância (medir antes) · F3 `balance.js` + `?bots=3`.
 
 ## Histórico de PRs
+- **entrar-no-meio** — achado no teste geral: quem entrava no meio nascia na largada, longe do grupo (no teste, a 150 m, sozinho à noite);
+  e o celular que entrava com o menu aberto (onde fica o QR) ficava em "Entrando na sala…" até fechar o menu. Agora nasce ao lado de alguém
+  e vê a pausa na hora. Smoke: um 3º celular entra com o menu aberto. Replay igual.
 - **teclas-de-teste** — achado no teste geral: N (+1 hora) funcionava no jogo publicado e pulava a noite (vencia o cerco sem lutar);
   K, T e `?bots=` também. Agora só no `npm run dev` (ou build com `VITE_TEST_KEYS=1`, o smoke). O menu só mostra "Teste" no dev. Replay igual.
 - **comando-unico** — pedido do dono: `npm start` sobe o servidor da sala e o jogo juntos. Correção: no Codespaces o QR não conectava

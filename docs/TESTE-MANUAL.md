@@ -44,6 +44,7 @@ Você precisa de **1 celular** e do teclado do PC. Para o item 12 (4 jogadores),
 | 30 | **Tela limpa e letra nova**: jogue alguns minutos | No alto, pílulas (dia, zumbis, pontos, estoque, hora) e "☰ Menu e QR" à direita. Embaixo, à esquerda, um cartão por jogador com vida, nível e uma linha só. Mensagens numa caixa escura com cantos dourados, no alto, sem cobrir os personagens e sem quebrar em várias linhas. Os números aparecem como 1 (não como I). Sem a linha de atalhos embaixo e sem o QR no canto | ☐ |
 | 31 | **Menu da partida**: Esc (ou ☰ Menu e QR, Start no controle, ☰ no celular) | Caixa "PAUSA" com o desenho das teclas (abas Teclado / Controle / Celular) e o QR. Um celular novo escaneia esse QR e entra na partida em andamento | ☐ |
 | 32 | **Votação para voltar**: com 2 ou mais jogadores, no menu toque "Voltar ao menu inicial" | Aparece "Voltar ao menu inicial?" com quem pediu e quantos votos faltam (maioria: 2 de 2, 2 de 3, 3 de 4). Teclado: Y/N · controle: A/B · celular: SIM/NÃO na tela. Com a maioria, volta ao menu; com "não" demais ou 20 s sem maioria, aparece "Votação recusada" e o jogo continua pausado | ☐ |
+| 33 | **Entrar no meio da partida**: ande para longe da largada, aperte Esc e entre com outro celular pelo QR do menu | O celular novo já mostra "PAUSADO". Ao continuar, o jogador novo está ao lado do grupo (não lá na largada) | |
 
 Para testar outra classe pelo teclado: Esc → Voltar ao menu inicial (jogando sozinho volta na hora) → no menu, aperte A ou D → Enter.
 

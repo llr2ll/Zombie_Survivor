@@ -1,12 +1,12 @@
 [0s] 1/4 compilando o jogo…
 [1s] 2/4 subindo relay e página…
 [2s] 3/4 abrindo o jogo no navegador sem tela…
-[6s]    sala ZBPK aberta no relay
-[75s] 4/4 jogando 60 s…
-[105s]    captura 02-inicio.jpg
-[161s]    captura 03-acao.jpg
-[185s]    captura 04-noite.jpg
-[202s]    captura 05-fim.jpg
-[215s]    HUD: {"topo":"🌙 Noite 1/2\n🧟 30\n⭐ 0\n🪵 0 🩹 0\n🌙 00:10 · Limpo","jogadores":"🔫\nJogador 1\nNV 1\nEspingarda 6/30Granada 3s\n🪕\nCelular\nNV 1\nAlaúdeCanção de cura 8s\n🔮\nControle 1\nNV 1\nMana 100Meteoro 3s"}
+[8s]    sala NRSY aberta no relay
+[98s] 4/4 jogando 60 s…
+[134s]    captura 02-inicio.jpg
+[193s]    captura 03-acao.jpg
+[216s]    captura 04-noite.jpg
+[234s]    captura 05-fim.jpg
+[248s]    HUD: {"topo":"🌙 Noite 1/2\n🧟 30\n⭐ 0\n🪵 0 🩹 0\n🌙 00:10 · Limpo","jogadores":"🔫\nJogador 1\nNV 1\nEspingarda 6/30Granada 3s\n🪕\nCelular\nNV 1\nAlaúdeCanção de cura 8s\n🔮\nControle 1\nNV 1\nMana 100Nova de gelo 6s"}
 
 PASSOU
