@@ -37,7 +37,8 @@ Endereço do relay no navegador: `VITE_WS_URL` se existir; senão `ws(s)://<mesm
      (o Vite e o Three.js também sorteiam, e isso mudaria com a ordem dos arquivos). `SIM_TRACE=arquivo node scripts/sim.mjs` grava o rastro
      quadro a quadro para achar onde dois replays se separam.
 - `npm run smoke` — teste automático (~3 min). Compila o jogo, sobe relay **8099** e página **5199** (não briga com o dev/server do dono),
-  abre no Chromium sem tela, entra 1 teclado (Atirador; aperta D e A no menu) + 1 celular simulado (troca para Bardo com ▶ ▶), confere as classes, joga 60 s (anda, atira, habilidades, carro, noite),
+  abre no Chromium sem tela, entra 1 teclado (Atirador; aperta D e A no menu) + 1 celular simulado (troca para Bardo com ▶ ▶)
+  + 1 controle de videogame de mentira (`navigator.getGamepads` trocado; entra com A, ▶ ◀ no direcional, fica Mago), confere as classes, joga 60 s (anda, atira, habilidades, carro, noite),
   aperta Esc e confere a volta ao menu. **Falha se aparecer qualquer `console.error` ou erro de página.** Capturas e log em `smoke/` (versionados: o PR mostra as capturas).
   Script: `scripts/smoke.mjs`. Sem GPU o jogo roda a 1–2 FPS → 60 s reais ≈ 6 s de jogo. Pega erro de carregar/iniciar/botões, não bugs de longo prazo.
 - `docs/TESTE-MANUAL.md` — checklist de 5 min que o dono roda depois de cada PR (inclui anotar FPS). Peça para ele rodar.
@@ -58,7 +59,8 @@ src/engine/               genérico
                           memo.js (cache com limite para o mundo infinito)
   render/                 splitscreen.js (junta <13 m, separa >19 m; shake = tremor só nas telas perto), light.js, style.js (paleta, materiais, vento),
                           entity-shadows.js (sombras falsas), follow.js (contador de FPS)
-  input/                  contract.js (contrato de input), keyboard.js (teclado+mouse), phone.js (código do celular)
+  input/                  contract.js (contrato de input), keyboard.js (teclado+mouse), phone.js (código do celular),
+                          gamepad.js (controles de videogame: Gamepad API, ids pad0…pad3)
   net/host.js             conexão da tela com o relay
   audio/engine.js         Web Audio: barramentos, primitivas, som posicional
   world/                  noise.js (hash/ruído), collision.js (grade de colisão), chunks.js (carrega/descarrega chunks),
@@ -142,6 +144,10 @@ Teclado e celular usam exatamente o mesmo formato. Não mude sem pedir.
 - No menu: celular manda `{t:'act', a:'prev'|'next'}` para trocar a classe (o `main.js` manda para `lobby.pick` só na fase de menu);
   a tela manda `{t:'lobby', slot, total, pick}` (pick = texto da classe escolhida). `game.addPlayer(id, nome, vaga, classe)`.
 - Jogador do teclado tem id `'local'`. Bots de teste têm id `bot1`…`bot3` e usam o mesmo contrato (`games/survivor/bots.js`).
+- Controle de videogame (J14): id `pad0`…`pad3`; `engine/input/gamepad.js` lê a cada quadro e entrega `input` (stick esquerdo = mx/mz,
+  direito = ax/az, LT ou L3 = run) e `button` (nomes do padrão). O `main.js` traduz: A jump · B shove · X use · LB b1 · RB b2 · Y b3 ·
+  direcional ◀ ▲ ▶ = up1/up2/up3 (cartas, mostradas na TV). No menu: A ou Start entra (`lobby.addPad`), ◀ ▶ trocam a classe, Start começa.
+  Mensagens das regras para "celulares" com id `pad…` não vão ao relay: `hit` vira tremida (`rumble`), o resto é ignorado.
 
 ## Decisões tomadas (não reabra sem perguntar ao dono)
 - Multiplayer local e online. Online, por enquanto = modelo Jackbox: amigos remotos assistem pela transmissão (Discord ou Steam Remote Play Together)
@@ -272,7 +278,7 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
 
 ## Plano da sessão de fundação (30/10/2026)
 0. Verificação ✓ · 1. PR "limpeza" ✓ · 2. `docs/GAME-DESIGN.md` ✓ (decisões registradas) · 3. Fundação em 3 PRs: F1 (PR #4) · F2 (PR #5) · F3 (PR aberto).
-4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 · J9 · J10 · J11 · J12a + correção das janelas · J12b (PRs abertos, aguardando merge em ordem) · próximo: J14 (controle de videogame). J13 (combinações) já entrou no J7b.
+4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 · J9 · J10 · J11 · J12a + correção das janelas · J12b · J14 (PRs abertos, aguardando merge em ordem). Plano J1–J14 completo. J13 (combinações) já entrou no J7b.
 Estrutura-alvo da Etapa 3 (criar só pastas com conteúdo real; imports só descem `games` → `shared` → `engine`, verificado por `npm run check`):
 ```
 src/engine/   {core, render, input, net, audio, world, ui}     genérico, não sabe que existem zumbis
@@ -285,6 +291,9 @@ F2 estado global → instâncias com `reset()` + caches limpos por distância (m
 ## Histórico de PRs
 - **limpeza** — `node_modules/` fora do Git; `.gitignore` aceita .glb/.gltf; `player-moviment.js` → `player-movement.js`; README sem `reflections.js`;
   `npm run smoke`; este CLAUDE.md; `docs/COMO-FUNCIONA.md`; `docs/TESTE-MANUAL.md`. Nenhuma mudança no jogo.
+- **j14-controle (J14)** — controle de Xbox/PlayStation no PC (Gamepad API) vira jogador com o mesmo contrato do celular: A ou Start entra
+  no menu (vaga "🎮 Controle"), ◀ ▶ trocam a classe, Start começa; na partida sticks andam/miram, A pula, B empurra, X usa, LB/RB/Y botões da
+  classe, LT corre, direcional escolhe as cartas (na TV); vibra ao levar dano. Pode entrar no meio da partida. Smoke ganhou um controle de mentira.
 - **j12b-cercos (J12b)** — 5 cercos escolhidos no menu (◀ ▶ / Q E), cada um numa paróquia da N-550: 1 San Xoán de Vilar (a largada,
   2 noites), 2 Santa Mariña de Cerdeira (3 noites), 3 Santiago de Moreira (Labrego desde a 1ª noite), 4 San Martiño de Lamas (menos saque),
   5 San Xoán de Rois (tudo junto + horda ×1,2). Vencer libera o próximo (save); o rádio e o resultado dizem a paróquia; "🏆 Cerco N liberado".

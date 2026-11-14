@@ -66,9 +66,9 @@ export function CreateHud(game, climate) {
       // achado raro: a história dele, por alguns segundos
       const f = game.st.find
       if (f !== found) { found = f; find.innerHTML = f ? `<b>${f.icon} ${f.title}${f.fresh ? ' — novo na coleção!' : ''}</b><br><i style="opacity:.9">${f.text.join('<br>')}</i>` : ''; find.style.display = f ? 'block' : 'none' }
-      // teclado com cartas para escolher: 1, 2 ou 3
-      const me = game.players.get('local'), list = me && !game.st.over && me.cards
-      const html = list ? `<div style="font-size:16px;margin-bottom:8px">⬆ Nível ${me.level}! Escolha com <b>1</b>, <b>2</b> ou <b>3</b></div><div style="display:flex;gap:10px">${list.map((u, i) => `<div style="width:190px;padding:8px;border-radius:9px;background:#ffffff14;border:2px solid #ffd24a88"><div style="font-size:15px"><b>${i + 1}</b> · ${u.icon} ${u.name}</div><div style="font-weight:400;font-size:12.5px;opacity:.85;margin-top:4px">${u.text}</div></div>`).join('')}</div>` : ''
+      // cartas para escolher de quem joga sem celular (teclado: 1, 2 ou 3 · controle: ◀ ▲ ▶ do direcional)
+      const own = game.st.over ? [] : [...game.players.values()].filter((p) => p.cards && (p.id === 'local' || p.id.startsWith('pad')))
+      const html = own.map((me) => `<div style="font-size:16px;margin:4px 0 8px">⬆ ${me.name} · nível ${me.level}! Escolha com ${me.id === 'local' ? '<b>1</b>, <b>2</b> ou <b>3</b>' : '<b>◀</b>, <b>▲</b> ou <b>▶</b> do direcional'}</div><div style="display:flex;gap:10px">${me.cards.map((u, i) => `<div style="width:190px;padding:8px;border-radius:9px;background:#ffffff14;border:2px solid #ffd24a88"><div style="font-size:15px"><b>${me.id === 'local' ? i + 1 : ['◀', '▲', '▶'][i]}</b> · ${u.icon} ${u.name}</div><div style="font-weight:400;font-size:12.5px;opacity:.85;margin-top:4px">${u.text}</div></div>`).join('')}</div>`).join('')
       if (html !== shown) { shown = html; cards.innerHTML = html; cards.style.display = html ? 'block' : 'none' }
       $('#wave').textContent = `${game.siege.text() || `⏱ ${clock(game.st.time)}`}${game.compana.text() ? ` · ${game.compana.text()}` : ''} · 🧟 ${game.zombies()}` // dia/noite do cerco
       $('#score').textContent = `Pontos ${game.st.score}`
@@ -81,7 +81,7 @@ export function CreateHud(game, climate) {
         const mana = p.cls.id === 'mage' ? `<div class="bar mana"><i style="width:${p.mana}%"></i></div>` : ''
         const task = p.task ? ` · ${p.task.icon} ${Math.round((p.task.t / p.task.need) * 100)}%` : ''
         const mark = p.marked > 0 ? ' · <span style="color:#b89aff">🕯️ marcado</span>' : ''
-        const lv = `${mark} · Nv ${p.level}${p.cards && p.id !== 'local' ? ' <span style="color:#ffd24a">⬆ escolhendo no celular</span>' : ''}`
+        const lv = `${mark} · Nv ${p.level}${p.cards && p.id !== 'local' ? ` <span style="color:#ffd24a">⬆ ${p.id.startsWith('pad') ? 'escolha na TV' : 'escolhendo no celular'}</span>` : ''}`
         const state = p.dead ? (game.st.over ? '' : p.out ? ' · 💀 fora até o amanhecer' : ` · 🆘 caído ${Math.ceil(p.downT)}s`) : p.held ? ' · <span class="grab">🧟 AGARRADO! (V)</span>' : ''
         return `<div class="pl ${p.dead ? 'dead' : ''}" style="border-left:4px solid ${PLAYER_COLORS[p.idx % 4]}"><b>${p.cls.icon} ${p.name}</b>${lv} · ${inf.text} · ${p.kills} abates${car}${p.buffT > 0 ? ' · ✨' : ''}${task}${state}<div class="bar"><i style="width:${(p.hp / p.max) * 100}%"></i></div>${mana}<div class="bar xp"><i style="width:${game.levels.progress(p) * 100}%"></i></div>${cds ? `<div class="cds">${cds}</div>` : ''}</div>`
       }).join('')

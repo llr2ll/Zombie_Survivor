@@ -19,6 +19,9 @@ No celular: escaneie o QR code ou abra `/controller.html` e digite o código.
 Teste sem celular: WASD + mouse (clique esquerdo ataca, direito só mira), E entra/sai do veículo, Q/F/G habilidades, **V empurra**, 1/2/3 armas, R recarrega.
 Testar sozinho com 4 classes: abra o jogo com **`?bots=3`** no fim do endereço (3 jogadores do computador ocupam as vagas livres; tecla **B** espalha/junta, para ver a tela dividida). Só para teste.
 
+## Controle de videogame (Xbox / PlayStation)
+Ligue o controle no PC (USB ou Bluetooth). No menu, aperte **A** (ou **Start**): ele ocupa uma vaga livre como "🎮 Controle". **◀ ▶** do direcional trocam a classe e **Start** começa a partida. Na partida: **stick esquerdo** anda · **stick direito** mira (e ataca enquanto inclinado) · **A** pula · **B** empurra · **X** usa (revistar, barricar, levantar, carro) · **LB / RB / Y** são os botões da classe · **LT** corre · ao subir de nível, as cartas aparecem na TV e o **direcional ◀ ▲ ▶** escolhe. O controle vibra ao levar dano. Dá para entrar no meio da partida. Código em `src/engine/input/gamepad.js`.
+
 ## Controles do celular
 Na espera do menu: **◀ ▶** trocam a classe. Na partida: stick esquerdo = mover (ou dirigir) · stick direito = mirar (ataca enquanto inclinado) · botões da classe (nome e recarga vêm do jogo) · 🚗 aparece perto de um veículo (Entrar/Sair) · Correr · Pular · **Empurrar** (pisca quando um zumbi agarra).
 
