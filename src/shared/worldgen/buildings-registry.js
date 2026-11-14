@@ -129,8 +129,21 @@ export function FloorAt(x, z, feet) {
 //  mesma casa, andares diferentes            -> escada certa (pé / topo)
 //  inside = o inimigo já está dentro (vai reto no ponto; lá fora ainda desvia de obstáculos até a porta)
 const toWorld = (b, t, inside) => ({ x: b.x + t[0] * b.cs + t[1] * b.sn, z: b.z - t[0] * b.sn + t[1] * b.cs, inside })
+// casa em cuja soleira está o ponto (entre o chão de dentro e o ponto na frente da porta), ou null
+function doorstep(x, z) {
+  for (const b of set) {
+    if (x < b.x0 - 1.5 || x > b.x1 + 1.5 || z < b.z0 - 1.5 || z > b.z1 + 1.5) continue
+    const pr = b.pr, [lx, lz] = toLocal(b, x, z)
+    if (Math.abs(lx - pr.doorX) < 1.3 && lz > pr.iz - 0.3 && lz < pr.d / 2 + 0.9) return b
+  }
+  return null
+}
 export function ChaseTarget(x, z, feet, tx, tz, tfeet) {
   const me = FloorAt(x, z, feet), them = FloorAt(tx, tz, tfeet)
+  // saindo pela porta de uma casa que não é a do alvo: termina de sair antes de seguir (senão, um passo para fora, o alvo
+  // atrás da casa faz o zumbi virar, ele entra de novo, a rota manda sair... e ele fica girando na soleira).
+  // Alvo a até 3 m (ex.: alguém parado na porta): vai direto nele
+  if (!me && Math.hypot(tx - x, tz - z) > 3) { const s = doorstep(x, z); if (s && s !== them?.b) return toWorld(s, [s.pr.doorX, s.pr.d / 2 + 1.1], true) }
   if (!me && !them) return null
   const b = (me || them).b, pr = b.pr, [lx, lz] = toLocal(b, x, z)
   const near = (q, r = 0.7) => Math.hypot(lx - q[0], lz - q[1]) < r

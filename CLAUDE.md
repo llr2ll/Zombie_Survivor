@@ -222,6 +222,13 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
 - Velocidades: andar 4,4 m/s, correr 7,6, mirando 3,1 (`player-movement.js`); sedã 23 m/s, picape 20, jipe 19 (`vehicles/models.js`).
 - Raio do barulho que atrai zumbis: tiro 30 m (pistola 22), granada 38, música do Bardo 18, onda 12, dardo 9, katana 7,
   carro andando 18, correr 8, andar 3. A noite muda visão (16 → 9 m) e quantidade (×1,3). Chuva e neblina não afetam os zumbis.
+- **Caminho dos zumbis (PR zumbis-presos):** no desvio e no A* (`pathing.js`), porta de casa que não é a da rota conta como parede
+  (`DoorAt` em `collision.js`; a da rota fica a até 2,5 m do ponto da rota). Na soleira de uma casa que não é a do alvo, `ChaseTarget`
+  manda terminar de sair (ponto na frente da porta) antes de seguir. Preso = andou pouco em 0,6 s **ou** não chegou 0,5 m mais perto
+  do destino em 2 s (andar em círculo numa ponta de terra na água não era pego). Travou de novo seguindo o caminho do A*: passo de lado
+  e outro A* dali (o A* testa a água só no centro de cada quadrado de 1,2 m; um fio de água funda no trecho prendia o zumbi para sempre,
+  e recalcular do mesmo lugar dava o mesmo caminho). Antes: zumbi girando na porta por minutos e zumbis do cerco presos na beira do
+  lago perto da largada (-36, 2).
 - **Saque (J3):** `buildings.js` registra cada móvel no protótipo da casa (`pr.spots`: centro, frente, andar, tipo, cômodo); o gerador converte
   para o mundo (`b.spots`, id = posição + andar, estável ao recarregar) e `SpotsNear(x, z, andar, r)` (registro de casas) devolve os próximos.
   O que foi revistado/desmontado fica em `loot.js` (Map por id) até `game.clear()`. Desmontar não some com o móvel (ele faz parte da malha da casa).
@@ -331,6 +338,11 @@ Decidido: a Etapa 3 vai em 3 PRs — F1 mover pastas + `npm run check` (+ cortar
 F2 estado global → instâncias com `reset()` + caches limpos por distância (medir antes) · F3 `balance.js` + `?bots=3`.
 
 ## Histórico de PRs
+- **zumbis-presos** — achado no teste geral: zumbis ficavam girando na soleira de casas que estavam entre eles e o alvo e parados na
+  beira do lago perto da largada; o cerco chegava mais fraco. Agora: porta de casa fora da rota conta como parede no desvio, quem está
+  na soleira termina de sair, andar em círculo sem avançar conta como preso e, travando no caminho calculado, dá um passo de lado e
+  recalcula. Medido na mesma partida de 17 min sem tela: presos em porta de outra casa 7 → 0, na beira do lago 5 (até 34) → 2 (saem
+  sozinhos). Replay atualizado de propósito (20 zumbis do cerco na base, antes 12).
 - **entrar-no-meio** — achado no teste geral: quem entrava no meio nascia na largada, longe do grupo (no teste, a 150 m, sozinho à noite);
   e o celular que entrava com o menu aberto (onde fica o QR) ficava em "Entrando na sala…" até fechar o menu. Agora nasce ao lado de alguém
   e vê a pausa na hora. Smoke: um 3º celular entra com o menu aberto. Replay igual.

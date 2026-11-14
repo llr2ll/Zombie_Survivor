@@ -77,6 +77,19 @@ export function Blocked(x, z, r, lv = 0) {
   return hit
 }
 
+// Porta (aberta ou fechada) encostando no círculo, menos as que ficam a até 2,5 m de (ax, az).
+// Para o desvio dos inimigos: casa que não é a do alvo fica fechada (senão o zumbi entra pela porta aberta, vê que o
+// alvo está lá fora, sai, tenta cortar caminho pela casa de novo... e fica nesse vai-e-volta na porta).
+export function DoorAt(x, z, r, lv = 0, ax = NaN, az = NaN) {
+  let hit = false
+  forNear(x, z, r, (c) => {
+    if (hit || !c.door || (c.lv !== undefined && c.lv !== lv) || (c.x - ax) ** 2 + (c.z - az) ** 2 < 6.25) return
+    const nx = Math.max(c.x - c.hw, Math.min(x, c.x + c.hw)), nz = Math.max(c.z - c.hd, Math.min(z, c.z + c.hd))
+    if ((x - nx) ** 2 + (z - nz) ** 2 < r * r) hit = true
+  })
+  return hit
+}
+
 // Distância em que um raio (origem + direção unitária) bate numa caixa; Infinity se não bater
 export function rayBox(ox, oz, dx, dz, c) {
   let t0 = 0, t1 = Infinity
