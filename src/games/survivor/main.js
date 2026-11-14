@@ -129,6 +129,7 @@ export async function LoadGame() {
       if (phase === 'playing') game.addPlayer(id, name, slot, lobby.entries().find((e) => e.id === id)?.choice) // entrada tardia: já nasce na partida
     },
     onLeave: (id) => { lobby.removeId(id); game.removePlayer(id) },
+    onLink: (id, on) => lobby.setLink(id, on), // ⚡ direto / 🌐 servidor na vaga do celular
     onInput: (id, m) => game.setInput(id, m),
     // no menu, o celular só troca a classe (◀ ▶); na partida, as ações vão para o jogo
     onAct: (id, a) => (phase === 'lobby' ? lobby.pick(id, a === 'prev' ? -1 : a === 'next' ? 1 : 0) : game.act(id, a)),

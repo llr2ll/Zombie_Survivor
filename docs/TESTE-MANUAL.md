@@ -12,7 +12,7 @@ Você precisa de **1 celular** e do teclado do PC. Para o item 12 (4 jogadores),
 | # | Teste | O que você deve ver | ✓ |
 |---|---|---|---|
 | 1 | **Menu** abre | 4 vagas "Livre" (sem botões de escolher aparelho), QR code, código de 4 letras e "Servidor conectado" em verde | ☐ |
-| 2 | **Entrar pelo celular** (QR code) e trocar a classe com ◀ ▶ | O celular mostra "Você é o Jogador N" e a classe. Ao tocar ▶, a classe muda no celular e no PC | ☐ |
+| 2 | **Entrar pelo celular** (QR code) e trocar a classe com ◀ ▶ | O celular mostra "Você é o Jogador N" e a classe. Em ~1 s a vaga na TV e o canto do celular mostram **⚡ direto** (conexão direta; se mostrar 🌐 servidor, funciona igual, só anote). Ao tocar ▶, a classe muda no celular e no PC | ☐ |
 | 3 | **Entrar pelo teclado** e trocar a classe com A/D | No menu, aperte W (ou clique numa área vazia do menu): o teclado entra sozinho na vaga livre → "⌨️ Mouse e teclado · pronto". Só mexer o mouse ou clicar em Iniciar/Coleção/cerco **não** cria jogador. A e D trocam a classe. Escolha a mesma do celular: os dois entram iguais, cada um com o anel da sua cor no chão. Enter inicia | ☐ |
 | 4 | **Atirador**: clique atira, 1/2/3 trocam a arma, R recarrega, G joga a granada | Tiros, cápsulas, explosão. Munição muda no placar | ☐ |
 | 5 | **Samurai**: clique faz o combo de 3 golpes, Q investida, F redemoinho | O 3º golpe derruba. A investida atravessa os zumbis | ☐ |
@@ -39,6 +39,8 @@ Você precisa de **1 celular** e do teclado do PC. Para o item 12 (4 jogadores),
 | 25 | **Progresso**: abra o jogo com `?zerar` no fim do endereço, jogue uma partida até o fim (pode perder) e volte ao menu | No menu: "⛪ Paróquia nível 1 · 🗝 16/28 melhorias · ⭐ 0/30 achados". No fim da partida: "⛪ Paróquia: +N XP". De volta ao menu, o nível sobe com o tempo e as melhorias liberadas aumentam. Aperte **C** no menu: a Coleção abre (achados que faltam como "???"). Achando um ⭐ no saque: a história aparece embaixo e você escolhe uma melhoria. Feche e abra o navegador: o progresso continua | ☐ |
 | 26 | **Cercos**: no menu, veja a barra "◀ Cerco 1 · San Xoán de Vilar — 2 noites ▶" e aperte E | Com save novo só o Cerco 1 está liberado ("🔒 vença o Cerco 1 para liberar o 2"). Vença o Cerco 1 (dá para adiantar com N): no resultado, "🏆 Cerco 2 liberado: Santa Mariña de Cerdeira!". No menu, E escolhe o Cerco 2; ao começar, vocês estão em outra vila, o rádio fala o nome da paróquia e são 3 noites ("Noite 1/3") | ☐ |
 | 27 | **Controle de videogame** (se tiver um): ligue no PC e, no menu, aperte qualquer botão | Aparece uma vaga "🎮 Controle 1 · pronto". ◀ ▶ do direcional trocam a classe; Start começa. Na partida: stick esquerdo anda, direito mira e ataca, A pula, B empurra, X revista/barrica, LB/RB/Y são os botões da classe, LT corre. Ao subir de nível, as cartas aparecem na TV com ◀ ▲ ▶ e o direcional escolhe. Ao levar dano, o controle vibra | ☐ |
+
+| 28 | **Plano B da conexão**: abra o controle com `&direto=0` no fim do endereço (ex.: `.../controller.html?room=ABCD&direto=0`) e entre | A vaga mostra "📱 Celular conectado · 🌐 servidor" e o celular, 🌐 servidor. Jogue um pouco: anda, mira e os botões funcionam igual. Com 4G no lugar do Wi-Fi, anote se aparece ⚡ ou 🌐 | ☐ |
 
 Para testar outra classe pelo teclado: Esc → no menu, aperte A ou D → Enter.
 

@@ -1,6 +1,7 @@
 // Teste de fumaça: compila o jogo, sobe relay + página em portas próprias (não briga com o npm run dev/server),
-// abre num navegador sem tela, entra 1 jogador no teclado (aperta W: entra sozinho; Atirador), 1 celular simulado (troca para
-// Bardo no menu) e 1 controle de videogame de mentira (entra com A, troca a classe no direcional: fica Mago),
+// abre num navegador sem tela, entra 1 jogador no teclado (aperta W: entra sozinho; Atirador), 1 celular simulado (conexão
+// direta; troca para Bardo no menu), 1 celular sem conexão direta (plano B pelo servidor; troca a classe e é tirado no ✕)
+// e 1 controle de videogame de mentira (entra com A, troca a classe no direcional: fica Mago),
 // joga ~60 s e FALHA se aparecer erro no console. Capturas e log ficam em smoke/.
 // Sem placa de vídeo o jogo roda a 1–2 FPS: 60 s reais ≈ 6 s de jogo. Serve para pegar erro de carregar/iniciar/botões.
 import { chromium } from 'playwright'
@@ -127,7 +128,8 @@ try {
   fs.mkdirSync(OUT, { recursive: true })
 
   note('1/4 compilando o jogo…')
-  await run([VITE, 'build', '--outDir', DIST, '--emptyOutDir', '--logLevel', 'warn'], { VITE_WS_URL: `ws://localhost:${WS_PORT}` })
+  // VITE_ICE '[]': conexão direta só pela rede local (o teste não depende de servidor STUN da internet)
+  await run([VITE, 'build', '--outDir', DIST, '--emptyOutDir', '--logLevel', 'warn'], { VITE_WS_URL: `ws://localhost:${WS_PORT}`, VITE_ICE: '[]' })
   note('2/4 subindo relay e página…')
   await serve(['server/server.js'], { PORT: WS_PORT }, /porta/)
   await serve([VITE, 'preview', '--outDir', DIST, '--port', WEB_PORT, '--strictPort'], {}, /localhost/)
@@ -162,6 +164,23 @@ try {
   await phone.click('#go')
   await phone.waitForSelector('#pad', { state: 'visible', timeout: 15000 })
   await page.waitForFunction(() => /Celular conectado/.test(document.querySelector('#slots')?.textContent || ''), null, { timeout: 15000 })
+  // conexão direta (WebRTC): a vaga na TV e o celular mostram ⚡ direto; daqui em diante os comandos não passam pelo servidor
+  const slotHas = (i, t) => new Function(`return (document.querySelectorAll('#slots .slot')[${i}]?.textContent || '').includes(${JSON.stringify(t)})`)
+  await page.waitForFunction(slotHas(1, '⚡ direto'), null, { timeout: 20000 }).catch(() => fail('o celular não abriu a conexão direta (ficou pelo servidor)'))
+  if (!(await phone.textContent('#link')).includes('direto')) fail('o celular não mostra ⚡ direto')
+  // plano B: um 2º celular sem conexão direta (?direto=0) entra pelo servidor, troca a classe e é tirado no ✕
+  const phone2 = await browser.newPage({ viewport: { width: 800, height: 400 }, hasTouch: true })
+  watch(phone2, 'celular 2')
+  await phone2.goto(`${WEB}controller.html?room=${code}&direto=0`)
+  await phone2.fill('#name', 'Plano B')
+  await phone2.click('#go')
+  await page.waitForFunction(slotHas(2, '🌐 servidor'), null, { timeout: 15000 }).catch(() => fail('o 2º celular (sem conexão direta) não entrou pelo servidor'))
+  await phone2.waitForSelector('#pick', { state: 'visible', timeout: 30000 })
+  await phone2.dispatchEvent('#next', 'pointerdown') // toque direto: o navegador sem placa de vídeo é lento para o clique "parado"
+  await page.waitForFunction(slotHas(2, 'Bardo'), null, { timeout: 15000 }).catch(() => fail('o 2º celular não trocou a classe pelo servidor'))
+  await page.click('#slots .slot:nth-child(3) button.x')
+  await phone2.waitForFunction(() => /removido/.test(document.querySelector('#state')?.textContent || ''), null, { timeout: 15000 }).catch(() => fail('o 2º celular não recebeu o aviso de removido'))
+  await phone2.close()
   // escolha de classe: teclado D e A (volta ao Atirador); celular ▶ duas vezes (Samurai → Mago → Bardo)
   await page.keyboard.press('d'); await page.keyboard.press('a')
   await phone.waitForSelector('#pick', { state: 'visible', timeout: 15000 })

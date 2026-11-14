@@ -22,7 +22,8 @@ npm run server   # terminal 1: relay WebSocket (porta 8080; muda com PORT=...)
 npm run dev      # terminal 2: jogo (porta 5173)
 npm run build    # gera dist/ (para hospedar)
 ```
-Endereço do relay no navegador: `VITE_WS_URL` se existir; senão `ws(s)://<mesmo host>:8080` (`src/engine/net/host.js`, `src/engine/input/phone.js`).
+Endereço do servidor da sala no navegador: `VITE_WS_URL` se existir; senão `ws(s)://<mesmo host>:8080` (`RelayURL` em `src/engine/net/link.js`).
+Celular e tela conversam **direto** (WebRTC); o servidor só apresenta os dois e é o plano B (detalhes em "Fatos": Conexão direta).
 
 ## Como testar
 - `npm run check` — ~25 s, sem navegador. Rodar SEMPRE antes de abrir PR. Quatro verificações:
@@ -37,7 +38,8 @@ Endereço do relay no navegador: `VITE_WS_URL` se existir; senão `ws(s)://<mesm
      (o Vite e o Three.js também sorteiam, e isso mudaria com a ordem dos arquivos). `SIM_TRACE=arquivo node scripts/sim.mjs` grava o rastro
      quadro a quadro para achar onde dois replays se separam.
 - `npm run smoke` — teste automático (~3 min). Compila o jogo, sobe relay **8099** e página **5199** (não briga com o dev/server do dono),
-  abre no Chromium sem tela, entra 1 teclado (aperta W: entra sozinho; Atirador; aperta D e A no menu) + 1 celular simulado (troca para Bardo com ▶ ▶)
+  abre no Chromium sem tela, entra 1 teclado (aperta W: entra sozinho; Atirador; aperta D e A no menu) + 1 celular simulado (conexão direta:
+  confere ⚡ direto na vaga e no celular; troca para Bardo com ▶ ▶) + 1 celular `?direto=0` (plano B pelo servidor: troca a classe e é tirado no ✕)
   + 1 controle de videogame de mentira (`navigator.getGamepads` trocado; entra com A, ▶ ◀ no direcional, fica Mago; cada botão fica apertado até o efeito aparecer — sem GPU um quadro pode levar segundos), confere as classes, joga 60 s (anda, atira, habilidades, carro, noite),
   aperta Esc e confere a volta ao menu. **Falha se aparecer qualquer `console.error` ou erro de página.** Capturas e log em `smoke/` (versionados: o PR mostra as capturas).
   Script: `scripts/smoke.mjs`. Sem GPU o jogo roda a 1–2 FPS → 60 s reais ≈ 6 s de jogo. Pega erro de carregar/iniciar/botões, não bugs de longo prazo.
@@ -50,7 +52,7 @@ Regra: **imports só descem** — `src/games/<jogo>` → `src/shared` → `src/e
 ```
 index.html, main.css      página do jogo (tela) + HUD → carrega src/games/survivor/main.js
 controller.html           página do celular (controle) → carrega src/engine/input/phone.js
-server/server.js          relay WebSocket: cria sala (4 letras) e só repassa mensagens tela ↔ celulares
+server/server.js          servidor da sala (WebSocket): cria sala (4 letras), apresenta tela ↔ celular (rtc/ice) e é o plano B
 scripts/                  smoke.mjs (teste no navegador sem tela), check.mjs (camadas, mundo, caches, replay), sim.mjs (replay), *-fingerprint.txt
 smoke/                    capturas + log do último npm run smoke
 docs/                     COMO-FUNCIONA (leigo), TESTE-MANUAL (checklist), GAME-DESIGN (direção criativa)
@@ -61,7 +63,7 @@ src/engine/               genérico
                           entity-shadows.js (sombras falsas), follow.js (contador de FPS)
   input/                  contract.js (contrato de input), keyboard.js (teclado+mouse), phone.js (código do celular),
                           gamepad.js (controles de videogame: Gamepad API, ids pad0…pad3)
-  net/host.js             conexão da tela com o relay
+  net/                    link.js (conexão direta WebRTC + RelayURL), host.js (tela: sala + conexões diretas), join.js (celular entra na sala)
   audio/engine.js         Web Audio: barramentos, primitivas, som posicional
   world/                  noise.js (hash/ruído), collision.js (grade de colisão), chunks.js (carrega/descarrega chunks),
                           pathing.js (desvio, A*, rota dentro de casas) — chunks.js é instância (CreateChunks)
@@ -135,6 +137,8 @@ Teclado e celular usam exatamente o mesmo formato. Não mude sem pedir.
 - `game.act(id, ação)` — `b1` `b2` `b3` (botões da classe) · `shove` · `use` (carro) · `jump` · `reload` · `swap` · `carbine` `shotgun` `pistol` · `up1` `up2` `up3` (carta).
   Teclado: com cartas na tela, 1/2/3 escolhem a carta (tradução no `main.js`); sem cartas, trocam a arma.
 - Celular → relay: `{t:'join', code, name}`, `{t:'in', mx, mz, ax, az, run}` a cada 33 ms, `{t:'act', a}`.
+  Com a conexão direta aberta, `in` e `act` (e tudo da tela → celular) vão pelo WebRTC com o mesmo formato; o servidor só passa
+  `rtc` (oferta/resposta) e `ice` (endereços). `ConnectHost` entrega ao jogo igual de onde vier (+ `onLink(id, direto)`).
 - Tela → celular: `{t:'state', hp, max, cls, w, btn, car, dead, st, time, score, held, rv, u, inv, up}` a cada 0,15 s; `hit`, `lobby`, `kick`, `closed`.
   `up` = cartas para escolher (`[[título, texto], …]`, ou 0); tocar numa manda `{t:'act', a:'up1'|'up2'|'up3'}`. `cls` traz o nível ("🔫 Atirador · Nv 2").
   `u` = texto do botão Usar (🤝 Levantar/🩹 Levantar já/💪 Levantar sozinho · 🪵 Barricar/🔨 Consertar/🪵 Reforçar · 🔍 Revistar/🪚 Desmontar ·
@@ -272,6 +276,14 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
   paróquia na hora). Largada da paróquia = `(0, NodeZ(j) − 32)` — no Cerco 1 dá (0, 0), a largada de sempre; os 3 carros da largada são
   registrados de novo ali. "Longe" do saque e a gasolina inicial contam dessa largada. Vencer guarda o cerco em `save.cercos` e libera o
   próximo (`save.open`). Sem `setCerco` = Cerco 1 com tudo igual (por isso o replay ficou igual).
+- **Conexão direta (PR conexao-direta):** depois do `joined`, o celular cria a oferta WebRTC (`CreateLink`, `caller: true`) e manda pelo
+  servidor; a tela responde (`host.js`). Canais combinados dos dois lados (`negotiated`): id 0 `in` (sem reenviar, fora de ordem, com
+  número `n` crescente: o atrasado é descartado; com a rede engasgada pula o envio) e id 1 `rel` (confiável). Não abriu em 12 s ou caiu
+  → manda pelo servidor (o WebSocket fica aberto a partida toda: plano B, `kick`/`closed`, `leave`). STUN grátis (Cloudflare, Google);
+  `VITE_ICE='[]'` = só rede local (o smoke usa, para não depender da internet). `?direto=0` no controle = sem conexão direta.
+  Servidor: celular só pode mandar `in`, `act`, `rtc`, `ice` (antes um `join` repetido ocupava outra vaga); mensagem > 64 KB derruba.
+  Próximos passos combinados com o dono: servidor da sala num plano grátis na internet (2º PR; onde hospedar o site: decidir) ·
+  celular volta sozinho à vaga · Electron pela rede de casa. Amigos longe na Steam: Remote Play Together + controle (J14).
 - `window.__game` existe só no `npm run dev` (testes automáticos e depuração); a versão compilada não tem.
 - Interiores (`buildings.js`): térreo (cozinha/sala: fogão, balcão, mesa, sofá, cômoda, baú, estante), andar de cima (quarto: cama,
   guarda-roupa, baú, escrivaninha) e sótão das casas de 3 andares (caixotes, barris, sacos, baú). Lojas: prateleiras, balcão, vitrine.
@@ -290,6 +302,10 @@ Decidido: a Etapa 3 vai em 3 PRs — F1 mover pastas + `npm run check` (+ cortar
 F2 estado global → instâncias com `reset()` + caches limpos por distância (medir antes) · F3 `balance.js` + `?bots=3`.
 
 ## Histórico de PRs
+- **conexao-direta** — pedido do dono (sem dinheiro para servidor; site na Netlify e depois Electron na Steam): celular e tela conversam
+  direto (WebRTC, sem biblioteca nova); o servidor só apresenta os dois na entrada e fica de plano B se a rede bloquear. A vaga na TV e o
+  celular mostram ⚡ direto / 🌐 servidor. O servidor só repassa `in`/`act`/`rtc`/`ice` de um celular. Smoke: celular direto + 2º celular
+  `?direto=0` pelo servidor (troca a classe, é tirado no ✕). Mesmo jogo (replay igual).
 - **limpeza** — `node_modules/` fora do Git; `.gitignore` aceita .glb/.gltf; `player-moviment.js` → `player-movement.js`; README sem `reflections.js`;
   `npm run smoke`; este CLAUDE.md; `docs/COMO-FUNCIONA.md`; `docs/TESTE-MANUAL.md`. Nenhuma mudança no jogo.
 - **menu-automatico** — pedido do dono: o menu não pergunta mais o aparelho. Cada um entra sozinho na 1ª vaga livre: celular pelo QR,

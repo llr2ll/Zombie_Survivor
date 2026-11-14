@@ -1,10 +1,13 @@
-// Relay online: a TELA (PC/TV) cria uma sala, os CELULARES entram com o código.
-// Mensagens: host->{t:'host'} | player->{t:'join',code,name} | player->{t:'in'|'act'} | host->{id,...} (vai pro celular)
+// Servidor da sala: a TELA (PC/TV) cria uma sala, os CELULARES entram com o código.
+// Ele apresenta tela e celular para a conexão direta (WebRTC: mensagens 'rtc' e 'ice') e é o plano B: se a conexão
+// direta não abrir, os comandos continuam passando por aqui.
+// Mensagens: host->{t:'host'} | player->{t:'join',code,name} | player->{t:'in'|'act'|'rtc'|'ice'} | host->{id,...} (vai pro celular)
 import { WebSocketServer } from 'ws'
 
 const PORT = process.env.PORT || 8080
 const MAX_PLAYERS = 4
-const wss = new WebSocketServer({ port: PORT })
+const FORWARD = new Set(['in', 'act', 'rtc', 'ice']) // o que um celular pode mandar para a tela
+const wss = new WebSocketServer({ port: PORT, maxPayload: 64 * 1024 }) // mensagem gigante = derruba a conexão
 const rooms = new Map()
 const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
 
@@ -38,7 +41,7 @@ wss.on('connection', (ws) => {
       ws.room = String(m.code).toUpperCase(); ws.role = 'player'; ws.id = id
       send(ws, { t: 'joined', id })
       send(r.host, { t: 'join', id, name: String(m.name || id).slice(0, 12) })
-    } else if (ws.role === 'player') {
+    } else if (ws.role === 'player' && FORWARD.has(m.t)) {
       const r = rooms.get(ws.room)
       if (r) send(r.host, { ...m, id: ws.id })
     } else if (ws.role === 'host') {

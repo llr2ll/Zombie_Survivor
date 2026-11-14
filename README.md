@@ -2,6 +2,15 @@
 
 A **tela** (PC/TV) roda o jogo. Os **celulares** viram controle: entram numa sala com código de 4 letras.
 
+## Conexão (sem servidor pago)
+- O celular entra na sala pelo servidor (`server/server.js`) e logo abre uma **conexão direta** com a tela (WebRTC, `src/engine/net/link.js`).
+  Daí em diante sticks, botões e o placar do celular vão direto, sem passar pelo servidor. A vaga e o celular mostram **⚡ direto**.
+- O servidor só faz a **sinalização** (passa oferta, resposta e endereços: mensagens `rtc` e `ice`) e é o **plano B**: se a conexão direta
+  não abrir em 12 s (rede que bloqueia), tudo continua pelo servidor (**🌐 servidor**). Ele só repassa `in`, `act`, `rtc` e `ice` de um celular.
+- Canais: `in` (sticks, 30 por segundo) vai num canal rápido que não reenvia (só vale o mais novo); o resto num canal confiável.
+- Endereços de fora: STUN grátis (Cloudflare e Google). `VITE_ICE` (JSON) troca a lista; `'[]'` = só a rede local (o smoke usa).
+- `?direto=0` no endereço do controle desliga a conexão direta (para testar o plano B).
+
 ## Organização do código
 - `src/engine/` – motor genérico (desenho, split screen, input, rede, áudio, chunks, colisão, menu). Não sabe que existem zumbis.
 - `src/shared/` – peças prontas para os 3 jogos (personagens, modelo do zumbi, mundo, carros, efeitos, sons).
@@ -11,7 +20,7 @@ A **tela** (PC/TV) roda o jogo. Os **celulares** viram controle: entram numa sal
 ## Rodar (mesma rede Wi‑Fi)
 ```bash
 npm install
-npm run server      # terminal 1: relay (porta 8080)
+npm run server      # terminal 1: servidor da sala (porta 8080)
 npm run dev         # terminal 2: jogo (porta 5173)
 ```
 Abra no PC `http://IP-DO-SEU-PC:5173` (não `localhost`, senão o QR code aponta pro lugar errado).

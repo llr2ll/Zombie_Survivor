@@ -89,7 +89,7 @@ export function CreateLobby({ onStart, onKick, onChange, choices = [], sound = (
       if (s.type === 'kb') return `${head}${x}<input data-name="${i}" value="${esc(s.name)}" maxlength="12" /><div class="st">⌨️ Mouse e teclado · pronto</div></div>`
       if (s.type === 'pad') return `${head}${x}<div style="font-weight:700;font-size:18px">${esc(s.name)}</div><div class="st">🎮 Controle conectado · pronto (◀ ▶ trocam)</div></div>`
       if (!s.id) return `${head}${x}<div class="st wait">📱 Aguardando celular…</div><div class="st">Código <b>${esc(code || '----')}</b></div></div>`
-      return `${head}${x}<div style="font-weight:700;font-size:18px">${esc(s.name)}</div><div class="st">📱 Celular conectado · pronto</div></div>`
+      return `${head}${x}<div style="font-weight:700;font-size:18px">${esc(s.name)}</div><div class="st">📱 Celular conectado · ${s.link ? '⚡ direto' : '🌐 servidor'}</div></div>`
     }).join('')
     const n = entries().length
     $('#start').disabled = !n
@@ -180,6 +180,11 @@ export function CreateLobby({ onStart, onKick, onChange, choices = [], sound = (
     removeId(id) {
       const i = slots.findIndex((s) => s && s.id === id)
       if (i >= 0) { slots[i] = null; render(); onChange() }
+    },
+    // celular: conexão direta abriu (true) ou ficou pelo servidor (false)
+    setLink(id, on) {
+      const s = slots.find((q) => q && q.id === id)
+      if (s && s.link !== on) { s.link = on; render() }
     },
     // celular pediu para trocar a opção (d = -1 ou 1)
     pick(id, d) {
