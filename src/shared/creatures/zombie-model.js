@@ -141,8 +141,10 @@ export function CreateZombieModel(v = 0) {
   }
   function restore() { for (const k in parts) { parts[k].mesh.visible = true; parts[k].stump.visible = false } }
   // levou golpe: fica branco por um instante (some sozinho no animate)
-  let flashT = 0
+  let flashT = 0, base = MAT.solid
   function flash(t = 0.08) { if (flashT <= 0) for (const m of meshes) m.material = FLASH_MAT; flashT = t }
+  // material do corpo (ex.: um tipo especial com outra cor); null = o normal
+  function look(mat) { base = mat || MAT.solid; if (flashT <= 0) for (const m of meshes) m.material = base }
   const has = (name) => parts[name].mesh.visible
 
   // jeito de cada um: manca de uma perna, curvado, cabeça caída para um lado, quantos braços estende
@@ -151,7 +153,7 @@ export function CreateZombieModel(v = 0) {
   let t = R() * 10, phase = R() * 6, moveW = 0, reachW = 0, lungeW = 0, grabW = 0, staggerW = 0, crouchW = 0, fall = 0, flinch = 0
 
   function animate(dt, e) {
-    if (flashT > 0 && (flashT -= dt) <= 0) for (const m of meshes) m.material = MAT.solid
+    if (flashT > 0 && (flashT -= dt) <= 0) for (const m of meshes) m.material = base
     t += dt
     const s = e.state, sp = e.vel
     moveW = damp(moveW, clamp(sp / 1.1, 0, 1), 8, dt)
@@ -196,10 +198,12 @@ export function CreateZombieModel(v = 0) {
 
     // ---- tronco e cabeça ----
     const bite = e.bite || 0
-    spine.rotation.x = hunch + 0.08 * moveW + lungeW * 0.35 + grabW * 0.3 + bite * 0.2 - staggerW * 0.5 + crouchW * 0.55 - flinch * 2.2 * still - fall * hunch
+    const puff = e.puff || 0 // enchendo o peito (0..1): tronco incha, inclina para trás, cabeça para cima, braços abertos
+    spine.rotation.x = hunch + 0.08 * moveW + lungeW * 0.35 + grabW * 0.3 + bite * 0.2 - staggerW * 0.5 + crouchW * 0.55 - flinch * 2.2 * still - fall * hunch - puff * 0.5
     spine.rotation.z = -hips.rotation.z * 0.4 + tilt * 0.25 + staggerW * Math.sin(t * 9) * 0.15 + grabW * Math.sin(t * 17) * 0.04
     spine.rotation.y = 0.15 * A * sn
-    neck.rotation.x = (-hunch * 0.7 - reachW * 0.15 + crouchW * 0.25 + Math.sin(t * 1.3 + seed) * 0.06 + bite * 0.55 + crouchW * Math.max(0, Math.sin(t * 6)) * 0.3 - flinch) * still * (1 - fall * 0.7)
+    spine.scale.set(1 + 0.45 * puff, 1 + 0.1 * puff, 1 + 0.6 * puff)
+    neck.rotation.x = (-hunch * 0.7 - reachW * 0.15 + crouchW * 0.25 + Math.sin(t * 1.3 + seed) * 0.06 + bite * 0.55 + crouchW * Math.max(0, Math.sin(t * 6)) * 0.3 - flinch - puff * 0.6) * still * (1 - fall * 0.7)
     neck.rotation.z = (tilt + Math.sin(t * 0.8 + seed) * 0.12) * still
     neck.rotation.y = Math.sin(t * 0.5 + seed) * 0.25 * (1 - reachW) * (1 - fall) * still
 
@@ -217,7 +221,7 @@ export function CreateZombieModel(v = 0) {
       x = lerp(x, -0.9 + Math.sin(t * 5 + a.s * 2) * 0.2, crouchW) // comendo
       x = lerp(x, -0.2 + pitch, fall); z = lerp(z, a.s * 1.15, fall) // deitado: braços abertos
       a.sh.rotation.x = x - pitch
-      a.sh.rotation.z = z
+      a.sh.rotation.z = z + a.s * 0.7 * puff
     }
 
     // ---- queda: de costas (empurrado de frente) ou de bruços ----
@@ -228,5 +232,5 @@ export function CreateZombieModel(v = 0) {
     if (plant > 0.01) { root.updateMatrixWorld(true); hips.position.y += SoleDepth(root, knees) * plant }
   }
 
-  return { root, animate, sever, restore, has, flash }
+  return { root, animate, sever, restore, has, flash, look }
 }

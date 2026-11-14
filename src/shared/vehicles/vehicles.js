@@ -14,6 +14,7 @@ import { sfx, gate } from '../audio/sfx'
 //   Arrasto lateral limitado = derrapagem nas curvas rápidas.
 // - Cada veículo põe 3 caixas no grid de colisão (marcadas com veh): jogadores, inimigos e outros carros batem nele,
 //   e o "olho"/A* dos inimigos desvia dele.
+// - v.stall = true (o jogo decide; ex.: sem gasolina): o motor não acelera nem dá ré; freio e volante continuam.
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x))
 const damp = (cur, tgt, rate, dt) => cur + (tgt - cur) * (1 - Math.exp(-rate * dt))
 const wrap = (a) => { a = (a + Math.PI) % (Math.PI * 2); if (a < 0) a += Math.PI * 2; return a - Math.PI }
@@ -194,6 +195,7 @@ export function CreateVehicles(scene, fx, wfx) {
       const { mx, mz } = driver.input
       if (Math.abs(mz) > 0.15) throttle = clamp(-mz, -1, 1)
       if (Math.abs(mx) > 0.15) steerT = clamp(-mx, -1, 1)
+      if (v.stall && !(throttle > 0 ? fwd < -0.3 : fwd > 0.3)) throttle = 0 // motor parado: só vale como freio
     }
     if (throttle > 0.01) {
       if (fwd < -0.3) { fwd = Math.min(0, fwd + d.brake * dt); braking = true } else fwd += d.accel * throttle * dt * clamp(1 - fwd / top, -1, 1)
