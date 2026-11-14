@@ -22,6 +22,7 @@ export function CreateCercoPicker(save) {
   document.head.appendChild(st)
   const box = document.createElement('div')
   box.id = 'cercos'
+  box.dataset.nojoin = '1' // clicar aqui escolhe o cerco, não faz o teclado entrar
   box.innerHTML = '<button id="cprev">◀</button><b id="cname"></b><button id="cnext">▶</button><small id="copen"></small>'
   // na mesma linha do botão da Coleção (o menu não cresce)
   const col = document.querySelector('#colbtn')

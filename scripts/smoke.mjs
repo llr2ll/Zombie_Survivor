@@ -1,6 +1,6 @@
 // Teste de fumaça: compila o jogo, sobe relay + página em portas próprias (não briga com o npm run dev/server),
-// abre num navegador sem tela, entra 1 jogador no teclado (Atirador), 1 celular simulado (troca para Bardo no menu)
-// e 1 controle de videogame de mentira (entra com A, troca a classe no direcional: fica Mago),
+// abre num navegador sem tela, entra 1 jogador no teclado (aperta W: entra sozinho; Atirador), 1 celular simulado (troca para
+// Bardo no menu) e 1 controle de videogame de mentira (entra com A, troca a classe no direcional: fica Mago),
 // joga ~60 s e FALHA se aparecer erro no console. Capturas e log ficam em smoke/.
 // Sem placa de vídeo o jogo roda a 1–2 FPS: 60 s reais ≈ 6 s de jogo. Serve para pegar erro de carregar/iniciar/botões.
 import { chromium } from 'playwright'
@@ -70,6 +70,13 @@ const PAD_BTN = { a: 0, b: 1, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7, back: 8, s
 const padPress = async (page, name, ms = 1500) => {
   await page.evaluate((i) => { window.__pad.buttons[i] = { pressed: true, value: 1 } }, PAD_BTN[name]); await wait(ms)
   await page.evaluate((i) => { window.__pad.buttons[i] = { pressed: false, value: 0 } }, PAD_BTN[name]); await wait(ms / 2)
+}
+// segura o botão até o efeito aparecer na tela (o jogo lento pode levar segundos para ler o controle) e solta
+const padHold = async (page, name, until, ms = 30000) => {
+  await page.evaluate((i) => { window.__pad.buttons[i] = { pressed: true, value: 1 } }, PAD_BTN[name])
+  try { await page.waitForFunction(until, null, { timeout: ms }); return true } catch { return false } finally {
+    await page.evaluate((i) => { window.__pad.buttons[i] = { pressed: false, value: 0 } }, PAD_BTN[name]); await wait(3000) // o jogo precisa ver o botão solto
+  }
 }
 const padStick = async (page, axes, ms) => { await page.evaluate((a) => { window.__pad.axes = a }, axes); await wait(ms); await page.evaluate(() => { window.__pad.axes = [0, 0, 0, 0] }) }
 
@@ -144,7 +151,9 @@ try {
   note(`   sala ${code} aberta no relay`)
 
   // vaga 1 = teclado (Atirador); o celular entra na primeira vaga livre (2 = Samurai)
-  await page.click('button[data-a="kb"][data-i="0"]')
+  // teclado entra sozinho com uma tecla de jogo (vaga 1); o menu não tem mais botões de escolher o aparelho
+  await page.keyboard.press('w')
+  await page.waitForFunction(() => (document.querySelectorAll('#slots .slot')[0]?.textContent || '').includes('Mouse e teclado'), null, { timeout: 20000 }).catch(() => fail('o teclado não entrou sozinho com W'))
   const phone = await browser.newPage({ viewport: { width: 800, height: 400 }, hasTouch: true })
   phone.setDefaultTimeout(60000)
   watch(phone, 'celular')
@@ -160,12 +169,10 @@ try {
   await page.waitForFunction(() => (document.querySelector('#slots')?.textContent || '').includes('Bardo'), null, { timeout: 15000 }).catch(() => fail('o celular não conseguiu trocar a classe no menu'))
   // controle de mentira: A entra (vaga 3, Mago); ▶ troca para Bardo e ◀ volta ao Mago
   const slot3 = () => page.evaluate(() => document.querySelectorAll('#slots .slot')[2]?.textContent || '')
-  await padPress(page, 'a')
-  await page.waitForFunction(() => (document.querySelectorAll('#slots .slot')[2]?.textContent || '').includes('Controle'), null, { timeout: 30000 }).catch(() => fail('o controle não entrou no menu com A'))
-  await padPress(page, 'right')
-  if (!(await slot3()).includes('Bardo')) fail(`o direcional do controle não trocou a classe: ${(await slot3()).replace(/\s+/g, ' ').slice(0, 80)}`)
-  await padPress(page, 'left')
-  if (!(await slot3()).includes('Mago')) fail('o direcional do controle não voltou a classe')
+  const slot3has = (t) => new Function(`return (document.querySelectorAll('#slots .slot')[2]?.textContent || '').includes(${JSON.stringify(t)})`)
+  if (!(await padHold(page, 'a', slot3has('Controle')))) fail('o controle não entrou no menu com A')
+  if (!(await padHold(page, 'right', slot3has('Bardo'), 20000))) fail(`o direcional do controle não trocou a classe: ${(await slot3()).replace(/\s+/g, ' ').slice(0, 80)}`)
+  if (!(await padHold(page, 'left', slot3has('Mago'), 20000))) fail('o direcional do controle não voltou a classe')
   await page.screenshot({ path: path.join(OUT, '01-lobby.jpg'), type: 'jpeg', quality: 70 })
 
   note(`4/4 jogando ${PLAY_SECONDS} s…`)

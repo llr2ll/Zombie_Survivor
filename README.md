@@ -20,7 +20,7 @@ Teste sem celular: WASD + mouse (clique esquerdo ataca, direito só mira), E ent
 Testar sozinho com 4 classes: abra o jogo com **`?bots=3`** no fim do endereço (3 jogadores do computador ocupam as vagas livres; tecla **B** espalha/junta, para ver a tela dividida). Só para teste.
 
 ## Controle de videogame (Xbox / PlayStation)
-Ligue o controle no PC (USB ou Bluetooth). No menu, aperte **A** (ou **Start**): ele ocupa uma vaga livre como "🎮 Controle". **◀ ▶** do direcional trocam a classe e **Start** começa a partida. Na partida: **stick esquerdo** anda · **stick direito** mira (e ataca enquanto inclinado) · **A** pula · **B** empurra · **X** usa (revistar, barricar, levantar, carro) · **LB / RB / Y** são os botões da classe · **LT** corre · ao subir de nível, as cartas aparecem na TV e o **direcional ◀ ▲ ▶** escolhe. O controle vibra ao levar dano. Dá para entrar no meio da partida. Código em `src/engine/input/gamepad.js`.
+Ligue o controle no PC (USB ou Bluetooth). No menu, aperte **qualquer botão**: ele ocupa uma vaga livre como "🎮 Controle". **◀ ▶** do direcional trocam a classe e **Start** começa a partida. Na partida: **stick esquerdo** anda · **stick direito** mira (e ataca enquanto inclinado) · **A** pula · **B** empurra · **X** usa (revistar, barricar, levantar, carro) · **LB / RB / Y** são os botões da classe · **LT** corre · ao subir de nível, as cartas aparecem na TV e o **direcional ◀ ▲ ▶** escolhe. O controle vibra ao levar dano. Dá para entrar no meio da partida. Código em `src/engine/input/gamepad.js`.
 
 ## Controles do celular
 Na espera do menu: **◀ ▶** trocam a classe. Na partida: stick esquerdo = mover (ou dirigir) · stick direito = mirar (ataca enquanto inclinado) · botões da classe (nome e recarga vêm do jogo) · 🚗 aparece perto de um veículo (Entrar/Sair) · Correr · Pular · **Empurrar** (pisca quando um zumbi agarra).
@@ -124,7 +124,7 @@ Todo som é sintetizado na hora com Web Audio (osciladores, ruído, filtros e co
 3. Defina `VITE_WS_URL=wss://seu-servidor.exemplo.com` antes do build.
 
 ## Menu inicial (lobby)
-Ao abrir o jogo aparece o menu com 4 vagas. Em cada vaga escolha **📱 Celular** (o jogador entra pelo QR code/código) ou **⌨️ Mouse e teclado** (só uma vaga). Quem entra pelo celular já ocupa uma vaga sozinho. Cada vaga ocupada mostra **◀ classe ▶**: troque com o mouse, com **A/D** (ou ←/→) no teclado, ou com ◀ ▶ na tela de espera do celular. **Enter** inicia; **Esc** durante a partida (ou o fim de jogo) volta ao menu.
+Ao abrir o jogo aparece o menu com 4 vagas. **Ninguém escolhe o aparelho: cada um entra sozinho** na 1ª vaga livre, na ordem de chegada — **📱 celular** pelo QR code/código, **⌨️ teclado e mouse** com uma tecla de jogo (W A S D, setas, espaço) ou um clique numa área vazia do menu (só mexer o mouse ou clicar em botões não conta; só uma vaga de teclado), **🎮 controle** com qualquer botão. A vaga mostra o aparelho; ✕ tira. Cada vaga ocupada mostra **◀ classe ▶**: troque com o mouse, com **A/D** (ou ←/→) no teclado, ou com ◀ ▶ na tela de espera do celular. **Enter** inicia; **Esc** durante a partida (ou o fim de jogo) volta ao menu.
 
 ## Split screen
 Jogadores perto (< 13 unidades) dividem uma tela só; ao se afastar (> 19) ela se divide. Layout pelo número de telas: 2 = linha vertical · 3 = duas em cima + uma embaixo · 4 = 2x2. Quem cai assiste pela tela do grupo vivo mais próximo. Ajustes em `src/engine/render/splitscreen.js` (`MERGE`, `SPLIT`, `GAP`).

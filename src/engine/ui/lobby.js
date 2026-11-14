@@ -12,7 +12,7 @@ const MARKUP = (sub) => `<div id="lobby">
         <p class="sub">${sub}</p>
         <div id="slots"></div>
         <button id="start" disabled>Adicione um jogador para iniciar</button>
-        <small>Escolha o controle de cada jogador · 🎮 controle de videogame: aperte A · Enter (ou Start) inicia · Esc volta ao menu durante a partida</small>
+        <small>Para entrar: 📱 celular pelo QR · ⌨️ uma tecla de jogo (W A S D, setas, espaço) ou um clique fora dos botões · 🎮 qualquer botão do controle · Enter (ou Start) inicia · Esc volta ao menu</small>
       </div>
       <div class="lb-side">
         <canvas id="qr2" width="180" height="180"></canvas>
@@ -59,11 +59,12 @@ function ensureDom(sub) {
   }
 }
 
-// Menu inicial: 4 vagas; cada vaga é "Celular" (entra pelo QR/código), "Mouse e teclado" (jogador local) ou um controle de
-// videogame (entra sozinho quando aperta A: addPad).
+// Menu inicial: 4 vagas. Ninguém escolhe o aparelho: cada um entra sozinho na 1ª vaga livre, na ordem de chegada —
+// celular pelo QR (addPhone), controle de videogame com qualquer botão (addPad) e teclado/mouse com uma tecla de jogo
+// (W A S D, setas, espaço) ou um clique fora dos botões. A vaga mostra o aparelho (📱 ⌨️ 🎮), o nome e a opção; ✕ tira.
 // O jogo passa: choices = opções que cada vaga pode escolher com ◀ ▶ (ex.: as classes; a vaga N começa na opção N)
 // · sound(nome, opções) = som da interface · subtitle = frase do menu.
-// Trocar a opção: setas na vaga (mouse), A/D ou ←/→ (teclado, na vaga do teclado), pick(id, ±1) (celular, via jogo).
+// Trocar a opção: setas na vaga (mouse), A/D ou ←/→ (teclado, depois de entrar), pick(id, ±1) (celular e controle, via jogo).
 export function CreateLobby({ onStart, onKick, onChange, choices = [], sound = () => {}, subtitle = '' }) {
   ensureDom(subtitle)
   const slots = [null, null, null, null] // { type: 'phone' | 'kb' | 'pad', id, name, choice }
@@ -83,9 +84,7 @@ export function CreateLobby({ onStart, onKick, onChange, choices = [], sound = (
       const arrow = (a, t) => (s && choices.length > 1 ? `<button class="pk" data-a="${a}" data-i="${i}" title="Trocar">${t}</button>` : '')
       const label = choices.length ? choices[pickOf(i)] : ''
       const head = `<div class="slot" style="--c:${COLORS[i]}"><div class="sn">JOGADOR ${i + 1} · ${arrow('prev', '◀')}<span style="color:${COLORS[i]}">${label}</span>${arrow('next', '▶')}</div>`
-      if (!s) {
-        return `${head}<div class="opts"><button data-a="phone" data-i="${i}">📱 Celular</button><button data-a="kb" data-i="${i}" ${hasKb() ? 'disabled title="Só um jogador pode usar mouse e teclado"' : ''}>⌨️ Mouse e teclado</button></div></div>`
-      }
+      if (!s) return `${head}<div class="st wait">Livre</div><div class="st" style="opacity:.6;font-size:12.5px">📱 QR · ⌨️ tecla ou clique · 🎮 botão</div></div>`
       const x = `<button class="x" data-a="del" data-i="${i}" title="Remover">✕</button>`
       if (s.type === 'kb') return `${head}${x}<input data-name="${i}" value="${esc(s.name)}" maxlength="12" /><div class="st">⌨️ Mouse e teclado · pronto</div></div>`
       if (s.type === 'pad') return `${head}${x}<div style="font-weight:700;font-size:18px">${esc(s.name)}</div><div class="st">🎮 Controle conectado · pronto (◀ ▶ trocam)</div></div>`
@@ -103,9 +102,7 @@ export function CreateLobby({ onStart, onKick, onChange, choices = [], sound = (
     const i = +b.dataset.i, a = b.dataset.a
     sound('ui', { f: a === 'del' ? 520 : a === 'prev' || a === 'next' ? 700 : 880 })
     if (a === 'prev' || a === 'next') return cycle(i, a === 'prev' ? -1 : 1)
-    if (a === 'phone' && !slots[i]) slots[i] = { type: 'phone', id: null, name: '' }
-    else if (a === 'kb' && !slots[i] && !hasKb()) slots[i] = { type: 'kb', id: 'local', name: `Jogador ${i + 1}` }
-    else if (a === 'del') {
+    if (a === 'del') {
       const s = slots[i]
       slots[i] = null
       if (s && s.id && s.type !== 'kb') onKick(s.id) // celular: avisa · controle: pode entrar de novo
@@ -117,12 +114,27 @@ export function CreateLobby({ onStart, onKick, onChange, choices = [], sound = (
     if (i !== undefined && slots[+i]) slots[+i].name = e.target.value.trim().slice(0, 12) || `Jogador ${+i + 1}`
   })
   const start = () => { const list = entries(); if (list.length && !el.classList.contains('hidden')) onStart(list) }
+  // teclado/mouse entra sozinho (uma vez): 1ª vaga livre
+  function joinKeyboard() {
+    if (hasKb() || el.classList.contains('hidden')) return false
+    const i = slots.findIndex((s) => !s)
+    if (i < 0) return false
+    slots[i] = { type: 'kb', id: 'local', name: `Jogador ${i + 1}` }
+    sound('join')
+    render(); onChange()
+    return true
+  }
+  const JOIN_KEYS = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '])
+  // clique fora dos botões (área vazia do menu ou de uma vaga) também entra; [data-nojoin] = área do jogo que não conta (ex.: um seletor)
+  el.addEventListener('click', (e) => { if (!e.target.closest('button, input, canvas, a, select, [data-nojoin]')) joinKeyboard() })
   $('#start').addEventListener('click', start)
   addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') return start()
     // teclado troca a opção da própria vaga
     if (el.classList.contains('hidden') || e.target.tagName === 'INPUT' || e.repeat) return
-    const k = e.key.toLowerCase(), d = k === 'a' || k === 'arrowleft' ? -1 : k === 'd' || k === 'arrowright' ? 1 : 0
+    const k = e.key.toLowerCase()
+    if (!hasKb() && JOIN_KEYS.has(k)) { if (k === ' ') e.preventDefault(); joinKeyboard(); return } // a tecla que entra não troca a classe
+    const d = k === 'a' || k === 'arrowleft' ? -1 : k === 'd' || k === 'arrowright' ? 1 : 0
     const i = slots.findIndex((s) => s && s.type === 'kb')
     if (d && i >= 0) { sound('ui', { f: 700 }); cycle(i, d) }
   })
@@ -163,6 +175,7 @@ export function CreateLobby({ onStart, onKick, onChange, choices = [], sound = (
       return i
     },
     has: (id) => slots.some((s) => s && s.id === id),
+    joinKeyboard, // teclado/mouse entra (o menu já faz isso sozinho com tecla de jogo ou clique)
     start, // começar a partida (o Start do controle faz o mesmo que o Enter)
     removeId(id) {
       const i = slots.findIndex((s) => s && s.id === id)

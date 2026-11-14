@@ -37,8 +37,8 @@ Endereço do relay no navegador: `VITE_WS_URL` se existir; senão `ws(s)://<mesm
      (o Vite e o Three.js também sorteiam, e isso mudaria com a ordem dos arquivos). `SIM_TRACE=arquivo node scripts/sim.mjs` grava o rastro
      quadro a quadro para achar onde dois replays se separam.
 - `npm run smoke` — teste automático (~3 min). Compila o jogo, sobe relay **8099** e página **5199** (não briga com o dev/server do dono),
-  abre no Chromium sem tela, entra 1 teclado (Atirador; aperta D e A no menu) + 1 celular simulado (troca para Bardo com ▶ ▶)
-  + 1 controle de videogame de mentira (`navigator.getGamepads` trocado; entra com A, ▶ ◀ no direcional, fica Mago), confere as classes, joga 60 s (anda, atira, habilidades, carro, noite),
+  abre no Chromium sem tela, entra 1 teclado (aperta W: entra sozinho; Atirador; aperta D e A no menu) + 1 celular simulado (troca para Bardo com ▶ ▶)
+  + 1 controle de videogame de mentira (`navigator.getGamepads` trocado; entra com A, ▶ ◀ no direcional, fica Mago; cada botão fica apertado até o efeito aparecer — sem GPU um quadro pode levar segundos), confere as classes, joga 60 s (anda, atira, habilidades, carro, noite),
   aperta Esc e confere a volta ao menu. **Falha se aparecer qualquer `console.error` ou erro de página.** Capturas e log em `smoke/` (versionados: o PR mostra as capturas).
   Script: `scripts/smoke.mjs`. Sem GPU o jogo roda a 1–2 FPS → 60 s reais ≈ 6 s de jogo. Pega erro de carregar/iniciar/botões, não bugs de longo prazo.
 - `docs/TESTE-MANUAL.md` — checklist de 5 min que o dono roda depois de cada PR (inclui anotar FPS). Peça para ele rodar.
@@ -65,7 +65,8 @@ src/engine/               genérico
   audio/engine.js         Web Audio: barramentos, primitivas, som posicional
   world/                  noise.js (hash/ruído), collision.js (grade de colisão), chunks.js (carrega/descarrega chunks),
                           pathing.js (desvio, A*, rota dentro de casas) — chunks.js é instância (CreateChunks)
-  ui/lobby.js             menu de 4 vagas (celular ou teclado); cada vaga escolhe uma opção com ◀ ▶ (choices vêm do jogo); setSubtitle()
+  ui/lobby.js             menu de 4 vagas; cada aparelho entra sozinho (celular pelo QR, teclado com tecla de jogo/clique, controle com botão);
+                          cada vaga escolhe uma opção com ◀ ▶ (choices vêm do jogo); setSubtitle(); [data-nojoin] = área que não faz o teclado entrar
 src/shared/               peças prontas
   characters/             player.js (esqueleto/animação; p.knocked = caído por um instante), looks.js (visual), kits.js (armas + IK), player-movement.js
   creatures/zombie-model.js  humanoide articulado (12 variações), base dos zumbis; look(material), e.puff (encher o peito)
@@ -146,7 +147,7 @@ Teclado e celular usam exatamente o mesmo formato. Não mude sem pedir.
 - Jogador do teclado tem id `'local'`. Bots de teste têm id `bot1`…`bot3` e usam o mesmo contrato (`games/survivor/bots.js`).
 - Controle de videogame (J14): id `pad0`…`pad3`; `engine/input/gamepad.js` lê a cada quadro e entrega `input` (stick esquerdo = mx/mz,
   direito = ax/az, LT ou L3 = run) e `button` (nomes do padrão). O `main.js` traduz: A jump · B shove · X use · LB b1 · RB b2 · Y b3 ·
-  direcional ◀ ▲ ▶ = up1/up2/up3 (cartas, mostradas na TV). No menu: A ou Start entra (`lobby.addPad`), ◀ ▶ trocam a classe, Start começa.
+  direcional ◀ ▲ ▶ = up1/up2/up3 (cartas, mostradas na TV). No menu: qualquer botão entra (`lobby.addPad`), ◀ ▶ trocam a classe, Start começa.
   Mensagens das regras para "celulares" com id `pad…` não vão ao relay: `hit` vira tremida (`rumble`), o resto é ignorado.
 
 ## Decisões tomadas (não reabra sem perguntar ao dono)
@@ -291,8 +292,11 @@ F2 estado global → instâncias com `reset()` + caches limpos por distância (m
 ## Histórico de PRs
 - **limpeza** — `node_modules/` fora do Git; `.gitignore` aceita .glb/.gltf; `player-moviment.js` → `player-movement.js`; README sem `reflections.js`;
   `npm run smoke`; este CLAUDE.md; `docs/COMO-FUNCIONA.md`; `docs/TESTE-MANUAL.md`. Nenhuma mudança no jogo.
+- **menu-automatico** — pedido do dono: o menu não pergunta mais o aparelho. Cada um entra sozinho na 1ª vaga livre: celular pelo QR,
+  teclado/mouse com tecla de jogo (W A S D, setas, espaço) ou clique numa área vazia (mexer o mouse ou clicar em botões não conta — decisão
+  do dono, para não criar jogador de teclado "fantasma"), controle com qualquer botão (antes só A/Start). A vaga mostra 📱 ⌨️ 🎮; ✕ tira.
 - **j14-controle (J14)** — controle de Xbox/PlayStation no PC (Gamepad API) vira jogador com o mesmo contrato do celular: A ou Start entra
-  no menu (vaga "🎮 Controle"), ◀ ▶ trocam a classe, Start começa; na partida sticks andam/miram, A pula, B empurra, X usa, LB/RB/Y botões da
+  no menu (vaga "🎮 Controle"; desde o menu-automatico, qualquer botão), ◀ ▶ trocam a classe, Start começa; na partida sticks andam/miram, A pula, B empurra, X usa, LB/RB/Y botões da
   classe, LT corre, direcional escolhe as cartas (na TV); vibra ao levar dano. Pode entrar no meio da partida. Smoke ganhou um controle de mentira.
 - **j12b-cercos (J12b)** — 5 cercos escolhidos no menu (◀ ▶ / Q E), cada um numa paróquia da N-550: 1 San Xoán de Vilar (a largada,
   2 noites), 2 Santa Mariña de Cerdeira (3 noites), 3 Santiago de Moreira (Labrego desde a 1ª noite), 4 San Martiño de Lamas (menos saque),
