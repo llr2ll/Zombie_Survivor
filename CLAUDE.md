@@ -113,7 +113,7 @@ src/games/survivor/       este jogo
 - Avisos (`engine/core/events.js`): o mundo emite `door-open`, `door-close`, `thunder`, `splash`, `vehicle-spot`; o jogo decide o som/carro.
 - Funções passadas ao motor: `CreateChunks({ scene, colliders, size, generate, onLoad, onUnload, afterUnload })`, `SetDeepTest` (água funda),
   `SetIndoorRoute` (zumbi pela porta/escada), `SetIndoorTest` (parede abafa som). Lobby recebe `choices`, `sound`, `subtitle`. Teclado, as teclas extras.
-  As regras recebem `hooks` do `main.js`: `night`, `loaded`, `shake`, `clock`/`setClock` (hora do dia do clima, 0..1; `climate.time` aceita escrita).
+  As regras recebem `hooks` do `main.js`: `night`, `loaded`, `shake`, `rain` (chuva agora, 0..1), `clock`/`setClock` (hora do dia do clima, 0..1; `climate.time` aceita escrita).
 - `shared` pode importar `shared` (ex.: `creatures/zombie-model` usa `SoleDepth` de `characters/player`; `fx/gore` usa `worldgen`).
 
 **Estado e memória (F2)** — o que é instância e o que continua único:
@@ -222,6 +222,10 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
 - Velocidades: andar 4,4 m/s, correr 7,6, mirando 3,1 (`player-movement.js`); sedã 23 m/s, picape 20, jipe 19 (`vehicles/models.js`).
 - Raio do barulho que atrai zumbis: tiro 30 m (pistola 22), granada 38, música do Bardo 18, onda 12, dardo 9, katana 7,
   carro andando 18, correr 8, andar 3. A noite muda visão (16 → 9 m) e quantidade (×1,3). Chuva e neblina não afetam os zumbis.
+- **Sangue e chuva (PR sangue-chuva):** cada mancha (`gore.js`, anel de instâncias) guarda se está ao ar livre (fora de casa; face de
+  fora das paredes) e quanto resta dela. `gore.update(dt, chuva)` encolhe as de fora até sumirem: `juice.bloodWash` s na tempestade
+  (chuva 1), ~55 s na chuva comum (0,55). Olha 200 manchas por quadro (barato). A chuva chega pelas regras: `hooks.rain()` (`climate.rain`).
+  Sem chuva nada some (só quando o anel de 2.500 dá a volta). Só visual: replay igual.
 - **Pulo em móveis (PR pulo-nos-moveis):** pulando, obstáculo baixo (`h`) é ignorado enquanto os pés estão acima dele; descendo com o
   centro dentro da caixa, `resolve` (`collision.js`) leva para o lugar livre mais perto (4 lados da caixa, depois anéis até 2,4 m) sem
   parede no meio (`wallBetween`); sem lugar livre, fica onde está e sai andando. Antes saía pelo lado mais perto mesmo que fosse a
@@ -343,6 +347,9 @@ Decidido: a Etapa 3 vai em 3 PRs — F1 mover pastas + `npm run check` (+ cortar
 F2 estado global → instâncias com `reset()` + caches limpos por distância (medir antes) · F3 `balance.js` + `?bots=3`.
 
 ## Histórico de PRs
+- **sangue-chuva** — bug achado pelo dono: o sangue não sumia com a chuva (na verdade nunca sumia). Agora a chuva lava aos poucos as
+  manchas ao ar livre (chão e paredes de fora): ~55 s na chuva comum, 30 s na tempestade (`balance.js · juice.bloodWash`). Dentro de casa
+  ficam. Só visual: replay igual.
 - **pulo-nos-moveis** — bug achado pelo dono: pular em cima de móvel encostado na parede jogava o boneco para fora da casa. Agora ele
   desce no lugar livre mais perto, sem atravessar parede (teste sem tela: 261 pulos em todos os móveis perto da largada, 0 fora da casa;
   antes 20 de 59). Vale também para zumbi empurrado para dentro de um móvel. Replay atualizado de propósito.

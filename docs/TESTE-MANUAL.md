@@ -47,6 +47,7 @@ Você precisa de **1 celular** e do teclado do PC. Para o item 12 (4 jogadores),
 | 33 | **Entrar no meio da partida**: ande para longe da largada, aperte Esc e entre com outro celular pelo QR do menu | O celular novo já mostra "PAUSADO". Ao continuar, o jogador novo está ao lado do grupo (não lá na largada) | |
 | 34 | **Zumbis não ficam presos**: ponha o rádio numa casa perto da largada e espere a 1ª noite (N adianta a hora) | A horda chega à base pela porta e pelas janelas. Nenhum zumbi fica girando na porta de outra casa nem parado na beira do lago perto do posto | |
 | 35 | **Pular em móveis**: dentro de uma casa, corra e pule em cima de fogão, cômoda, barril ou sofá encostados na parede | O boneco passa por cima ou desce ao lado do móvel, sempre **dentro da casa**. Nunca aparece do lado de fora | |
+| 36 | **Chuva lava o sangue**: mate alguns zumbis na rua e um dentro de casa; aperte K até chover (🌧️ ou ⛈️ no relógio) | Na rua as manchas encolhem e somem em cerca de 1 minuto de chuva (30 s na tempestade). Dentro de casa continuam. Sem chuva, nada some | |
 
 Para testar outra classe pelo teclado: Esc → Voltar ao menu inicial (jogando sozinho volta na hora) → no menu, aperte A ou D → Enter.
 

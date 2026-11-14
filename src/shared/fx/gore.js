@@ -6,7 +6,8 @@ import { CUT_H } from '../worldgen/buildings'
 
 // Sangue e desmembramento:
 // - gotas: voam com gravidade; ao bater no chão ou numa parede deixam uma mancha (decal)
-// - manchas: ficam no mapa (anel de instâncias: as mais antigas são reaproveitadas); poças crescem sob os corpos
+// - manchas: ficam no mapa (anel de instâncias: as mais antigas são reaproveitadas); poças crescem sob os corpos;
+//   a chuva lava aos poucos as que estão ao ar livre (dentro de casa ficam)
 // - pedaços: braço/cabeça/canela arrancados do zumbi voam, quicam, deixam rastro e afundam no chão depois de um tempo
 // - jatos: o toco (pescoço, ombro, joelho) espirra sangue por alguns segundos
 // Tudo em InstancedMesh (1 draw call por tipo), exceto os pedaços, que reaproveitam a geometria do zumbi.
@@ -48,10 +49,12 @@ function pool(scene, geo, mat, N) {
   mesh.frustumCulled = false
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
   scene.add(mesh)
-  let next = 0
+  const life = new Float32Array(N) // 1 = inteira … 0 = lavada pela chuva
+  const open = new Uint8Array(N) // 1 = ao ar livre (a chuva lava)
+  let next = 0, scan = 0
   return {
     mesh,
-    add(m, color) {
+    add(m, color, outdoors = false) {
       const i = next
       next = (next + 1) % N
       mesh.count = Math.max(mesh.count, i + 1)
@@ -59,14 +62,35 @@ function pool(scene, geo, mat, N) {
       mesh.setColorAt(i, _c.set(color))
       mesh.instanceMatrix.needsUpdate = true
       mesh.instanceColor.needsUpdate = true
+      life[i] = 1; open[i] = outdoors ? 1 : 0
       return i
     },
     set(i, m) { mesh.setMatrixAt(i, m); mesh.instanceMatrix.needsUpdate = true },
-    clear() { mesh.count = 0; next = 0 },
+    // chuva: as manchas ao ar livre encolhem até sumir. rate = fração por segundo; olha um pedaço da lista por quadro (barato)
+    wash(rate, dt) {
+      const all = mesh.count, n = Math.min(all, 200)
+      if (!n) return
+      const lost = rate * dt * (all / n) // cada mancha é visitada a cada all/n quadros
+      let touched = false
+      for (let c = 0; c < n; c++) {
+        const i = (scan = (scan + 1) % all)
+        if (!open[i] || life[i] <= 0) continue
+        const was = life[i], now = Math.max(0, was - lost)
+        life[i] = now
+        mesh.getMatrixAt(i, _m)
+        if (now > 0) _m.scale(_s.setScalar(Math.sqrt(now / was))) // encolhe no lugar (some devagar no começo, rápido no fim)
+        else _m.makeScale(0, 0, 0)
+        mesh.setMatrixAt(i, _m)
+        touched = true
+      }
+      if (touched) mesh.instanceMatrix.needsUpdate = true
+    },
+    clear() { mesh.count = 0; next = 0; scan = 0 },
   }
 }
 
-export function CreateGore(scene) {
+// wash = segundos para a chuva forte (tempestade) lavar uma mancha ao ar livre; chuva fraca demora mais
+export function CreateGore(scene, { wash = 30 } = {}) {
   const ground = pool(scene, blobGeo(false).rotateX(-Math.PI / 2), bloodMat(), MAX_GROUND)
   const wall = pool(scene, blobGeo(true), bloodMat({ side: THREE.DoubleSide }), MAX_WALL)
   const dropMesh = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshLambertMaterial({ color: 0x7a120e }), MAX_DROPS)
@@ -83,7 +107,7 @@ export function CreateGore(scene) {
     if (!lv && WaterDepth(x, z) > 0.05) return -1 // na água o sangue se dilui
     _q.setFromAxisAngle(_up, Math.random() * Math.PI * 2)
     _m.compose(_p.set(x, y + 0.025 + Math.random() * 0.004, z), _q, _s.set(size * rnd(0.8, 1.25), 1, size * rnd(0.8, 1.25)))
-    return ground.add(_m, SHADES[(Math.random() * SHADES.length) | 0])
+    return ground.add(_m, SHADES[(Math.random() * SHADES.length) | 0], !lv && !PointInBuilding(x, z))
   }
   function wallSplat(c, x, y, z, px, pz, size, fl) {
     // parede de casa: fica abaixo da altura do recorte (com o jogador dentro as paredes são cortadas e a mancha flutuaria)
@@ -94,7 +118,7 @@ export function CreateGore(scene) {
     else if (pz < c.z - c.hd) { nz = -1; z = c.z - c.hd - 0.012 } else { nz = 1; z = c.z + c.hd + 0.012 }
     _q.setFromEuler(_e.set(0, Math.atan2(nx, nz), rnd(-0.15, 0.15)))
     _m.compose(_p.set(x, y, z), _q, _s.set(size * rnd(0.8, 1.2), size * rnd(0.85, 1.3), 1))
-    wall.add(_m, SHADES[(Math.random() * SHADES.length) | 0])
+    wall.add(_m, SHADES[(Math.random() * SHADES.length) | 0], !PointInBuilding(x + nx * 0.4, z + nz * 0.4)) // face de fora: a chuva pega
   }
 
   // um jorro de gotas: (dx, dz) = direção do golpe (o sangue sai pelas costas do zumbi), n = quantidade
@@ -147,7 +171,7 @@ export function CreateGore(scene) {
       if (g.i < 0) {
         if (!g.lv && WaterDepth(g.x, g.z) > 0.05) { grows.splice(k, 1); continue }
         g.y = y
-        g.i = ground.add(_m.makeScale(0.001, 1, 0.001), SHADES[(Math.random() * 2) | 0])
+        g.i = ground.add(_m.makeScale(0.001, 1, 0.001), SHADES[(Math.random() * 2) | 0], !g.lv && !PointInBuilding(g.x, g.z))
       }
       g.t += dt
       const s = g.size * (1 - (1 - Math.min(1, g.t / g.time)) ** 2)
@@ -244,7 +268,11 @@ export function CreateGore(scene) {
 
   return {
     spray, splat, puddle, gib, jet,
-    update(dt) { updateDrops(dt); updateGrows(dt); updateGibs(dt); updateJets(dt) },
+    // rain = força da chuva agora (0..1)
+    update(dt, rain = 0) {
+      updateDrops(dt); updateGrows(dt); updateGibs(dt); updateJets(dt)
+      if (rain > 0.05 && wash > 0) { ground.wash(rain / wash, dt); wall.wash(rain / wash, dt) }
+    },
     clear() {
       drops.length = grows.length = jets.length = 0
       for (const o of gibs) scene.remove(o.pivot)
