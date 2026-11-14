@@ -12,7 +12,7 @@ const MARKUP = (sub) => `<div id="lobby">
         <p class="sub">${sub}</p>
         <div id="slots"></div>
         <button id="start" disabled>Adicione um jogador para iniciar</button>
-        <small>Escolha o controle de cada jogador · Enter inicia · Esc volta ao menu durante a partida</small>
+        <small>Escolha o controle de cada jogador · 🎮 controle de videogame: aperte A · Enter (ou Start) inicia · Esc volta ao menu durante a partida</small>
       </div>
       <div class="lb-side">
         <canvas id="qr2" width="180" height="180"></canvas>
@@ -59,13 +59,14 @@ function ensureDom(sub) {
   }
 }
 
-// Menu inicial: 4 vagas; cada vaga é "Celular" (entra pelo QR/código) ou "Mouse e teclado" (jogador local).
+// Menu inicial: 4 vagas; cada vaga é "Celular" (entra pelo QR/código), "Mouse e teclado" (jogador local) ou um controle de
+// videogame (entra sozinho quando aperta A: addPad).
 // O jogo passa: choices = opções que cada vaga pode escolher com ◀ ▶ (ex.: as classes; a vaga N começa na opção N)
 // · sound(nome, opções) = som da interface · subtitle = frase do menu.
 // Trocar a opção: setas na vaga (mouse), A/D ou ←/→ (teclado, na vaga do teclado), pick(id, ±1) (celular, via jogo).
 export function CreateLobby({ onStart, onKick, onChange, choices = [], sound = () => {}, subtitle = '' }) {
   ensureDom(subtitle)
-  const slots = [null, null, null, null] // { type: 'phone' | 'kb', id, name, choice }
+  const slots = [null, null, null, null] // { type: 'phone' | 'kb' | 'pad', id, name, choice }
   let code = ''
   const el = $('#lobby'), box = $('#slots')
   const hasKb = () => slots.some((s) => s && s.type === 'kb')
@@ -87,6 +88,7 @@ export function CreateLobby({ onStart, onKick, onChange, choices = [], sound = (
       }
       const x = `<button class="x" data-a="del" data-i="${i}" title="Remover">✕</button>`
       if (s.type === 'kb') return `${head}${x}<input data-name="${i}" value="${esc(s.name)}" maxlength="12" /><div class="st">⌨️ Mouse e teclado · pronto</div></div>`
+      if (s.type === 'pad') return `${head}${x}<div style="font-weight:700;font-size:18px">${esc(s.name)}</div><div class="st">🎮 Controle conectado · pronto (◀ ▶ trocam)</div></div>`
       if (!s.id) return `${head}${x}<div class="st wait">📱 Aguardando celular…</div><div class="st">Código <b>${esc(code || '----')}</b></div></div>`
       return `${head}${x}<div style="font-weight:700;font-size:18px">${esc(s.name)}</div><div class="st">📱 Celular conectado · pronto</div></div>`
     }).join('')
@@ -106,7 +108,7 @@ export function CreateLobby({ onStart, onKick, onChange, choices = [], sound = (
     else if (a === 'del') {
       const s = slots[i]
       slots[i] = null
-      if (s && s.type === 'phone' && s.id) onKick(s.id)
+      if (s && s.id && s.type !== 'kb') onKick(s.id) // celular: avisa · controle: pode entrar de novo
     }
     render(); onChange()
   })
@@ -130,6 +132,7 @@ export function CreateLobby({ onStart, onKick, onChange, choices = [], sound = (
     entries,
     show() { el.classList.remove('hidden'); document.body.classList.add('in-lobby'); render() },
     hide() { el.classList.add('hidden'); document.body.classList.remove('in-lobby') },
+    setSubtitle(t) { $('#lobby .sub').textContent = t }, // frase do menu (o jogo pode mostrar progresso)
     setOnline(on) { $('#net').textContent = on ? 'Servidor conectado' : 'Servidor offline — tentando reconectar…'; $('#net').classList.toggle('on', on) },
     setRoom(c) {
       code = c
@@ -149,6 +152,18 @@ export function CreateLobby({ onStart, onKick, onChange, choices = [], sound = (
       render(); onChange()
       return i
     },
+    // controle de videogame apertou A: ocupa a primeira vaga livre. Devolve o índice ou -1 (sem vaga ou já está)
+    addPad(id, name) {
+      if (slots.some((s) => s && s.id === id)) return -1
+      const i = slots.findIndex((s) => !s)
+      if (i < 0) return -1
+      slots[i] = { type: 'pad', id, name: name || `Controle ${i + 1}` }
+      sound('join')
+      render(); onChange()
+      return i
+    },
+    has: (id) => slots.some((s) => s && s.id === id),
+    start, // começar a partida (o Start do controle faz o mesmo que o Enter)
     removeId(id) {
       const i = slots.findIndex((s) => s && s.id === id)
       if (i >= 0) { slots[i] = null; render(); onChange() }

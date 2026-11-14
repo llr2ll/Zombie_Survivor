@@ -219,9 +219,9 @@ export function CreateSoundscape() {
 
     // ---- veículos ----
     const list = game.vehicles.list
-    for (const [v, e] of engines) if (!list.includes(v) || v.wrecked || !v.seats[0] || v.sleep) killEngine(v, e, list.includes(v) && !v.wrecked)
+    for (const [v, e] of engines) if (!list.includes(v) || v.wrecked || !v.seats[0] || v.sleep || v.stall) killEngine(v, e, list.includes(v) && !v.wrecked)
     for (const v of list) {
-      if (v.wrecked || v.sleep || !v.seats[0]) continue
+      if (v.wrecked || v.sleep || !v.seats[0] || v.stall) continue // v.stall: motor parado (ex.: sem gasolina)
       let e = engines.get(v)
       if (!e) engines.set(v, (e = makeEngine(v)))
       updateEngine(v, e, dt)

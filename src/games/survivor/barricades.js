@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { DoorsNear, WindowsNear, BuildingAt, HasBuilding, PointInBuilding } from '../../shared/worldgen/buildings-registry'
+import { DoorsNear, WindowsNear, BuildingAt, HasBuilding, PointInBuilding, FloorAt } from '../../shared/worldgen/buildings-registry'
 import { AddColliders, RemoveColliders, Blocked } from '../../engine/world/collision'
 import { BALANCE } from './config/balance'
 import { has } from './levels'
@@ -33,12 +33,20 @@ const doorEntry = (d) => ({ kind: 'door', id: d.id, x: d.x, z: d.z, ox: d.ox, oz
 const winEntry = (w) => ({ kind: 'window', id: w.id, x: w.x, z: w.z, ox: w.nx, oz: w.nz, w: w.w, y: w.b.y, cy: w.y - w.b.y, ry: Math.atan2(w.nx, w.nz), b: w.b })
 const inside = (en, k = 0.8) => ({ x: en.x - en.ox * k, z: en.z - en.oz * k }) // ponto dentro da casa, na frente da entrada
 const outside = (en, k = 0.6) => ({ x: en.x + en.ox * k, z: en.z + en.oz * k })
+// onde o zumbi cai ao pular a janela: logo depois da parede, com folga para o corpo inteiro (antes caía a 0,8 m da face
+// de fora e ficava encostado na parede, preso para sempre). Tem de ser chão livre do térreo: debaixo da escada não dá para andar.
+// null = móvel, escada ou parede na frente: não dá para pular aqui
+const LAND = 1.05, LAND_R = 0.48 // distância da face de fora da janela · raio do zumbi (0,42) + folga
+function landing(en) {
+  const x = en.x - en.ox * LAND, z = en.z - en.oz * LAND, fl = FloorAt(x, z, en.y)
+  return Blocked(x, z, LAND_R, 0) || !fl || fl.blocked || fl.lv !== 0 ? null : { x, z }
+}
 
 // ctx: { scene, fx, inv (estoque do grupo), say(texto, s), sfx(nome, opções), tasks, impact(x, z, tipo, força), xp(p, n), solo() (jogando sozinho?) }
 export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp = () => {}, solo = () => false }) {
   const bars = new Map() // id da entrada -> { id, kind, x, z, hp, max, strong, b, door, group, col, boards, hpFill, flashT }
   const wins = new Map() // id da janela -> { id, glass, broken, en, hole }
-  const usable = new Map() // id da janela -> dá para pular para dentro? (móvel ou escada na frente = não)
+  const usable = new Map() // id da janela -> ponto onde se cai ao pular para dentro (null = móvel, escada ou parede na frente: não dá)
   let scanT = 0, warnT = 0
 
   // entrada ao alcance de quem está dentro da casa (térreo): porta ou janela, a mais perto
@@ -151,9 +159,10 @@ export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp =
     if (impact) impact(x, z, 'crash', 0.6)
     say('💥 Uma barricada quebrou!', 2)
   }
+  const force = (e) => (e.kind === 'brute' ? Z.brute.bash : 1) // Labrego bate mais forte
   // uma pancada de zumbi numa barricada
-  function hit(bar) {
-    bar.hp -= Z.bash.damage * (solo() ? BALANCE.solo.bash : 1)
+  function hit(bar, k = 1) {
+    bar.hp -= Z.bash.damage * k * (solo() ? BALANCE.solo.bash : 1)
     sfx('bang', { x: bar.x, z: bar.z })
     fx.burst(bar.x, 1.1, bar.z, 0xb07a48, 3, 2.5, 0.35)
     if (bar.boards) { for (const m of bar.boards) m.material = WOOD_HIT; bar.flashT = 0.08 }
@@ -163,8 +172,8 @@ export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp =
   }
   // dá para entrar por esta janela? (o ponto lá dentro não pode estar ocupado por móvel ou escada)
   function canUse(en) {
-    if (!usable.has(en.id)) { const i = inside(en); usable.set(en.id, !Blocked(i.x, i.z, 0.35, 0)) }
-    return usable.get(en.id)
+    if (!usable.has(en.id)) usable.set(en.id, landing(en))
+    return !!usable.get(en.id)
   }
   // zumbi na janela: barricada → vidro → pular
   function atWindow(e, en, dt) {
@@ -176,8 +185,8 @@ export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp =
       e.climbT = 0
       if ((e.winT = (e.winT || 0) - dt) > 0) return HOLD
       e.winT = rnd(Z.bash.every[0], Z.bash.every[1])
-      if (bar) { hit(bar); return HOLD }
-      wn.glass -= Z.bash.damage
+      if (bar) { hit(bar, force(e)); return HOLD }
+      wn.glass -= Z.bash.damage * force(e)
       sfx('bang', { x: en.x, z: en.z, vol: 0.6 })
       if (wn.glass <= 0) {
         wn.broken = true
@@ -189,7 +198,7 @@ export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp =
     }
     // janela aberta: pula para dentro
     if ((e.climbT = (e.climbT || 0) + dt) < W.climb) return HOLD
-    const i = inside(en)
+    const i = usable.get(en.id) || inside(en)
     Object.assign(e, { x: i.x, z: i.z, lx: i.x, lz: i.z, lv: 0, climbT: 0, ent: null, entT: 0.6 })
     sfx('bodyfall', { x: i.x, z: i.z })
     return HOLD
@@ -219,7 +228,7 @@ export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp =
       for (const bar of bars.values()) {
         const c = bar.col
         if (!c || Math.hypot(Math.max(0, Math.abs(e.x - c.x) - c.hw), Math.max(0, Math.abs(e.z - c.z) - c.hd)) > e.radius + 0.25) continue
-        hit(bar)
+        hit(bar, force(e))
         return true
       }
       return false
@@ -227,6 +236,7 @@ export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp =
     // zumbi indo até (tx, tz): se o alvo está numa casa e a janela é mais perto que a porta, vai pela janela.
     // Devolve null (segue normal, pela porta), { x, z } (ande até aqui) ou { hold } (parado na janela)
     entry(e, tx, tz, dt) {
+      if (e.kind === 'brute') return null // o Labrego é grande demais para pular janela: vai pela porta
       if ((e.entT = (e.entT || 0) - dt) <= 0) {
         e.entT = 0.3
         e.ent = null

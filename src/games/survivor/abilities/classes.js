@@ -49,9 +49,10 @@ export function InitClassState(p) {
 }
 
 // ctx: { scene, fx, wfx, colliders, enemies, players, hit(e, dmg, p, kx, kz), noise(x, z, raio) — atrai zumbis,
-//        impact(x, z, tipo) — tremor/pausa (balance.js · juice), night() }
+//        impact(x, z, tipo) — tremor/pausa (balance.js · juice), night(), others() (mais alvos além dos zumbis, ex.: Santa Compaña) }
 export function CreateAbilities(ctx) {
   const { scene, fx, wfx, colliders, enemies, players } = ctx
+  const foes = () => { const o = ctx.others && ctx.others(); return o && o.length ? enemies.concat(o) : enemies } // zumbis + outros alvos (ex.: a Santa Compaña)
   const tracers = [], bolts = [], nades = [], meteors = [], timers = []
   const tmp = new THREE.Vector3()
   let clock = 0 // segundos desde o começo (Fogo na roda: quando a onda empurrou)
@@ -67,7 +68,7 @@ export function CreateAbilities(ctx) {
 
   // dano em área (explosão, gelo, redemoinho): tudo no raio, no mesmo andar. power < 0 puxa para o centro · mul(e) = dano a mais nesse zumbi
   function area(p, x, z, r, dmg, power, extra, mul) {
-    for (const e of enemies) {
+    for (const e of foes()) {
       if (e.dying > 0 || !sameFloor(e, p)) continue
       const d = Math.hypot(e.x - x, e.z - z)
       if (d > r + e.radius) continue
@@ -79,7 +80,7 @@ export function CreateAbilities(ctx) {
   // dano em cone à frente (corte de espada, onda do bardo). power pode ser função da distância · extra(e) depois do golpe
   function cone(p, ang, range, half, dmg, power, max = 99, extra) {
     let n = 0
-    for (const e of enemies) {
+    for (const e of foes()) {
       if (n >= max || e.dying > 0 || !sameFloor(e, p)) continue
       const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz)
       if (d > range + e.radius || (d > 0.6 && Math.abs(wrap(Math.atan2(dx, dz) - ang)) > half)) continue
@@ -141,7 +142,7 @@ export function CreateAbilities(ctx) {
       const a = p.aimAngle + (Math.random() - 0.5) * 2 * w.spread
       const dx = Math.sin(a), dz = Math.cos(a)
       let best = null, bt = w.range * (w.pellets ? 0.8 + Math.random() * 0.2 : 1)
-      for (const e of enemies) {
+      for (const e of foes()) {
         if (e.dying > 0 || !sameFloor(e, p)) continue
         const rx = e.x - p.x, rz = e.z - p.z
         const t = rx * dx + rz * dz
@@ -169,7 +170,7 @@ export function CreateAbilities(ctx) {
         let wt = w.range
         for (const c of colliders) { if (c.off || (c.lv !== undefined && c.lv !== (p.lv || 0))) continue; wt = Math.min(wt, rayBox(p.x, p.z, dx, dz, c)) }
         let next = null, nt = wt
-        for (const e of enemies) {
+        for (const e of foes()) {
           if (e === best || e.dying > 0 || !sameFloor(e, p)) continue
           const rx = e.x - p.x, rz = e.z - p.z, t = rx * dx + rz * dz
           if (t > bt && t < nt && Math.abs(rx * dz - rz * dx) < e.radius) { next = e; nt = t }
@@ -385,7 +386,7 @@ export function CreateAbilities(ctx) {
       }
       // investida: corta quem estiver no caminho
       if (p.dashT > 0 && p.dashHit) {
-        for (const e of enemies) {
+        for (const e of foes()) {
           if (e.dying > 0 || p.dashHit.has(e) || !sameFloor(e, p) || Math.hypot(e.x - p.x, e.z - p.z) > e.radius + S.dash.reach) continue
           p.dashHit.add(e)
           const kill = e.state === 'down' && has(p, 'cutdown') // Derrubar e cortar: caído morre na hora
@@ -408,7 +409,7 @@ export function CreateAbilities(ctx) {
         const b = bolts[i]
         b.life -= dt
         let tgt = null, bd = M.bolt.seek
-        for (const e of enemies) {
+        for (const e of foes()) {
           if (e.dying > 0 || !sameFloor(e, b.p) || (b.seen && b.seen.has(e))) continue
           const dx = e.x - b.m.position.x, dz = e.z - b.m.position.z, d = Math.hypot(dx, dz)
           if (d < bd && Math.abs(wrap(Math.atan2(dx, dz) - b.a)) < 0.5) { bd = d; tgt = e }
@@ -419,7 +420,7 @@ export function CreateAbilities(ctx) {
         b.m.rotation.y += dt * 12
         if (Math.random() < 0.5) fx.burst(b.m.position.x, b.m.position.y, b.m.position.z, 0xffe08a, 1, 0.6, 0.25, 0.7)
         let hit = null
-        for (const e of enemies) if (e.dying <= 0 && sameFloor(e, b.p) && !(b.seen && b.seen.has(e)) && Math.hypot(e.x - b.m.position.x, e.z - b.m.position.z) < e.radius + 0.25) { hit = e; break }
+        for (const e of foes()) if (e.dying <= 0 && sameFloor(e, b.p) && !(b.seen && b.seen.has(e)) && Math.hypot(e.x - b.m.position.x, e.z - b.m.position.z) < e.radius + 0.25) { hit = e; break }
         const wall = HitWall(b.m.position.x, b.m.position.z, b.p.lv || 0)
         if (hit || wall || b.life <= 0) {
           if (hit) ctx.hit(hit, M.bolt.damage * dmgMul(b.p), b.p, Math.sin(b.a) * M.bolt.knock, Math.cos(b.a) * M.bolt.knock)
@@ -428,7 +429,7 @@ export function CreateAbilities(ctx) {
             const seen = b.seen || new Set()
             seen.add(hit)
             let nx = null, nd = UP.chain.range
-            for (const e of enemies) { if (e.dying > 0 || seen.has(e) || !sameFloor(e, b.p)) continue; const d = Math.hypot(e.x - hit.x, e.z - hit.z); if (d < nd) { nd = d; nx = e } }
+            for (const e of foes()) { if (e.dying > 0 || seen.has(e) || !sameFloor(e, b.p)) continue; const d = Math.hypot(e.x - hit.x, e.z - hit.z); if (d < nd) { nd = d; nx = e } }
             if (nx) { const m2 = new THREE.Mesh(boltGeo, boltMat); m2.position.set(hit.x, b.m.position.y, hit.z); scene.add(m2); bolts.push({ p: b.p, m: m2, a: Math.atan2(nx.x - hit.x, nx.z - hit.z), life: M.bolt.life, y: b.y, chain: b.chain - 1, seen }) }
           }
           if (hit || wall) { sfx('zap', { x: b.m.position.x, z: b.m.position.z }); fx.flash(b.m.position.x, b.m.position.y, b.m.position.z, 0.5, 0xffc94a, 0.2); fx.burst(b.m.position.x, b.m.position.y, b.m.position.z, 0xffd86a, 6, 3, 0.35) }

@@ -126,7 +126,7 @@ export function CreatePlayerModel(cls = 'gunner') {
     const shove = act === 'shove' ? pulse(ak, 0.3) : 0
     const stompUp = act === 'stomp' ? pulse(ak, 0.45) : 0, stomp = act === 'stomp' ? Math.sin(ak * Math.PI) : 0
     heldW = damp(heldW, p.held ? 1 : 0, 8, dt) // agarrado: se debatendo
-    if (p.dead) fall = Math.min(1, fall + dt * (0.6 + fall * 4)) // cai acelerando
+    if (p.dead || p.knocked > 0) fall = Math.min(1, fall + dt * (0.6 + fall * 4)) // cai acelerando (p.knocked: derrubado por um instante)
     else fall = damp(fall, 0, 5, dt)
 
     // ---- direção das pernas em relação ao tronco (andar de lado / de costas mirando) ----

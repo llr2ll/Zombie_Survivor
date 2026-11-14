@@ -163,6 +163,8 @@ const S = {
   // gemido de quem vaga · rosnado de quem persegue · grito do bote · gorgolejo da morte
   moan: [30, 2.2, (o, t, p) => { const f = rnd(62, 95) * (p.fast ? 1.25 : 1); vocal(o, t, { f, f1: f * rnd(0.7, 0.9), dur: rnd(1.1, 2), a: 0.3, vol: 0.5, form: [rnd(380, 480), rnd(700, 900)], rough: 6, breath: 0.35, wob: 5, depth: 0.06 }) }],
   growl: [34, 1.2, (o, t, p) => { const f = rnd(85, 130) * (p.fast ? 1.3 : 1); vocal(o, t, { f, f1: f * rnd(0.75, 1.1), dur: rnd(0.5, 0.95), a: 0.06, vol: 0.6, form: [rnd(600, 750), rnd(1000, 1300)], rough: 10, breath: 0.5, wob: 13, depth: 0.12 }) }],
+  inhale: [40, 1.7, (o, t) => { hiss(o, t, { dur: 1.5, a: 1.2, vol: 0.55, f: 500, f1: 2400, q: 2 }); vocal(o, t + 0.2, { f: 70, f1: 150, dur: 1.3, a: 1, vol: 0.25, form: [300, 700], rough: 3, breath: 0.8, wob: 4, depth: 0.04 }) }], // enchendo o peito (Berrador)
+  scream: [80, 2.2, (o, t) => { for (const k of [1, 1.5]) vocal(o, t, { f: 260 * k, f1: 190 * k, dur: 1.8, a: 0.03, vol: 0.7, form: [900, 2200], rough: 16, breath: 0.6, wob: 7, depth: 0.1 }); hiss(o, t, { dur: 1.6, a: 0.02, vol: 0.4, f: 2500, q: 0.7 }) }], // grito do Berrador
   snarl: [30, 0.6, (o, t, p) => { const f = rnd(150, 210) * (p.fast ? 1.25 : 1); vocal(o, t, { f, f1: f * 1.3, dur: 0.38, a: 0.02, vol: 0.55, form: [800, 1500], rough: 14, breath: 0.6, wob: 22, depth: 0.15 }) }],
   bite: [24, 0.5, (o, t) => { for (let i = 0; i < 4; i++) hiss(o, t + i * 0.035, { dur: 0.03, vol: 0.45, f: rnd(1500, 3000), q: 2 }); flesh(o, t + 0.05, 0.8); vocal(o, t, { f: 120, dur: 0.3, a: 0.01, vol: 0.25, form: [500, 900], rough: 8 }) }],
   grab: [22, 0.5, (o, t) => { hiss(o, t, { dur: 0.15, vol: 0.4, f: 1200, q: 0.6 }); vocal(o, t, { f: 140, f1: 180, dur: 0.3, a: 0.01, vol: 0.4, form: [700, 1300], rough: 12, wob: 18 }) }],
@@ -226,6 +228,9 @@ const S = {
   join: [0, 0.6, (o, t) => { bell(o, t, midi(76), 0.25, 0.5); bell(o, t + 0.1, midi(83), 0.25, 0.6) }],
   start: [0, 1.6, (o, t) => { arp(o, t, [50, 57, 62, 66, 69, 74], 0.07, 0.5); tone(o, t, { f: 80, f1: 40, dur: 0.6, vol: 0.6 }); hiss(o, t + 0.4, { dur: 1, a: 0.05, vol: 0.2, type: 'lowpass', f: 600, brown: true }) }],
   gameover: [0, 3.2, (o, t) => { [69, 65, 62, 57].forEach((m, i) => { pluck(o, t + i * 0.42, midi(m), 0.55, 0.998); tone(o, t + i * 0.42, { type: 'triangle', f: midi(m - 12), dur: 0.5, vol: 0.08 }) }); tone(o, t + 1.6, { f: 55, f1: 35, dur: 1.6, a: 0.1, vol: 0.5 }) }],
+  alarm: [60, 1.6, (o, t) => { for (let i = 0; i < 6; i++) tone(o, t + i * 0.26, { type: 'square', f: i % 2 ? 740 : 988, dur: 0.22, vol: 0.18 }) }], // alarme (bomba do posto)
+  knell: [70, 3.2, (o, t) => { bell(o, t, 98, 0.5, 3); bell(o, t, 147, 0.2, 2.4) }], // sino de finados (Santa Compaña)
+  chant: [45, 3.4, (o, t) => { for (const f of [87, 110, 131]) vocal(o, t, { f, f1: f * 0.98, dur: 3, a: 0.8, vol: 0.18, form: [420, 760], rough: 2, breath: 0.4, wob: 3, depth: 0.03 }) }], // cântico grave da procissão
   levelup: [0, 1.6, (o, t) => { [67, 72, 76, 79, 84].forEach((m, i) => bell(o, t + i * 0.08, midi(m), 0.22, 0.7)) }], // subir de nível
   supply: [0, 1, (o, t) => { thud(o, t, 0.6); [74, 79, 83].forEach((m, i) => bell(o, t + 0.12 + i * 0.08, midi(m), 0.18, 0.5)) }],
 }

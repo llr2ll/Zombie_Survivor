@@ -12,7 +12,7 @@ O `README.md` descreve cada sistema em detalhe. Para o dono, a explicação leig
 - Português do Brasil, frases curtas, sem jargão. Termo técnico → explique em uma frase.
 - Testa no GitHub Codespaces: `npm run server` (relay, porta 8080) + `npm run dev` (Vite, porta 5173), celulares como controle.
 - **Antes de qualquer etapa que altere arquivos**: diga em até 5 linhas o que vai mudar e espere o "ok".
-- Toda mudança chega como pull request em `llr2ll/Game`. **Nunca** faça push direto na `main`.
+- Toda mudança chega como pull request em `llr2ll/Zombie_Survivor` (antes `llr2ll/Game`; o GitHub redireciona o nome antigo). **Nunca** faça push direto na `main`.
 - Na dúvida entre abordagens: pergunte com opções e marque sua recomendação.
 
 ## Como rodar
@@ -37,7 +37,8 @@ Endereço do relay no navegador: `VITE_WS_URL` se existir; senão `ws(s)://<mesm
      (o Vite e o Three.js também sorteiam, e isso mudaria com a ordem dos arquivos). `SIM_TRACE=arquivo node scripts/sim.mjs` grava o rastro
      quadro a quadro para achar onde dois replays se separam.
 - `npm run smoke` — teste automático (~3 min). Compila o jogo, sobe relay **8099** e página **5199** (não briga com o dev/server do dono),
-  abre no Chromium sem tela, entra 1 teclado (Atirador; aperta D e A no menu) + 1 celular simulado (troca para Bardo com ▶ ▶), confere as classes, joga 60 s (anda, atira, habilidades, carro, noite),
+  abre no Chromium sem tela, entra 1 teclado (Atirador; aperta D e A no menu) + 1 celular simulado (troca para Bardo com ▶ ▶)
+  + 1 controle de videogame de mentira (`navigator.getGamepads` trocado; entra com A, ▶ ◀ no direcional, fica Mago), confere as classes, joga 60 s (anda, atira, habilidades, carro, noite),
   aperta Esc e confere a volta ao menu. **Falha se aparecer qualquer `console.error` ou erro de página.** Capturas e log em `smoke/` (versionados: o PR mostra as capturas).
   Script: `scripts/smoke.mjs`. Sem GPU o jogo roda a 1–2 FPS → 60 s reais ≈ 6 s de jogo. Pega erro de carregar/iniciar/botões, não bugs de longo prazo.
 - `docs/TESTE-MANUAL.md` — checklist de 5 min que o dono roda depois de cada PR (inclui anotar FPS). Peça para ele rodar.
@@ -58,15 +59,16 @@ src/engine/               genérico
                           memo.js (cache com limite para o mundo infinito)
   render/                 splitscreen.js (junta <13 m, separa >19 m; shake = tremor só nas telas perto), light.js, style.js (paleta, materiais, vento),
                           entity-shadows.js (sombras falsas), follow.js (contador de FPS)
-  input/                  contract.js (contrato de input), keyboard.js (teclado+mouse), phone.js (código do celular)
+  input/                  contract.js (contrato de input), keyboard.js (teclado+mouse), phone.js (código do celular),
+                          gamepad.js (controles de videogame: Gamepad API, ids pad0…pad3)
   net/host.js             conexão da tela com o relay
   audio/engine.js         Web Audio: barramentos, primitivas, som posicional
   world/                  noise.js (hash/ruído), collision.js (grade de colisão), chunks.js (carrega/descarrega chunks),
                           pathing.js (desvio, A*, rota dentro de casas) — chunks.js é instância (CreateChunks)
-  ui/lobby.js             menu de 4 vagas (celular ou teclado); cada vaga escolhe uma opção com ◀ ▶ (choices vêm do jogo)
+  ui/lobby.js             menu de 4 vagas (celular ou teclado); cada vaga escolhe uma opção com ◀ ▶ (choices vêm do jogo); setSubtitle()
 src/shared/               peças prontas
-  characters/             player.js (esqueleto/animação), looks.js (visual), kits.js (armas + IK), player-movement.js
-  creatures/zombie-model.js  humanoide articulado (12 variações), base dos zumbis
+  characters/             player.js (esqueleto/animação; p.knocked = caído por um instante), looks.js (visual), kits.js (armas + IK), player-movement.js
+  creatures/zombie-model.js  humanoide articulado (12 variações), base dos zumbis; look(material), e.puff (encher o peito)
   worldgen/               mundo: layout.js (estradas), town.js, city-lots.js, buildings.js, buildings-registry.js (portas, andares),
                           generator.js (monta um chunk), map.js (descritor do chunk), climate.js, signs*.js, names.js, water*.js,
                           sidewalk.js (altura do chão), terrain.js, roadwear.js, props.js, poles.js, streetlights.js, assets*.js …
@@ -77,7 +79,8 @@ src/games/survivor/       este jogo
   main.js                 liga tudo: renderer, clima, lobby, rede, teclado, loop; Wire() conecta motor ↔ mundo ↔ sons
   config/balance.js       TODOS os números ajustáveis (classes, armas, habilidades, zumbis, regras, dia), comentados em português
   config/weapons.js       nomes e ordem das armas (números vêm do balance.js)
-  config/upgrades.js      nomes e textos das melhorias (J7; números no balance.js · upgrades)
+  config/upgrades.js      nomes e textos das melhorias (J7; números no balance.js · upgrades; unlock = nível da paróquia que libera)
+  config/finds.js         os 30 achados da coleção (J12a): título + 2 linhas de história
   rules/survival.js       REGRAS: jogadores (classe escolhida + anel da cor da vaga), dano, morte, vitória/derrota + resultado
   abilities/classes.js    as 4 classes e suas habilidades
   loot.js                 saque (J3): revistar/desmontar móveis, estoque do grupo, marcadores
@@ -86,11 +89,16 @@ src/games/survivor/       este jogo
   base.js                 rádio (J5a): a casa onde ele está é a base (o cerco vai atrás dela)
   levels.js               XP e níveis (J7a): ganhar XP, subir de nível (luz, som, invulnerável), sortear/escolher cartas; has(p, id)
   fall.js                 queda (J6): 40 s no chão, levantar (aliado 3 s / remédio / solo sozinho), fora até o amanhecer
+  save.js                 save no PC (J12a): localStorage 'paroquia-save-v1' — nível/XP da paróquia, achados, partidas
+  compana.js              Santa Compaña (J11): o chefe da meia-noite da última noite (procissão, velas, Guia, marcado)
+  fuel.js                 gasolina (J8): carro gasta andando, abastecer com ⛽, bomba do posto (alarme), gasolina inicial dos carros
   siege.js                cerco (J5b): conta as noites, avisos do rádio, picos da horda, vitória no amanhecer do 3º dia
   tasks.js                "parado fazendo algo" (revistar, desmontar, barricar): cancelamento, barulho por segundo, anel de progresso
   bots.js                 ?bots=1..3: jogadores do computador SÓ PARA TESTE (contrato do celular; tecla B espalha/junta)
-  enemies/zombies.js      IA da horda: visão, audição, agarrão, renascer
-  ui/hud.js               placar da partida
+  enemies/zombies.js      IA da horda: visão, audição, agarrão, renascer; especiais (e.kind): Berrador (J9), Labrego e Escoitador (J10)
+  ui/hud.js               placar da partida (+ painel do achado raro e do resultado)
+  ui/collection.js        tela "Coleção" no menu (botão ⭐ ou tecla C)
+  ui/cercos.js            escolha do cerco no menu (◀ ▶ ou Q/E; só os liberados)
 ```
 
 **Como as camadas conversam sem import subindo** (ligado em `games/survivor/main.js`):
@@ -128,12 +136,18 @@ Teclado e celular usam exatamente o mesmo formato. Não mude sem pedir.
 - Celular → relay: `{t:'join', code, name}`, `{t:'in', mx, mz, ax, az, run}` a cada 33 ms, `{t:'act', a}`.
 - Tela → celular: `{t:'state', hp, max, cls, w, btn, car, dead, st, time, score, held, rv, u, inv, up}` a cada 0,15 s; `hit`, `lobby`, `kick`, `closed`.
   `up` = cartas para escolher (`[[título, texto], …]`, ou 0); tocar numa manda `{t:'act', a:'up1'|'up2'|'up3'}`. `cls` traz o nível ("🔫 Atirador · Nv 2").
-  `u` = texto do botão Usar (🤝 Levantar/🩹 Levantar já/💪 Levantar sozinho · 🪵 Barricar/🔨 Consertar/🪵 Reforçar · 🔍 Revistar/🪚 Desmontar);
+  `u` = texto do botão Usar (🤝 Levantar/🩹 Levantar já/💪 Levantar sozinho · 🪵 Barricar/🔨 Consertar/🪵 Reforçar · 🔍 Revistar/🪚 Desmontar ·
+  ⛽ Abastecer/⛽ Bomba); `w` ganha " · ⛽ 1,2/3" dentro do carro;
   `inv` = estoque do grupo; `rv` = segundos que o caído ainda espera ajuda (-1 = fora até o amanhecer).
-  `use`: aliado caído → barricada (se há tábuas) → móvel → rádio (pôr/pegar) → aviso "precisa de tábuas" → carro. Caído: só `use` (solo).
+  `use`: aliado caído → barricada (se há tábuas) → móvel → rádio (pôr/pegar) → aviso "precisa de tábuas" → bomba do posto / abastecer
+  (se há ⛽ e o tanque não está cheio) → carro. Caído: só `use` (solo).
 - No menu: celular manda `{t:'act', a:'prev'|'next'}` para trocar a classe (o `main.js` manda para `lobby.pick` só na fase de menu);
   a tela manda `{t:'lobby', slot, total, pick}` (pick = texto da classe escolhida). `game.addPlayer(id, nome, vaga, classe)`.
 - Jogador do teclado tem id `'local'`. Bots de teste têm id `bot1`…`bot3` e usam o mesmo contrato (`games/survivor/bots.js`).
+- Controle de videogame (J14): id `pad0`…`pad3`; `engine/input/gamepad.js` lê a cada quadro e entrega `input` (stick esquerdo = mx/mz,
+  direito = ax/az, LT ou L3 = run) e `button` (nomes do padrão). O `main.js` traduz: A jump · B shove · X use · LB b1 · RB b2 · Y b3 ·
+  direcional ◀ ▲ ▶ = up1/up2/up3 (cartas, mostradas na TV). No menu: A ou Start entra (`lobby.addPad`), ◀ ▶ trocam a classe, Start começa.
+  Mensagens das regras para "celulares" com id `pad…` não vão ao relay: `hit` vira tremida (`rumble`), o resto é ignorado.
 
 ## Decisões tomadas (não reabra sem perguntar ao dono)
 - Multiplayer local e online. Online, por enquanto = modelo Jackbox: amigos remotos assistem pela transmissão (Discord ou Steam Remote Play Together)
@@ -201,7 +215,12 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
   o gerador põe no mundo (`b.windows`, id = posição) e `WindowsNear`/`BuildingAt` respondem. A parede continua inteira: o zumbi não passa
   pela colisão, ele pula (teleporta para dentro depois de `window.climb` s). A horda pergunta `ctx.entry(e, x, z, dt)` antes de andar
   (perseguindo/investigando): alvo numa casa e janela utilizável mais perto que a porta → vai pela janela. Janela com móvel/escada na frente
-  (ponto de dentro bloqueado) não é usada. Vidro quebrado continua quebrado (buraco escuro desenhado por fora).
+  não é usada. Vidro quebrado continua quebrado (buraco escuro desenhado por fora). **Ponto de queda** (`landing` em `barricades.js`):
+  1,05 m para dentro da face de fora da janela, livre num raio de 0,48 (o zumbi tem 0,42) **e em chão do térreo onde dá para ficar**
+  (`FloorAt(...).blocked` = debaixo da escada: o passo é desfeito e o zumbi nunca sai). Antes era 0,8 m checado com 0,35 e todo zumbi que
+  pulava ficava entalado (parede ou escada) para sempre: a horda travava empilhada na base. O Labrego não usa janela (só porta, 1,70 m).
+  Rede de segurança na horda: parado e entalado (parede/móvel/debaixo da escada) por 1,5 s → lugar livre mais perto (`unwedge`);
+  dois zumbis exatamente no mesmo ponto se afastam (a separação antes ignorava distância zero).
 - **Cerco (J5b):** a partida começa ao meio-dia (`siege.start`; as regras chamam `hooks.setClock` no 1º quadro). `siege.js` conta as noites pelo
   relógio (`day.nightFrom`/`nightTo`) e devolve `'win'` no amanhecer depois de `siege.nights`. À noite, com rádio posto, `director()` dá à horda
   `{ x, z, extra, share, ring }`: zumbis a mais nos picos (`pulses`), parte nascendo no anel 40–50 m da base; esses ficam com `e.siege` e vão
@@ -219,6 +238,39 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
   Efeitos das de classe em `abilities/classes.js` (`haste` = Muiñeira; `e.waveAt` = Fogo na roda; `p.dash2` = Investida dupla)
   e em `enemies/zombies.js` (`e.freezeT` = Gelo profundo, parado e sem atacar; corrida mais quieta = Passo de gato).
   Prova feita (J7a e J7b): com os níveis desligados (`need` enorme), o replay deu igual ao do PR anterior.
+- **Gasolina (J8):** `v.fuel` (latas) vive no veículo; `fuel.js` gasta pela distância andada com motorista (`perCan` m por lata) e liga
+  `v.stall` sem gasolina. `shared` só conhece `v.stall`: `vehicles.js` corta acelerar/ré (freio e volante continuam) e `soundscape.js` desliga
+  o motor. Gasolina inicial: carros a até 30 m da largada `start`; os outros, fixa por lugar (`hash` da chave da vaga): 25% com 1 lata, senão
+  um restinho. Bombas: centro do posto (`StationOf`) + (-2,4 / -0,2; 1,6), uma vez por posto; alarme = barulho a cada 1,5 s por 10 s.
+  Saque mais rico longe da largada (`loot.far`, distância de (0, 0)). Prova feita: com a gasolina desligada, o replay deu igual ao do J7b.
+- **Berrador (J9):** um zumbi reaproveitado (`reset`) pode nascer Berrador (`e.kind = 'screamer'`): de dia só em vila/cidade (`InZone`), à noite
+  a partir da `screamer.nightFrom`-ª noite (`ctx.nightNo`), no máximo `screamer.max`. Visual: `rig.look(material lilás)` + mais alto e magro; o
+  modelo (`shared`) só conhece `look()` e `e.puff`. Viu alguém → estado `inhale` (1,5 s, peito enchendo, anel vermelho, aviso); perdeu de vista
+  → desiste por `retry` s; terminou → grito: todo zumbi a 45 m persegue quem ele viu, correndo (`e.rushT`, ×1,5). No cerco à noite com base,
+  `siege.boost()` faz um pico extra. Matar dá XP de especial (10). Prova feita: com `chance` 0, o replay deu igual ao do J8.
+- **Labrego e Escoitador (J10):** especiais na mesma tabela `SPECIAL` de `zombies.js` (número, cor, proporção); `special()` sorteia na ordem
+  Berrador → Labrego → Escoitador e só gasta sorteio quando o tipo pode nascer ali (por isso o replay, que só chega à 1ª noite, ficou igual).
+  Labrego: `react()` vira atordoar (stagger `brute.stun`) e nunca cai; empurrão quase não mexe; o bote vira pancada (`ctx.knock` → `p.knocked`
+  s sem controle: as regras trocam a entrada por `STILL` e o modelo do jogador deita); barricada e vidro `brute.bash`×. Escoitador: `sees()`
+  só por perto (`FEEL`); `noise()` → `hear()`: barulho > `quiet` até `max(r, hear)` m → estado `pounce` (bote até o som).
+- **Santa Compaña (J11):** `siege.update()` devolve `'boss'` quando o relógio passa da meia-noite (0,5 → 0) na última noite (uma vez por
+  partida, `st.boss`). `compana.js` cria Guia + almas (fantasmas: andam num círculo em volta da casa-base, raio = meia diagonal + `boss.ring`;
+  sem base, 12 m em volta do grupo). Não estão na lista da horda: as habilidades miram em `foes()` = zumbis + `ctx.others()` (a lista da
+  Compaña), e `hit()` desvia `e.boss` para `compana.damage`. Campos de "zumbi" que as habilidades leem: x, z, lv, radius, dying, hp, maxHp,
+  slowT, group, `ice: {}` (não desenha gelo). Vela acesa: `compana.haste()` → `HASTE` em `zombies.js` multiplica a velocidade de todos.
+  Tocar a fila: `p.chill` (comando ×`boss.slow`, sem correr) e `p.marked` (`sees()` vê a até `markSight` m, sem cone nem parede).
+  Amanhecer: some (`'escapou'`). Resultado em `st.result.boss`. Replay igual (não chega à meia-noite da 2ª noite).
+- **Save e progressão (J12a):** `save.js` lê/escreve `localStorage['paroquia-save-v1']` (sem localStorage: só memória, ex.: Node). O progresso
+  é do PC, não dos celulares. `?zerar` no endereço apaga. Nível da paróquia: no fim da partida (`finish`, ganhando ou perdendo; Esc no meio
+  não conta) entra a **média** do XP ganho pelos jogadores (`p.earned`); `account.need` define a curva. Cartas com `unlock: n` só sorteiam
+  com a paróquia no nível n (começa com 16 das 28: as 8 gerais + 2 por classe). ⭐ achado raro (saque) → `onRare`: um achado ainda não
+  coletado (`config/finds.js`), salvo na hora, história na tela (`st.find`) e `loot.rareCard` cartas para quem achou (`levels.grant`).
+  Replay: o nível 1 restringe o sorteio, então mudou de propósito. Prova: com nível 99 e o achado raro do jeito antigo, deu igual ao J11.
+- **Cercos (J12b):** `balance.cercos` (5): paróquia = vila do cruzamento `j` da N-550 (nome por `NodeName(0, j)`), noites, `bruteFrom`,
+  `loot` (× chance) e `horde` (× população). `game.setCerco(n)` antes de `addPlayer` (o `main.js` chama no começo e carrega os chunks da
+  paróquia na hora). Largada da paróquia = `(0, NodeZ(j) − 32)` — no Cerco 1 dá (0, 0), a largada de sempre; os 3 carros da largada são
+  registrados de novo ali. "Longe" do saque e a gasolina inicial contam dessa largada. Vencer guarda o cerco em `save.cercos` e libera o
+  próximo (`save.open`). Sem `setCerco` = Cerco 1 com tudo igual (por isso o replay ficou igual).
 - `window.__game` existe só no `npm run dev` (testes automáticos e depuração); a versão compilada não tem.
 - Interiores (`buildings.js`): térreo (cozinha/sala: fogão, balcão, mesa, sofá, cômoda, baú, estante), andar de cima (quarto: cama,
   guarda-roupa, baú, escrivaninha) e sótão das casas de 3 andares (caixotes, barris, sacos, baú). Lojas: prateleiras, balcão, vitrine.
@@ -226,7 +278,7 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
 
 ## Plano da sessão de fundação (30/10/2026)
 0. Verificação ✓ · 1. PR "limpeza" ✓ · 2. `docs/GAME-DESIGN.md` ✓ (decisões registradas) · 3. Fundação em 3 PRs: F1 (PR #4) · F2 (PR #5) · F3 (PR aberto).
-4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b (PRs abertos, aguardando merge em ordem) · próximo: J8 (seção 10 do GAME-DESIGN).
+4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 · J9 · J10 · J11 · J12a + correção das janelas · J12b · J14 (PRs abertos, aguardando merge em ordem). Plano J1–J14 completo. J13 (combinações) já entrou no J7b.
 Estrutura-alvo da Etapa 3 (criar só pastas com conteúdo real; imports só descem `games` → `shared` → `engine`, verificado por `npm run check`):
 ```
 src/engine/   {core, render, input, net, audio, world, ui}     genérico, não sabe que existem zumbis
@@ -239,6 +291,39 @@ F2 estado global → instâncias com `reset()` + caches limpos por distância (m
 ## Histórico de PRs
 - **limpeza** — `node_modules/` fora do Git; `.gitignore` aceita .glb/.gltf; `player-moviment.js` → `player-movement.js`; README sem `reflections.js`;
   `npm run smoke`; este CLAUDE.md; `docs/COMO-FUNCIONA.md`; `docs/TESTE-MANUAL.md`. Nenhuma mudança no jogo.
+- **j14-controle (J14)** — controle de Xbox/PlayStation no PC (Gamepad API) vira jogador com o mesmo contrato do celular: A ou Start entra
+  no menu (vaga "🎮 Controle"), ◀ ▶ trocam a classe, Start começa; na partida sticks andam/miram, A pula, B empurra, X usa, LB/RB/Y botões da
+  classe, LT corre, direcional escolhe as cartas (na TV); vibra ao levar dano. Pode entrar no meio da partida. Smoke ganhou um controle de mentira.
+- **j12b-cercos (J12b)** — 5 cercos escolhidos no menu (◀ ▶ / Q E), cada um numa paróquia da N-550: 1 San Xoán de Vilar (a largada,
+  2 noites), 2 Santa Mariña de Cerdeira (3 noites), 3 Santiago de Moreira (Labrego desde a 1ª noite), 4 San Martiño de Lamas (menos saque),
+  5 San Xoán de Rois (tudo junto + horda ×1,2). Vencer libera o próximo (save); o rádio e o resultado dizem a paróquia; "🏆 Cerco N liberado".
+  Santa Compaña na meia-noite da última noite de cada cerco. Replay igual (Cerco 1).
+- **correcao-janelas** — achado no teste geral (partida inteira sem tela): todo zumbi que pulava uma janela caía encostado na parede e ficava
+  preso para sempre; a partir da 1ª noite a horda inteira travava empilhada dentro da base (sem morrer nem renascer), então dia 2, 2ª noite e os
+  especiais não aconteciam. Agora: ponto de queda livre para o corpo inteiro e fora da escada (42 de 346 janelas usáveis, antes 49 — todas prendiam),
+  Labrego só pela porta, rede de segurança contra zumbi entalado, zumbis no mesmo ponto se separam. Replay atualizado de propósito.
+- **j12a-save-colecao (J12a)** — save no PC (localStorage). Nível da paróquia: o XP da partida (média dos jogadores, mesmo perdendo) soma
+  (150/200/250/300/350/400/500…); cada nível libera 2 melhorias (começa com 16 das 28). Coleção de 30 achados (fitas do rádio, cartas, fotos,
+  recortes) com 2 linhas de história: o ⭐ achado raro do saque vira um achado novo, mostra a história e dá 1 melhoria na hora (design, item ⭐).
+  Menu: "⛪ Paróquia nível N · 🗝 x/28 melhorias · ⭐ y/30 achados" + botão/tecla C "Coleção". Resultado mostra XP da paróquia e cartas novas.
+  `?zerar` apaga o progresso. Replay atualizado de propósito.
+- **j11-santa-compana (J11)** — o chefe: à meia-noite da última noite, procissão (Guia com a cruz + 6 almas com velas, sino e cântico) contorna
+  a base. Vela acesa: Guia sem dano (a cruz brilha; aviso) e zumbis ×1,25. Encostar na fila: lento 2 s e marcado 15 s (zumbis veem a 30 m).
+  Apagar as velas (6 de vida cada) → Guia vulnerável (60) → derrubado: +50 XP para todos, +300 pontos. Some no amanhecer. Placar e resultado
+  mostram a Compaña. Luta completa já no Cerco 1 (decisão do dono; a versão "passando ao longe" fica para a demo). Replay igual.
+- **j10-labrego-escoitador (J10)** — a partir da 2ª noite (2 de cada no máximo; aviso "🪓👂 Labregos e Escoitadores na horda!"):
+  Labrego (terroso, grandão, 26–30 de vida, lento) quebra barricada/vidro 4x mais rápido, não cai com empurrão, golpe forte só atordoa (1,4 s),
+  a pancada tira 14 e derruba o jogador 1 s. Escoitador (branco, cego) só sente quem encosta; ouve barulho maior que 3 m (andar não) de até 25 m
+  e dá um bote a 7 m/s até o som. XP 10 cada. Berrador e Escoitador ganharam brilho leve (emissive) para aparecer no escuro. Números em `balance.js · zombies.brute / listener`. Replay igual (não chega à 2ª noite).
+- **j9-berrador (J9)** — primeiro inimigo especial: Berrador (lilás, mais alto). De dia nas vilas/cidades; à noite a partir da 2ª; 1 por vez.
+  Ao ver alguém, para e enche o peito por 1,5 s (inflando, anel vermelho, som, aviso "matem antes do grito"); se terminar, grita: zumbis a 45 m
+  vêm correndo (×1,5 por 8 s) atrás de quem ele viu; tremor; no cerco, pico extra de 25 s. Sair da vista ou matar antes cancela. Grita de novo só
+  depois de 40 s. XP 10, 40 pontos. Números em `balance.js · zombies.screamer`. Replay atualizado de propósito (no replay, um Berrador começa a encher o peito).
+- **j8-gasolina (J8)** — carro gasta gasolina andando (tanque 3 latas; 1 lata ≈ 320 m ≈ ir à vila vizinha e voltar); sem gasolina não acelera
+  (freia e vira), motor desliga; avisos "pouca gasolina"/"acabou". Usar perto do carro com ⛽ no estoque abastece (2 s; tanque não cheio), senão entra.
+  Bomba do posto: Usar (3 s) → +2 ⛽, uma vez por posto, alarme de 10 s que chama a horda (30 m). Carros da largada com 0,5 lata; abandonados:
+  25% com 1 lata (decisão do dono: sem "tirar gasolina"). Saque longe da largada: até +60% de chance e mais remédio/munição. Medidor ⛽ no placar e
+  no celular. Replay atualizado de propósito.
 - **j7b-classes (J7b)** — 16 melhorias de classe (4 cada) e 4 combinações no sorteio das cartas. Atirador: Silenciador, Bolsos fundos, Bala que atravessa,
   Granada de pescador. Samurai: Corte limpo, Investida dupla, Passo de gato, Redemoinho de aço. Mago: Dardo em cadeia, Chuva de pedras, Gelo profundo,
   Queimada. Bardo: Muiñeira, Coro, Onda forte, Isca. Combinações (= o J13 do plano, antecipado com OK do dono): Estilhaçar, Ritmo de guerra, Fogo na roda, Derrubar e cortar. Números em

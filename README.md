@@ -19,6 +19,9 @@ No celular: escaneie o QR code ou abra `/controller.html` e digite o código.
 Teste sem celular: WASD + mouse (clique esquerdo ataca, direito só mira), E entra/sai do veículo, Q/F/G habilidades, **V empurra**, 1/2/3 armas, R recarrega.
 Testar sozinho com 4 classes: abra o jogo com **`?bots=3`** no fim do endereço (3 jogadores do computador ocupam as vagas livres; tecla **B** espalha/junta, para ver a tela dividida). Só para teste.
 
+## Controle de videogame (Xbox / PlayStation)
+Ligue o controle no PC (USB ou Bluetooth). No menu, aperte **A** (ou **Start**): ele ocupa uma vaga livre como "🎮 Controle". **◀ ▶** do direcional trocam a classe e **Start** começa a partida. Na partida: **stick esquerdo** anda · **stick direito** mira (e ataca enquanto inclinado) · **A** pula · **B** empurra · **X** usa (revistar, barricar, levantar, carro) · **LB / RB / Y** são os botões da classe · **LT** corre · ao subir de nível, as cartas aparecem na TV e o **direcional ◀ ▲ ▶** escolhe. O controle vibra ao levar dano. Dá para entrar no meio da partida. Código em `src/engine/input/gamepad.js`.
+
 ## Controles do celular
 Na espera do menu: **◀ ▶** trocam a classe. Na partida: stick esquerdo = mover (ou dirigir) · stick direito = mirar (ataca enquanto inclinado) · botões da classe (nome e recarga vêm do jogo) · 🚗 aparece perto de um veículo (Entrar/Sair) · Correr · Pular · **Empurrar** (pisca quando um zumbi agarra).
 
@@ -28,6 +31,8 @@ A partida é o **cerco** (seção abaixo): de dia a horda vaga; à noite ela vai
 - **Agarrão**: no alcance o zumbi dá o bote; pegou → o jogador fica preso (35% da velocidade, 12% com dois ou mais), não corre nem pula, e leva mordidas a cada ~1,3 s. Pular ou a investida do samurai escapam do bote. De carro, o zumbi bate na lataria.
 - **Repelir**: *Empurrar* (V / botão) solta do agarrão e afasta até 3 zumbis na frente — eles tropeçam ou caem (sempre caem se empurrados pelas costas; cansado, o empurrão é fraco). Zumbi caído no pé toma **pisão**. Também dá para escapar puxando o stick para longe de quem agarrou. Golpes fortes (3º corte da katana, espingarda de perto, explosão, atropelamento) derrubam; caído leva +30% de dano e demora para levantar.
 - **Renascer perto**: a horda é mantida em volta dos jogadores (mais à noite, nos povoados e com o tempo; corredores ficam mais comuns). Zumbi a mais de 52 m de todos (ou em chunk descarregado) renasce num anel de 24–36 m em volta de um jogador, fora da vista. Corpos ficam no chão e afundam.
+- **📢 Berrador** (zumbi especial, pele lilás e mais alto): de dia aparece nas vilas e cidades, à noite a partir da 2ª; um por vez. Quando **vê** alguém, para e **enche o peito** por 1,5 s (incha, anel vermelho no chão, aviso na tela). Se terminar, **grita**: todos os zumbis a 45 m vêm **correndo** atrás de quem ele viu, e no cerco isso chama um pico extra. **Matar antes** ou **sair da vista** dele (paredes e portas bloqueiam) cancela o grito. Números em `balance.js`, `zombies.screamer`.
+- **🪓 Labrego** (grandão, cor de terra) e **👂 Escoitador** (branco, cego) aparecem a partir da **2ª noite** (até 2 de cada). O Labrego quebra barricada e vidro **4x mais rápido**, não cai com empurrão (golpe forte — 3º da katana, granada, espingarda de perto, carro — só o atordoa) e a pancada dele **derruba** o jogador por 1 s; é grande demais para pular janela (entra pela porta). O Escoitador **não enxerga**: só sente quem encosta; **ouve** qualquer barulho maior que andar (correr, tiro, martelo…) de até 25 m e dá um **bote rápido** até o som. Números em `balance.js`, `zombies.brute` e `zombies.listener`.
 - `zombie-model.js` – zumbi articulado (12 variações de roupa/pele com sangue e rasgos), mancando, curvado, braços estendidos, bote, mordida, tropeço, queda de costas/de bruços, levantar, comer quem caiu.
 - `pathing.js` – desvio de obstáculos, A* quando trava, portas e escadas das casas.
 - Quem cai fica no chão (o anel da cor pulsa) — veja **Queda** abaixo. Munição só vem do saque. Derrota quando todos estão caídos ao mesmo tempo.
@@ -60,7 +65,7 @@ Móveis com gaveta (cômoda, baú, guarda-roupa, estante, fogão, balcão, caixo
 De **dentro** de uma casa, perto da porta, **Usar** prega tábuas do estoque do grupo: **Barricar** (2 🪵), depois **Consertar** (1 🪵) quando apanhar e **Reforçar** (2 🪵, vida em dobro). O martelo faz barulho. A barricada **só segura zumbis**: gente e tiro passam pela fresta. Zumbi encostado bate até quebrar; as tábuas caem e uma barrinha sobre a porta mostra a vida (verde → amarelo → vermelho). Números em `balance.js`, seção `barricade` (e `zombies.bash`).
 
 ## Janelas e rádio (base)
-As **janelas do térreo** também são entradas: zumbi atrás de alguém dentro de uma casa vai pela janela se ela estiver mais perto que a porta — bate na barricada (se houver), **quebra o vidro** e **pula para dentro** (leva 1,5 s; dá tempo de acertar). Janela quebrada fica quebrada. Janela aceita barricada como a porta (Usar perto dela, por dentro). **Rádio:** dentro de uma casa, num lugar livre, Usar → "📻 Pôr rádio": essa casa vira a **base** (📻 no placar, anel verde pulsando). Usar perto dele pega de volta. À noite o cerco vai atrás da base. Números em `balance.js`, seções `window` e `radio`.
+As **janelas do térreo** também são entradas: zumbi atrás de alguém dentro de uma casa vai pela janela se ela estiver mais perto que a porta — bate na barricada (se houver), **quebra o vidro** e **pula para dentro** (leva 1,5 s; dá tempo de acertar), caindo logo depois da parede e seguindo atrás de vocês. Janela quebrada fica quebrada. Janela aceita barricada como a porta (Usar perto dela, por dentro). **Rádio:** dentro de uma casa, num lugar livre, Usar → "📻 Pôr rádio": essa casa vira a **base** (📻 no placar, anel verde pulsando). Usar perto dele pega de volta. À noite o cerco vai atrás da base. Números em `balance.js`, seções `window` e `radio`.
 
 ## O cerco (a partida)
 A partida começa ao **meio-dia do dia 1** e o rádio avisa: o exército chega no **amanhecer do 3º dia** — aguentem **2 noites**. Duas horas antes de escurecer o rádio lembra de barricar. À noite o placar mostra "🌙 Noite 1/2" e o **diretor da noite** manda a horda contra a base (a casa do rádio): 2 **picos** por noite (perto das 21h e das 2h, "🧟 pico!"), com zumbis a mais nascendo a 40–50 m da base, fora da vista; a 2ª noite é mais forte. Sem rádio posto, a horda vem atrás de vocês, como de dia. **Vitória** no amanhecer do 3º dia; **derrota** se todos caírem ao mesmo tempo. Uma tela de resultado mostra noites, tempo, abates, pontos, barricadas, janelas quebradas e o estoque, e depois volta ao menu. Código em `src/games/survivor/siege.js`; números em `balance.js`, seção `siege`.
@@ -80,6 +85,28 @@ Cada jogador ganha **XP**: abate (1; corredor 2), revistar (3), consertar barric
 | Combinações | Estilhaçar (Mago → Samurai: zumbi com gelo morre com um golpe) · Ritmo de guerra (Bardo → Atirador: sob a balada, recarga na hora e +1 granada) · Fogo na roda (Bardo → Mago: empurrado pela onda leva o dobro do meteoro) · Derrubar e cortar (Atirador → Samurai: a investida mata zumbi caído) |
 
 Código em `src/games/survivor/levels.js`; nomes em `config/upgrades.js`; números em `balance.js`, seções `levels` e `upgrades`.
+
+## 🕯️ Santa Compaña (o chefe)
+À **meia-noite da última noite** chega a Santa Compaña: uma procissão de 6 almas encapuzadas com **velas acesas**, guiada pelo **Guia**, que leva a cruz. Ela contorna a base devagar, ao som de sino e cântico; são fantasmas e atravessam paredes. Enquanto houver **vela acesa**, o Guia não leva dano (a cruz brilha) e **todos os zumbis ficam 25% mais rápidos**. Quem **encosta na fila** fica lento por 2 s e **marcado** por 15 s: os zumbis o veem de longe, até através de paredes. Para vencer: **sair da casa, matar as almas** (cada uma apaga uma vela) e então **derrubar o Guia** (+50 XP para todos). Se ninguém derrubar, ela some no amanhecer. Código em `src/games/survivor/compana.js`; números em `balance.js`, seção `boss`.
+
+## Progresso entre partidas (save no PC)
+O progresso fica no PC (no navegador), não nos celulares — eles entram sem conta. **Nível da paróquia:** no fim de cada partida (ganhando ou perdendo) a média do XP dos jogadores soma ao nível da paróquia, mostrado no menu ("⛪ Paróquia nível 3 · 🗝 20/28 melhorias · ⭐ 6/30 achados"). Cada nível libera mais melhorias no sorteio das cartas: o jogo começa com 16 das 28 (as 8 gerais e 2 de cada classe). **Coleção:** o ⭐ achado raro do saque vira um de **30 achados** (fitas do rádio da paróquia, cartas, fotos, recortes), cada um com 2 linhas da história da Galiza e do surto; a história aparece na tela e quem achou escolhe 1 melhoria na hora. No menu, o botão **⭐ Coleção** (ou a tecla **C**) mostra o álbum. Para começar do zero: `?zerar` no fim do endereço. Código em `save.js`, `config/finds.js` e `ui/collection.js`; números em `balance.js`, seções `account` e `loot.rareCard`.
+
+## Os 5 cercos
+No menu, escolha o cerco com **◀ ▶** (ou **Q** / **E**); só aparecem os já liberados — **vencer um libera o próximo** (fica salvo no PC). Cada cerco começa numa **paróquia diferente** do mapa (uma vila da N-550), com seus carros na largada:
+
+| Cerco | Paróquia | Regra |
+|---|---|---|
+| 1 | San Xoán de Vilar (a largada de sempre) | 2 noites (a demo) |
+| 2 | Santa Mariña de Cerdeira | 3 noites |
+| 3 | Santiago de Moreira | 3 noites · o Labrego desde a 1ª noite |
+| 4 | San Martiño de Lamas | 3 noites · menos saque (60% da chance) |
+| 5 | San Xoán de Rois | 3 noites · Labrego desde a 1ª · menos saque · horda maior |
+
+A Santa Compaña vem à meia-noite da última noite de cada cerco. Números em `balance.js`, seção `cercos`; tela em `ui/cercos.js`.
+
+## Gasolina e vilas vizinhas
+O carro **gasta gasolina** andando: o tanque leva 3 latas e 1 lata anda uns 320 m (≈ 10 km nas placas, o bastante para ir à vila vizinha e voltar). O medidor ⛽ aparece no placar e no celular de quem está dentro. Sem gasolina o motor desliga: o carro desliza, freia e vira, mas não acelera. **Abastecer:** perto do carro, com ⛽ no estoque do grupo e o tanque não cheio, **Usar** abastece 1 lata (2 s parado); senão, Usar entra no carro. **Bomba do posto:** Usar perto da bomba (3 s) dá 2 ⛽, uma vez por posto, mas dispara um **alarme** de 10 s que chama a horda a 30 m. Os carros da largada têm meia lata; um em cada quatro carros abandonados já tem 1 lata no tanque. **Longe da largada** (depois de ~120 m) os móveis têm mais chance de ter algo (até +60%) e mais remédio e munição. Código em `src/games/survivor/fuel.js`; números em `balance.js`, seções `fuel` e `loot.far`.
 
 ## Sensação ("juice")
 Anel fraco no chão mostra até onde o barulho chegou (tiro, música, explosão: os zumbis ouvem até ali). Zumbi pisca branco ao levar golpe. Explosão, batida, atropelamento, espingarda, 3º golpe da katana e pisão tremem a tela (só as telas perto). Golpes fortes dão uma pausa de 40 ms. À noite o tiro clareia o chão. Tudo ajustável (ou desligável) em `src/games/survivor/config/balance.js`, seção `juice`.
