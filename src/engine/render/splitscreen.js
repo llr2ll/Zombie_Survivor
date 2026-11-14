@@ -69,7 +69,8 @@ export function CreateSplitScreen(renderer, scene) {
       }
     })
   }
-  addEventListener('keydown', (e) => {
+  // T (desfoque nas bordas): só para testar (npm run dev ou VITE_TEST_KEYS no build)
+  if (import.meta.env.DEV || import.meta.env.VITE_TEST_KEYS) addEventListener('keydown', (e) => {
     if (e.key.toLowerCase() === 't' && !(e.target && e.target.tagName === 'INPUT')) { tilt = !tilt; bands.forEach(([t]) => (t._k = null)) }
   })
 

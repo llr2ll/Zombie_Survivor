@@ -29,7 +29,7 @@ No celular: escaneie o QR code ou abra `/controller.html` e digite o código. Na
 
 Letras: **Cinzel** (títulos) e **Marcellus** (texto), em `public/fonts/` com a licença OFL (livre para jogo pago); os números usam a letra serifada do sistema, porque nas duas o 1 parece um I.
 Teste sem celular: WASD + mouse (clique esquerdo ataca, direito só mira), E entra/sai do veículo, Q/F/G habilidades, **V empurra**, 1/2/3 armas, R recarrega.
-Testar sozinho com 4 classes: abra o jogo com **`?bots=3`** no fim do endereço (3 jogadores do computador ocupam as vagas livres; tecla **B** espalha/junta, para ver a tela dividida). Só para teste.
+Testar sozinho com 4 classes (só no `npm run dev`, como as teclas de teste N, K e T): abra o jogo com **`?bots=3`** no fim do endereço (3 jogadores do computador ocupam as vagas livres; tecla **B** espalha/junta, para ver a tela dividida). Só para teste.
 
 ## Controle de videogame (Xbox / PlayStation)
 Ligue o controle no PC (USB ou Bluetooth). No menu, aperte **qualquer botão**: ele ocupa uma vaga livre como "🎮 Controle". **◀ ▶** do direcional trocam a classe e **Start** começa a partida. Na partida: **stick esquerdo** anda · **stick direito** mira (e ataca enquanto inclinado) · **A** pula · **B** empurra · **X** usa (revistar, barricar, levantar, carro) · **LB / RB / Y** são os botões da classe · **LT** corre · ao subir de nível, as cartas aparecem na TV e o **direcional ◀ ▲ ▶** escolhe. O controle vibra ao levar dano, no tiro da espingarda e com explosões perto (como o celular Android; números em `balance.js · juice.buzz`). Dá para entrar no meio da partida. Código em `src/engine/input/gamepad.js`.

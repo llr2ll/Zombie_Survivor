@@ -268,7 +268,8 @@ export function CreateClimate(scene, light, { daySeconds = DAY_SECONDS } = {}) {
 
   function setWeather(kind) { st.kind = kind; st.next = 90 + Math.random() * 150; st.boltT = 3 + Math.random() * 5 }
 
-  addEventListener('keydown', (e) => {
+  // N (+1 hora) e K (troca o tempo): só para testar (npm run dev ou VITE_TEST_KEYS no build); no jogo publicado, pulariam a noite
+  if (import.meta.env.DEV || import.meta.env.VITE_TEST_KEYS) addEventListener('keydown', (e) => {
     if (e.target && e.target.tagName === 'INPUT') return
     const k = e.key.toLowerCase()
     if (k === 'n') st.t = (st.t + 1 / 24) % 1

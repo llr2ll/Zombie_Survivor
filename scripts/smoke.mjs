@@ -129,8 +129,8 @@ try {
   fs.mkdirSync(OUT, { recursive: true })
 
   note('1/4 compilando o jogo…')
-  // VITE_ICE '[]': conexão direta só pela rede local (o teste não depende de servidor STUN da internet)
-  await run([VITE, 'build', '--outDir', DIST, '--emptyOutDir', '--logLevel', 'warn'], { VITE_WS_URL: `ws://localhost:${WS_PORT}`, VITE_ICE: '[]' })
+  // VITE_ICE '[]': conexão direta só pela rede local (o teste não depende de servidor STUN da internet) · VITE_TEST_KEYS: teclas de teste (o smoke usa N para chegar à noite)
+  await run([VITE, 'build', '--outDir', DIST, '--emptyOutDir', '--logLevel', 'warn'], { VITE_WS_URL: `ws://localhost:${WS_PORT}`, VITE_ICE: '[]', VITE_TEST_KEYS: '1' })
   note('2/4 subindo relay e página…')
   await serve(['server/server.js'], { PORT: WS_PORT }, /porta/)
   await serve([VITE, 'preview', '--outDir', DIST, '--port', WEB_PORT, '--strictPort'], {}, /localhost/)
