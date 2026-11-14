@@ -351,18 +351,22 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
       for (const p of players.values()) if (p.id !== 'local') sendState(p)
     }
   }
+  // o que o Usar faz agora (texto do botão do celular); '' = nada por perto (carro à parte)
+  const useNow = (p) => fall.label(p) || bars.label(p, true) || loot.label(p) || base.label(p) || bars.label(p) || fuel.label(p)
+  // o mesmo, completo, para o cartão da TV de quem joga sem celular (teclado, controle): inclui o carro e o aviso da barricada por fora
+  const useLabel = (p) => (p.vehicle ? '🚗 Sair' : useNow(p) || (!p.dead && vehicles.nearest(p) ? '🚗 Entrar' : bars.hint(p)))
   // o que o celular mostra (vida, botões, Usar, estoque, cartas…)
   function sendState(p) {
     const inf = abilities.info(p)
     const car = p.vehicle ? 2 : !p.dead && vehicles.nearest(p) ? 1 : 0
-    net.send(p.id, { t: 'state', hp: Math.ceil(p.hp), max: p.max, cls: `${p.cls.icon} ${p.cls.name} · Nv ${p.level}`, w: p.vehicle ? `${inf.text} · ${fuel.text(p.vehicle)}` : inf.text, btn: inf.buttons.map((b) => [b.l, +b.cd.toFixed(2)]), car, dead: p.dead, st: Math.round(p.stamina), time: Math.floor(st.time), score: st.score, held: p.held ? 1 : 0, rv: p.dead && !st.over ? (p.out ? -1 : Math.ceil(p.downT)) : 0, u: fall.label(p) || bars.label(p, true) || loot.label(p) || base.label(p) || bars.label(p) || fuel.label(p), inv: invText(), up: p.cards ? p.cards.map((u) => [`${u.icon} ${u.name}`, u.text]) : 0 })
+    net.send(p.id, { t: 'state', hp: Math.ceil(p.hp), max: p.max, cls: `${p.cls.icon} ${p.cls.name} · Nv ${p.level}`, w: p.vehicle ? `${inf.text} · ${fuel.text(p.vehicle)}` : inf.text, btn: inf.buttons.map((b) => [b.l, +b.cd.toFixed(2)]), car, dead: p.dead, st: Math.round(p.stamina), time: Math.floor(st.time), score: st.score, held: p.held ? 1 : 0, rv: p.dead && !st.over ? (p.out ? -1 : Math.ceil(p.downT)) : 0, u: useNow(p) || (car ? '' : bars.hint(p)), inv: invText(), up: p.cards ? p.cards.map((u) => [`${u.icon} ${u.name}`, u.text]) : 0 })
   }
 
   // estoque do grupo + base marcada (placar e celular)
   const invText = () => loot.text() + (base.at() ? '  📻' : '')
   // manda o estado na hora para um celular (ex.: entrou com o menu aberto: sem isso ficava em "Entrando na sala…")
   const sync = (id) => { const p = players.get(id); if (net && p && id !== 'local') sendState(p) }
-  return { players, enemies, vehicles, loot, bars, base, siege, invText, st, clear, addPlayer, removePlayer, setInput, act, update, sync, alive, zombies: () => horde.alive(), info: (p) => abilities.info(p), hurt, levels, fuel, compana, save, setCerco, cerco: cercoInfo }
+  return { players, enemies, vehicles, loot, bars, base, siege, invText, st, clear, addPlayer, removePlayer, setInput, act, update, sync, useLabel, alive, zombies: () => horde.alive(), info: (p) => abilities.info(p), hurt, levels, fuel, compana, save, setCerco, cerco: cercoInfo }
 }
 
 export const clock = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`

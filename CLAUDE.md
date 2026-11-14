@@ -154,7 +154,7 @@ Teclado e celular usam exatamente o mesmo formato. Não mude sem pedir.
   `{t:'buzz', ms}` = vibrar ms (tiro, explosão…: `buzz()`/`impact()` em `survival.js`, números em `balance.js · juice.buzz`).
   `up` = cartas para escolher (`[[título, texto], …]`, ou 0); tocar numa manda `{t:'act', a:'up1'|'up2'|'up3'}`. `cls` traz o nível ("🔫 Atirador · Nv 2").
   `u` = texto do botão Usar (🤝 Levantar/🩹 Levantar já/💪 Levantar sozinho · 🪵 Barricar/🔨 Consertar/🪵 Reforçar · 🔍 Revistar/🪚 Desmontar ·
-  ⛽ Abastecer/⛽ Bomba); `w` ganha " · ⛽ 1,2/3" dentro do carro;
+  ⛽ Abastecer/⛽ Bomba · "🪵 Barricar: só por dentro" = aviso, do lado de fora de uma entrada, sem carro perto); `w` ganha " · ⛽ 1,2/3" dentro do carro;
   `inv` = estoque do grupo; `rv` = segundos que o caído ainda espera ajuda (-1 = fora até o amanhecer).
   `use`: aliado caído → barricada (se há tábuas) → móvel → rádio (pôr/pegar) → aviso "precisa de tábuas" → bomba do posto / abastecer
   (se há ⛽ e o tanque não está cheio) → carro. Caído: só `use` (solo).
@@ -244,6 +244,10 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
 - **Barricadas (J4):** colisor com `only: 'zombie'` (motor: `resolve` ignora para outros tipos) e `door: true` (A* trata como porta)
   e `h: 1` (tiro e visão passam). `DoorsNear`/`HasBuilding` no registro de casas; `door.lock` = zumbi não abre a porta. Estado por porta
   (id = posição) em `barricades.js`; o desenho e o colisor saem/voltam com a casa. Zumbi em perseguição encostado bate (`ctx.bash`).
+- **Barricar janela e aviso do Usar (PR barricar-janela):** vale de frente para a janela, por dentro, a até `window.reach` (2,4 m) da parede
+  e até meia largura + 0,7 m para o lado (antes: a 1,4 m de um ponto 0,8 m para dentro; com móvel na frente não dava). Entre várias entradas
+  ao alcance, vale a mais perto em que ainda há o que fazer. `game.useLabel(p)` = o que o Usar faz agora (com carro e o aviso por fora,
+  `bars.hint`): o `hud.js` mostra ao lado do cartão de quem joga sem celular ("E" no teclado, "X" no controle).
 - **Janelas (J5a):** `buildings.js` registra as janelas do térreo no protótipo (`pr.windows`: centro na parede, normal para fora, largura);
   o gerador põe no mundo (`b.windows`, id = posição) e `WindowsNear`/`BuildingAt` respondem. A parede continua inteira: o zumbi não passa
   pela colisão, ele pula: `barricades.js` marca `e.climb` (de onde está → encostado no parapeito → ponto de queda) e a horda (`step` em
@@ -349,6 +353,10 @@ Decidido: a Etapa 3 vai em 3 PRs — F1 mover pastas + `npm run check` (+ cortar
 F2 estado global → instâncias com `reset()` + caches limpos por distância (medir antes) · F3 `balance.js` + `?bots=3`.
 
 ## Histórico de PRs
+- **barricar-janela** — bug achado pelo dono ("não consigo pôr barricada nas janelas"): no teclado e no controle não havia aviso nenhum de
+  quando dava para barricar (só o celular mostrava o botão), janela com móvel na frente não deixava e por fora nada acontecia. Agora o cartão
+  de quem joga sem celular mostra o que o Usar faz ("E 🪵 Barricar (2)"), o alcance cobre um móvel no meio e por fora aparece "só por dentro".
+  Replay igual.
 - **janela-animacao** — bug achado pelo dono: o zumbi que entrava pela janela aparecia dentro da casa sem animação. Agora ele se apoia no
   parapeito, mergulha pelo vão e cai dentro (o mesmo 1,5 s de antes, com o corpo passando); golpe forte no meio do pulo derruba do lado em
   que estava. Replay atualizado de propósito.

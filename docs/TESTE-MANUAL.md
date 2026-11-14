@@ -49,6 +49,7 @@ Você precisa de **1 celular** e do teclado do PC. Para o item 12 (4 jogadores),
 | 35 | **Pular em móveis**: dentro de uma casa, corra e pule em cima de fogão, cômoda, barril ou sofá encostados na parede | O boneco passa por cima ou desce ao lado do móvel, sempre **dentro da casa**. Nunca aparece do lado de fora | |
 | 36 | **Chuva lava o sangue**: mate alguns zumbis na rua e um dentro de casa; aperte K até chover (🌧️ ou ⛈️ no relógio) | Na rua as manchas encolhem e somem em cerca de 1 minuto de chuva (30 s na tempestade). Dentro de casa continuam. Sem chuva, nada some | |
 | 37 | **Zumbi pula a janela**: fique dentro de uma casa, perto de uma janela sem móvel na frente, e deixe um zumbi vir de fora | Ele quebra o vidro, se apoia no parapeito, mergulha pelo vão e cai dentro (1,5 s). Não "aparece" mais dentro. Um golpe forte no meio do pulo derruba ele do lado em que estava | |
+| 38 | **Barricar janela**: com tábuas (🪵 2 ou mais), jogando no teclado ou no controle, chegue perto de uma janela por dentro (pode ter móvel na frente); depois vá para o lado de fora dela | Ao lado do seu cartão aparece "E 🪵 Barricar (2)" (X no controle). Usar prega as tábuas. Por fora aparece "🪵 Barricar: só por dentro". Perto de um carro aparece "🚗 Entrar" | |
 
 Para testar outra classe pelo teclado: Esc → Voltar ao menu inicial (jogando sozinho volta na hora) → no menu, aperte A ou D → Enter.
 
