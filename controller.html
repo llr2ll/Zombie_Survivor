@@ -6,10 +6,15 @@
     <meta name="theme-color" content="#1b1512" />
     <title>Controle</title>
     <style>
+      /* letra dos títulos, a mesma da TV (public/fonts, licença OFL) */
+      @font-face { font-family: 'Cinzel'; font-style: normal; font-weight: 500 700; font-display: swap; src: url(/fonts/cinzel.woff2) format('woff2') }
+      /* números: Cinzel e Marcellus desenham o 1 como I ("Jogador I"); os algarismos vêm de uma letra serifada do sistema */
+      @font-face { font-family: 'Num'; font-weight: 400; unicode-range: U+0030-0039; src: local('Cambria'), local('Times New Roman'), local('Liberation Serif'), local('Noto Serif'), local('DejaVu Serif'), local('Georgia') }
+      @font-face { font-family: 'Num'; font-weight: 500 900; unicode-range: U+0030-0039; src: local('Cambria Bold'), local('Times New Roman Bold'), local('TimesNewRomanPS-BoldMT'), local('Liberation Serif Bold'), local('Noto Serif Bold'), local('DejaVu Serif Bold'), local('Georgia Bold') }
       /* mesmas cores da TV (main.css): marrom, título pêssego com sombra sólida, rosa. --me = cor da vaga (vem da TV no menu) */
       :root { color-scheme: dark; --ground: #1b1512; --ink: #fff4e6; --muted: #fff4e699; --peach: #ffcf9a; --ember: #7a3b2a; --rose: #c85b72;
         --fire: #ff9d3f; --sky: #7fd0ff; --life: #6fd36f; --danger: #e25555; --stam: #f0c040; --paper-ink: #2a1a12; --me: var(--peach);
-        --sl: env(safe-area-inset-left, 0px); --sr: env(safe-area-inset-right, 0px) }
+        --sl: env(safe-area-inset-left, 0px); --sr: env(safe-area-inset-right, 0px); --title: 'Num', 'Cinzel', Georgia, serif }
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none }
       html, body { margin: 0; height: 100%; overflow: hidden; touch-action: none; color: var(--ink); line-height: 1.25;
         font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif }
@@ -25,7 +30,7 @@
         padding: 24px max(24px, var(--sr)) 24px max(24px, var(--sl)) }
       .brand { display: grid; justify-items: center; gap: 2px; margin-bottom: 8px; text-align: center }
       .brand small { font-size: 12px; font-weight: 800; letter-spacing: .3em; color: var(--muted) }
-      .brand h1 { margin: 0; font-size: 68px; font-weight: 900; letter-spacing: .14em; line-height: 1; color: var(--peach); text-shadow: 0 5px 0 var(--ember) }
+      .brand h1 { margin: 0; font-family: var(--title); font-size: 64px; font-weight: 700; letter-spacing: .14em; line-height: 1; color: var(--peach); text-shadow: 0 5px 0 var(--ember) }
       .brand span { font-size: 14px; color: #fff4e6cc; margin-top: 8px }
       #join label { display: grid; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .18em; color: var(--muted) }
       #join input { font: inherit; font-size: 20px; font-weight: 700; color: var(--ink); width: 100%; border: 0; outline: 0; padding: 13px 14px; border-radius: 12px;
@@ -49,7 +54,7 @@
 
       /* ---------- controle: modos wait (menu) · play (partida) · msg (removido, encerrado, desconectado) ---------- */
       #pad { position: fixed; inset: 0; display: none }
-      #pad:not([data-mode=play]) :is(.zone, #top, #btns, .round, #use, #pickup, #turn) { display: none }
+      #pad:not([data-mode=play]) :is(.zone, #top, #btns, .round, #use, #pickup, #turn, #menu-ui) { display: none }
       #pad:not([data-mode=wait]) #wait { display: none }
       #pad::before, #pad::after { content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0 }
       #pad.down::before { opacity: 1; background: #0d0806b8 }
@@ -76,6 +81,19 @@
       .chip { background: #000000a0; border-radius: 8px; padding: 4px 8px; font-variant-numeric: tabular-nums }
       .chip:empty { display: none }
       #link { font-size: 11px; color: #8fe08f } #link.relay { color: var(--peach) }
+      /* ☰ abre o menu da partida na TV (pausa para todos) */
+      #menu { pointer-events: auto; height: 30px; padding: 0 12px; border-radius: 999px; font-size: 16px; font-weight: 800; color: var(--peach);
+        background: #000000a0; box-shadow: inset 0 0 0 1px #ffcf9a59 }
+      #menu-ui { position: absolute; inset: 0; z-index: 8; display: none; place-content: center; justify-items: center; gap: 10px; text-align: center;
+        padding: 0 24px; background: #0d0806e0 }
+      #pad.menu #menu-ui { display: grid }
+      #mu-title { font-family: var(--title); font-weight: 700; font-size: 40px; letter-spacing: .06em; text-transform: uppercase; text-shadow: 0 4px 0 var(--ember) }
+      #mu-sub { font-size: 16px; font-weight: 700; color: var(--peach) }
+      #menu-ui .row { display: flex; gap: 18px; margin-top: 12px }
+      #menu-ui .row button { min-width: 190px; padding: 18px 20px; border-radius: 16px; font-size: 19px; font-weight: 900; letter-spacing: .1em }
+      #menu-ui .row button:empty { display: none }
+      #mu-a { color: #fff; background: linear-gradient(#d8708a, var(--rose)); text-shadow: 0 2px 0 #7a2e40; box-shadow: inset 0 2px 0 #ffffff45, 0 6px 0 #7a2e40 }
+      #mu-b { color: var(--peach); background: linear-gradient(#5e3e2b, #3a2418); box-shadow: inset 0 0 0 2px #ffcf9a59, 0 6px 0 #160d09 }
       @media (max-width: 700px) { #top { gap: 7px; font-size: 12px } .bars { width: 110px } }
 
       /* sticks: desenhados onde o polegar vai; ao tocar, o stick aparece embaixo do dedo */
@@ -130,7 +148,7 @@
       #state { position: absolute; inset: 0; display: none; place-content: center; justify-items: center; text-align: center; gap: 8px; padding: 0 24px;
         pointer-events: none; z-index: 4 }
       #state.on { display: grid }
-      #state .big { font-size: 46px; font-weight: 900; letter-spacing: .06em; line-height: 1.05; text-transform: uppercase; text-wrap: balance;
+      #state .big { font-family: var(--title); font-size: 44px; font-weight: 700; letter-spacing: .06em; line-height: 1.05; text-transform: uppercase; text-wrap: balance;
         text-shadow: 0 4px 0 var(--ember), 0 10px 22px #000c }
       #state .sub { font-size: 16px; font-weight: 700; color: var(--peach); text-shadow: 0 2px 6px #000 }
       #state .sub:empty { display: none }
@@ -146,7 +164,7 @@
       /* cartas de melhoria (subiu de nível): papel; os sticks continuam funcionando em volta */
       #pickup { position: absolute; left: 0; right: 0; top: 44px; display: none; justify-items: center; gap: 10px; z-index: 6; pointer-events: none }
       #pickup.on { display: grid }
-      #pickup h3 { margin: 0; font-size: 13px; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; color: var(--peach);
+      #pickup h3 { margin: 0; font-family: var(--title); font-size: 14px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--peach);
         text-shadow: 0 2px 0 var(--ember), 0 2px 10px #000 }
       #cards { display: flex; gap: 12px; align-items: flex-start; padding: 0 12px; pointer-events: auto }
       #cards button { flex: 0 1 160px; min-width: 0; min-height: 112px; padding: 10px 12px 12px; border-radius: 10px; text-align: left; color: var(--paper-ink);
@@ -154,7 +172,7 @@
         box-shadow: inset 0 0 0 2px #b8893f, inset 0 0 0 5px #f8ebce, inset 0 0 0 6px #b8893f66, 0 6px 0 #6b4a1f, 0 12px 22px #000b;
         animation: deal .35s cubic-bezier(.2, 1.4, .4, 1) backwards }
       #cards .ico { display: block; font-size: 24px; line-height: 1; margin-bottom: 6px }
-      #cards b { display: block; font-size: 14.5px; font-weight: 900; color: var(--ember); margin-bottom: 3px }
+      #cards b { display: block; font-family: var(--title); font-size: 14px; font-weight: 700; color: var(--ember); margin-bottom: 3px }
       #cards button:nth-child(1) { rotate: -3deg; translate: 0 5px }
       #cards button:nth-child(2) { animation-delay: .06s }
       #cards button:nth-child(3) { rotate: 3deg; translate: 0 5px; animation-delay: .12s }
@@ -165,7 +183,7 @@
         padding: 40px calc(44px + var(--sr)) 64px calc(44px + var(--sl)) }
       .who { display: grid; gap: 4px; min-width: 0 }
       .who small, #pick small { font-size: 12px; font-weight: 800; letter-spacing: .18em; color: var(--muted) }
-      #slotname { font-size: 48px; font-weight: 900; letter-spacing: .05em; line-height: 1.05; color: var(--me);
+      #slotname { font-family: var(--title); font-size: 46px; font-weight: 700; letter-spacing: .05em; line-height: 1.05; color: var(--me);
         text-shadow: 0 4px 0 color-mix(in srgb, var(--me) 35%, black) }
       #wlink { font-size: 14px; font-weight: 700; color: #fff4e6cc }
       #pick { display: none; gap: 10px; justify-items: center; background: #00000080; border-radius: 16px; padding: 16px 16px 14px; box-shadow: inset 6px 0 0 var(--me) }
@@ -201,7 +219,7 @@
       <div class="zone" id="zl"><div class="ghost"><span>MOVER</span></div><div class="base"><div class="knob"></div></div></div>
       <div class="zone" id="zr"><div class="ghost"><span>MIRAR E ATACAR</span></div><div class="base"><div class="knob"></div></div></div>
       <div id="top"><span id="cls"></span><div class="bars"><div id="hp" class="bar"><i></i></div><div id="st" class="bar"><i></i></div></div>
-        <span id="weapon"></span><span class="grow"></span><span id="time" class="chip"></span><span id="inv" class="chip"></span><span id="link"></span></div>
+        <span id="weapon"></span><span class="grow"></span><span id="time" class="chip"></span><span id="inv" class="chip"></span><span id="link"></span><button id="menu" aria-label="Menu">☰</button></div>
       <div id="btns"><button id="b1" class="hide"></button><button id="b2" class="hide"></button><button id="b3" class="hide"></button></div>
       <button class="round" id="run"><svg viewBox="0 0 24 24"><path d="M5 6l6 6-6 6M12 6l6 6-6 6" /></svg>Correr</button>
       <button class="round" id="shove"><svg viewBox="0 0 24 24"><path d="M3 12h11M10 7l5 5-5 5M20 4v16" /></svg>Empurrar</button>
@@ -211,6 +229,7 @@
         <div class="big"></div><div class="sub"></div></div>
       <div id="pickup"><h3>Escolha uma melhoria</h3><div id="cards"></div></div>
       <div id="turn">↻ Vire o celular de lado</div>
+      <div id="menu-ui"><div id="mu-title"></div><div id="mu-sub"></div><div class="row"><button id="mu-a"></button><button id="mu-b"></button></div></div>
       <div id="wait">
         <div class="who"><small>VOCÊ É O</small><strong id="slotname">JOGADOR</strong><span id="wlink"></span></div>
         <div id="pick"><small>SUA CLASSE</small>

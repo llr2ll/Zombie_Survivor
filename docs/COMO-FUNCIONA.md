@@ -59,7 +59,8 @@ Exemplo: o mundo avisa "a porta abriu" e o jogo decide qual som tocar. O gerador
 
 | Pasta / arquivo | O que faz | Exemplo do que você vê |
 |---|---|---|
-| `index.html`, `main.css` | A página do jogo e o visual do placar (HUD) | Relógio, pontos e vida no canto |
+| `index.html`, `main.css` | A página do jogo e o visual do placar (HUD): pílulas, cartões, caixas de diálogo com cantos dourados | Relógio, pontos e vida no canto |
+| `public/fonts/` | As letras do jogo (Cinzel nos títulos, Marcellus no texto), livres para jogo pago | "🌙 1ª noite de 2" na caixa dourada |
 | `controller.html` | A página do controle no celular | Os dois sticks e os botões |
 | `server/` | O servidor da sala: apresenta tela e celulares e é o plano B | O código de 4 letras |
 | `src/engine/render/` | Desenhar, dividir a tela, luz, cores | A tela que divide quando o grupo se separa |
@@ -82,6 +83,7 @@ Exemplo: o mundo avisa "a porta abriu" e o jogo decide qual som tocar. O gerador
 | `src/games/survivor/bots.js` | Jogadores do computador, só para teste (`?bots=3`) | 🤖 Bot 1 no placar |
 | `src/games/survivor/levels.js` | XP, subir de nível e escolher melhorias (nomes das 28 em `config/upgrades.js`) | "⬆ Ana subiu para o nível 2!" |
 | `src/engine/input/gamepad.js` | Controle de videogame (Xbox/PlayStation) como jogador, igual a um celular | "🎮 Controle 1 · pronto" no menu |
+| `src/games/survivor/ui/pause.js` | O menu da partida (Esc, Start ou ☰): pausa, desenho dos controles, QR para entrar e votação para voltar ao menu | "Voltar ao menu inicial? 2 de 3 votos" |
 | `src/games/survivor/ui/cercos.js` | A escolha do cerco no menu (5 cercos, cada um numa paróquia) | "◀ Cerco 2 · Santa Mariña de Cerdeira — 3 noites ▶" |
 | `src/games/survivor/save.js` | O progresso guardado no PC: nível da paróquia e coleção de achados (`?zerar` apaga) | "⛪ Paróquia nível 3" no menu |
 | `src/games/survivor/compana.js` | A Santa Compaña: o chefe da meia-noite da última noite | "🕯️ Meia-noite: a Santa Compaña chegou!" |

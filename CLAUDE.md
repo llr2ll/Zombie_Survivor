@@ -41,7 +41,7 @@ Celular e tela conversam **direto** (WebRTC); o servidor só apresenta os dois e
   abre no Chromium sem tela, entra 1 teclado (aperta W: entra sozinho; Atirador; aperta D e A no menu) + 1 celular simulado (conexão direta:
   confere ⚡ direto na vaga e no celular; troca para Bardo com ▶ ▶) + 1 celular `?direto=0` (plano B pelo servidor: troca a classe e é tirado no ✕)
   + 1 controle de videogame de mentira (`navigator.getGamepads` trocado; entra com A, ▶ ◀ no direcional, fica Mago; cada botão fica apertado até o efeito aparecer — sem GPU um quadro pode levar segundos), confere as classes, joga 60 s (anda, atira, habilidades, carro, noite),
-  aperta Esc e confere a volta ao menu. **Falha se aparecer qualquer `console.error` ou erro de página.** Capturas e log em `smoke/` (versionados: o PR mostra as capturas).
+  aperta Esc (menu da partida; o celular mostra a pausa), pede para voltar e o celular vota SIM (2 de 3) → confere a volta ao menu. **Falha se aparecer qualquer `console.error` ou erro de página.** Capturas e log em `smoke/` (versionados: o PR mostra as capturas).
   Script: `scripts/smoke.mjs`. Sem GPU o jogo roda a 1–2 FPS → 60 s reais ≈ 6 s de jogo. Pega erro de carregar/iniciar/botões, não bugs de longo prazo.
 - `docs/TESTE-MANUAL.md` — checklist de 5 min que o dono roda depois de cada PR (inclui anotar FPS). Peça para ele rodar.
 - FPS real só vale na máquina do dono. Nunca tire conclusão de desempenho pelo smoke.
@@ -50,7 +50,8 @@ Celular e tela conversam **direto** (WebRTC); o servidor só apresenta os dois e
 Regra: **imports só descem** — `src/games/<jogo>` → `src/shared` → `src/engine` (verificado por `npm run check`).
 `engine` não sabe que existem zumbis nem classes. `shared` = peças prontas que os 3 jogos podem usar. `games/survivor` = regras deste jogo.
 ```
-index.html, main.css      página do jogo (tela) + HUD → carrega src/games/survivor/main.js
+index.html, main.css      página do jogo (tela) + HUD (pílulas, cartões, caixas de diálogo .dlg, menu #pause) → carrega src/games/survivor/main.js
+public/fonts/             letras Cinzel (títulos) e Marcellus (texto) + licenças OFL (livres para jogo pago); números: 'Num' (serifada do sistema)
 controller.html           página do celular (controle; mesmas cores da TV) → carrega src/engine/input/phone.js
 server/server.js          servidor da sala (WebSocket): cria sala (4 letras), apresenta tela ↔ celular (rtc/ice) e é o plano B
 scripts/                  smoke.mjs (teste no navegador sem tela), check.mjs (camadas, mundo, caches, replay), sim.mjs (replay), *-fingerprint.txt
@@ -99,7 +100,8 @@ src/games/survivor/       este jogo
   tasks.js                "parado fazendo algo" (revistar, desmontar, barricar): cancelamento, barulho por segundo, anel de progresso
   bots.js                 ?bots=1..3: jogadores do computador SÓ PARA TESTE (contrato do celular; tecla B espalha/junta)
   enemies/zombies.js      IA da horda: visão, audição, agarrão, renascer; especiais (e.kind): Berrador (J9), Labrego e Escoitador (J10)
-  ui/hud.js               placar da partida (+ painel do achado raro e do resultado)
+  ui/hud.js               placar da partida: pílulas, cartão de cada jogador, mensagens em caixa (Dialog, Parts), achado, resultado, cartas da TV
+  ui/pause.js             menu da partida (Esc · Start · ☰ no celular): pausa para todos, desenho dos controles, QR, votação para voltar
   ui/collection.js        tela "Coleção" no menu (botão ⭐ ou tecla C)
   ui/cercos.js            escolha do cerco no menu (◀ ▶ ou Q/E; só os liberados)
 ```
@@ -135,11 +137,15 @@ Fora do balance de propósito: câmera/split screen, carros (`shared/vehicles/mo
 Teclado e celular usam exatamente o mesmo formato. Não mude sem pedir.
 - `game.setInput(id, { mx, mz, ax, az, run, fire })` — mover (-1..1), mirar (-1..1; mirar inclinado = ataca), correr 0/1, `fire` só no mouse.
 - `game.act(id, ação)` — `b1` `b2` `b3` (botões da classe) · `shove` · `use` (carro) · `jump` · `reload` · `swap` · `carbine` `shotgun` `pistol` · `up1` `up2` `up3` (carta).
+  Ações do menu da partida (o `main.js` trata, não chegam às regras): `menu` (☰ abre/fecha) · `resume` · `quit` (pede a votação) · `yes` `no` (vota).
+  Com o menu aberto, nenhuma outra ação chega ao jogo. Teclado: Esc abre/fecha, Y/N votam. Controle: Start abre/fecha; no menu B fecha e Y pede
+  para voltar; na votação A sim, B não.
   Teclado: com cartas na tela, 1/2/3 escolhem a carta (tradução no `main.js`); sem cartas, trocam a arma.
 - Celular → relay: `{t:'join', code, name}`, `{t:'in', mx, mz, ax, az, run}` a cada 33 ms, `{t:'act', a}`.
   Com a conexão direta aberta, `in` e `act` (e tudo da tela → celular) vão pelo WebRTC com o mesmo formato; o servidor só passa
   `rtc` (oferta/resposta) e `ice` (endereços). `ConnectHost` entrega ao jogo igual de onde vier (+ `onLink(id, direto)`).
 - Tela → celular: `{t:'state', hp, max, cls, w, btn, car, dead, st, time, score, held, rv, u, inv, up}` a cada 0,15 s; `hit`, `lobby`, `kick`, `closed`;
+  `{t:'menu', open, vote}` = menu da partida aberto (pausa); `vote` = 0 ou `{ by, yes, need, total, left, mine }` (mine: 'yes'/'no'/'').
   `{t:'buzz', ms}` = vibrar ms (tiro, explosão…: `buzz()`/`impact()` em `survival.js`, números em `balance.js · juice.buzz`).
   `up` = cartas para escolher (`[[título, texto], …]`, ou 0); tocar numa manda `{t:'act', a:'up1'|'up2'|'up3'}`. `cls` traz o nível ("🔫 Atirador · Nv 2").
   `u` = texto do botão Usar (🤝 Levantar/🩹 Levantar já/💪 Levantar sozinho · 🪵 Barricar/🔨 Consertar/🪵 Reforçar · 🔍 Revistar/🪚 Desmontar ·
@@ -291,6 +297,15 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
   Vibração: `vibe()` no `phone.js` não deixa uma vibração curta cortar uma mais forte. Do celular: agarrão (+ pulsos), dano (`hit`), cair,
   levantar, cartas, toque nos botões. Da TV (`buzz`): cada `impact()` vibra quem está a até `buzz.radius` m (mais fraco longe) e `recoil`
   vibra só quem atirou com pistola/carbina (a espingarda já é um `impact`). iPhone não vibra pelo navegador (a Apple não deixa).
+- **Tela da partida e menu (PR tela-da-partida):** tudo na TV mede em `em` sobre `--hu` (main.css): 10px numa tela 960×540, cresce com a TV
+  (`min(100vw/96, 100vh/54)`), então a proporção é a mesma em qualquer tela. Mensagens (`st.msg`) viram caixa com título + texto por `Parts()`
+  (hud.js): corta no 1º " — ", ": " ou "! " se o título tiver até 44 letras; curta (≤ 34) = só título; longa sem pausa = só texto.
+  Nomes de jogador passam por `esc()` antes de ir para a tela. Cinzel e Marcellus desenham o 1 como I: a família 'Num' (só algarismos,
+  `unicode-range`) usa Cambria/Times/Liberation/Noto Serif do sistema. Pausa (`pause.isOpen()`): `game.update` e os bots não rodam e o
+  relógio/portas/postes/vento/câmera recebem dt 0 (o replay não usa o main.js: ficou igual). A votação conta em tempo real (20 s), maioria
+  = metade + 1 dos jogadores da partida, quem pede vota sim, bots votam sim, quem sai deixa de contar. Y/N do teclado são capturados antes
+  dos outros atalhos (o N de teste = +1 hora). A biblioteca do QR fixa 300px no estilo: o `pause.js` limpa depois de desenhar.
+  O QR da partida saiu do canto da tela (e a tecla H que o escondia); a linha de atalhos virou o desenho do menu; o FPS foi para baixo.
 - `window.__game` existe só no `npm run dev` (testes automáticos e depuração); a versão compilada não tem.
 - Interiores (`buildings.js`): térreo (cozinha/sala: fogão, balcão, mesa, sofá, cômoda, baú, estante), andar de cima (quarto: cama,
   guarda-roupa, baú, escrivaninha) e sótão das casas de 3 andares (caixotes, barris, sacos, baú). Lojas: prateleiras, balcão, vitrine.
@@ -309,6 +324,11 @@ Decidido: a Etapa 3 vai em 3 PRs — F1 mover pastas + `npm run check` (+ cortar
 F2 estado global → instâncias com `reset()` + caches limpos por distância (medir antes) · F3 `balance.js` + `?bots=3`.
 
 ## Histórico de PRs
+- **tela-da-partida** — pedido do dono ("muito texto na tela", letra feia, mensagens que saem da tela ou quebram linha): letras Cinzel +
+  Marcellus (OFL, dentro do jogo); placar em pílulas; cartão pequeno por jogador; mensagens, achado raro e resultado em caixas com cantos
+  dourados (título + texto, sem cobrir o meio da tela); cartas da TV de papel. Menu da partida (Esc · Start · ☰ no celular): pausa para todos
+  (decisão do dono), desenho de teclas/controle/celular, QR para entrar no meio, Continuar e Voltar ao menu inicial por votação (maioria,
+  decisão do dono). Celular: botão ☰, tela PAUSADO e SIM/NÃO grandes, títulos na letra nova. Smoke termina pela votação. Replay igual.
 - **controle-novo** — pedido do dono ("controle muito feio" + vibração): o controle do celular ganhou o visual da TV (fundo de triângulos,
   título pêssego, botões com degrau, sticks desenhados, cor da vaga, recarga em relógio, avisos grandes de agarrado/caído com anel dos
   segundos, cartas de papel) e vibração (espingarda forte, pistola/carbina leve, explosão/batida/3º golpe/pisão/grito por distância,
