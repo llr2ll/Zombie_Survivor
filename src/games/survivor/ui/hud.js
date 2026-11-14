@@ -1,90 +1,102 @@
-import QRCode from 'qrcode'
 import { clock } from '../rules/survival'
 import { PLAYER_COLORS } from '../../../engine/render/splitscreen'
 
 const $ = (s) => document.querySelector(s)
+export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+export const CORNERS = '<i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i>'
 
-// painel do fim da partida (vitória/derrota): criado aqui, sem mexer no index.html
-function resultPanel() {
-  let el = $('#result')
-  if (!el) {
-    el = document.createElement('div')
-    el.id = 'result'
-    el.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:15;display:none;min-width:320px;padding:22px 28px;border-radius:14px;background:#000c;color:#fff;font:600 17px system-ui,sans-serif;text-align:center;line-height:1.7'
-    document.body.appendChild(el)
+// caixa de diálogo (cantos dourados, estilo em main.css · .dlg): fica no lugar do elemento com esse id, ou é criada na página
+export function Dialog(id, parent = document.body) {
+  let el = $(`#${id}`)
+  if (!el) { el = document.createElement('div'); el.id = id; parent.appendChild(el) }
+  el.classList.add('dlg')
+  el.innerHTML = `${CORNERS}<div class="in"></div>`
+  const inner = el.querySelector('.in')
+  let last = null
+  return { el, set(html) { if (html !== last) { last = html; inner.innerHTML = html } el.classList.toggle('on', !!html) } }
+}
+
+// "🌙 1ª noite de 2 — sem rádio posto…" → [título, texto]; mensagem curta vira só título, longa sem pausa vira só texto
+export function Parts(t) {
+  let best = null
+  for (const s of [' — ', ': ', '! ']) {
+    const i = t.indexOf(s)
+    if (i > 0 && i <= 44 && t.length - i - s.length >= 6 && (!best || i < best.i)) best = { i, s }
   }
-  return el
+  if (!best) return t.length <= 34 ? [t, ''] : ['', t]
+  const body = t.slice(best.i + best.s.length)
+  return [t.slice(0, best.i) + (best.s === '! ' ? '!' : ''), body.charAt(0).toUpperCase() + body.slice(1)]
 }
-// cartas de melhoria do jogador do teclado (quem joga no celular vê as cartas no celular)
-function cardsPanel() {
-  const el = document.createElement('div')
-  el.id = 'cards'
-  el.style.cssText = 'position:fixed;left:50%;bottom:110px;transform:translateX(-50%);z-index:14;display:none;padding:10px 14px;border-radius:12px;background:#000b;color:#fff;font:600 14px system-ui,sans-serif;text-align:center'
-  document.body.appendChild(el)
-  return el
+const say = (t) => { if (!t) return ''; const [h, b] = Parts(t); return (h ? `<h4>${esc(h)}</h4>` : '') + (b ? `<p>${esc(b)}</p>` : '') }
+
+// fim da partida (vitória/derrota)
+function result(r) {
+  const s = (n, one, many) => `${n} ${n === 1 ? one : many}`
+  const rows = [
+    `⏱ ${r.time} · 🧟 ${r.kills} abates · ${r.score} pontos`,
+    `🪵 ${s(r.bars, 'barricada de pé', 'barricadas de pé')} · 🪟 ${s(r.broken, 'janela quebrada', 'janelas quebradas')}${r.base ? ' · 📻 base marcada' : ''}`,
+    r.boss ? `🕯️ Santa Compaña: ${r.boss === 'derrotada' ? '✝ derrotada!' : 'escapou'}` : '',
+    r.levels.map(esc).join(' · '),
+    r.account ? `⛪ Paróquia: +${r.account.gained} XP · nível ${r.account.to}${r.account.to > r.account.from ? ' (subiu!)' : ''}${r.account.unlocked.length ? ` · 🗝 novas: ${r.account.unlocked.join(', ')}` : ''}` : '',
+    r.finds ? `⭐ ${s(r.finds, 'achado novo', 'achados novos')} na coleção (${r.findsTotal}/${r.findsOf})` : '',
+    `Estoque: ${r.loot}`,
+  ].filter(Boolean)
+  return `<h3>${r.win ? '🚁 Vitória' : '💀 Derrota'}</h3>`
+    + (r.cerco ? `<div class="cerco">Cerco ${r.cerco.n} · ${r.cerco.name}</div>` : '')
+    + `<p>${r.win ? 'O exército chegou: vocês aguentaram' : 'Aguentaram'} <b>${r.nights} de ${r.of}</b> noite${r.of > 1 ? 's' : ''}</p>`
+    + (r.cerco && r.cerco.freed ? `<p class="gold">🏆 Cerco ${r.cerco.freed.n} liberado: ${r.cerco.freed.name}!</p>` : '')
+    + `<div class="rows">${rows.map((x) => `<div>${x}</div>`).join('')}</div><div class="foot">Voltando ao menu…</div>`
 }
 
-// história de um achado raro (J12a), embaixo, por alguns segundos
-function findPanel() {
-  const el = document.createElement('div')
-  el.id = 'find'
-  el.style.cssText = 'position:fixed;left:50%;top:64%;transform:translateX(-50%);z-index:13;display:none;max-width:min(560px,90vw);padding:10px 16px;border-radius:12px;background:#2a1e12e6;border:2px solid #d8a84a;color:#fff;font:15px system-ui,sans-serif;text-align:center;line-height:1.45'
-  document.body.appendChild(el)
-  return el
+// cartão de um jogador: vida, nível, XP e uma linha só com o que importa agora
+function card(game, p) {
+  const inf = game.info(p)
+  const hint = p.id === 'local' ? ' (V)' : p.id.startsWith('pad') ? ' (B)' : ''
+  let sub
+  if (p.dead) sub = game.st.over ? '' : p.out ? '💀 fora até o amanhecer' : `🆘 caído · ${Math.ceil(p.downT)} s`
+  else if (p.held) sub = `<span class="grab">AGARRADO!${hint}</span>`
+  else if (p.task) sub = `${p.task.icon} ${Math.round((p.task.t / p.task.need) * 100)}%`
+  else if (p.cards && p.id !== 'local') sub = `<span class="up">⬆ ${p.id.startsWith('pad') ? 'escolha na TV' : 'escolhendo no celular'}</span>`
+  else if (p.vehicle) sub = `🚗 ${esc(p.vehicle.d.name)} ${game.fuel.text(p.vehicle)}`
+  else sub = esc(inf.text) + inf.buttons.filter((b) => b.cd > 0).map((b) => `<span class="cd">${esc(b.l)} ${Math.ceil(b.s)}s</span>`).join('')
+  const tags = `${p.marked > 0 ? '🕯️ ' : ''}${p.buffT > 0 ? '✨ ' : ''}`
+  const mana = p.cls.id === 'mage' ? `<div class="bar mp"><i style="width:${p.mana}%"></i></div>` : ''
+  return `<div class="pl${p.dead ? ' dead' : ''}${p.held ? ' held' : ''}" style="--c:${PLAYER_COLORS[p.idx % 4]}"><span class="badge">${p.cls.icon}</span> `
+    + `<div class="nm">${esc(p.name)}<span class="lv">NV ${p.level}</span></div><div class="bar"><i style="width:${(p.hp / p.max) * 100}%"></i></div>${mana}`
+    + `<div class="bar xp"><i style="width:${game.levels.progress(p) * 100}%"></i></div><div class="sub">${tags}${sub}</div></div>`
 }
 
 export function CreateHud(game, climate) {
   let t = 0
-  const panel = resultPanel(), cards = cardsPanel(), find = findPanel()
-  let shown = '', found = null
+  const msg = Dialog('msg', $('#hud')), find = Dialog('find'), panel = Dialog('result')
+  const cards = document.createElement('div')
+  cards.id = 'cards'
+  document.body.appendChild(cards)
+  let shown = '', found = null, over = null
   return {
-    setRoom(code) {
-      const url = `${location.origin}/controller.html?room=${code}`
-      $('#code').textContent = code
-      $('#url').textContent = url
-      QRCode.toCanvas($('#qr'), url, { width: 130, margin: 1 })
-    },
     update(dt) {
       const r = game.st.over && game.st.result
-      panel.style.display = r ? 'block' : 'none'
-      if (r) {
-        panel.innerHTML = `<div style="font-size:34px;font-weight:800;margin-bottom:6px">${r.win ? '🚁 VITÓRIA' : '💀 DERROTA'}</div>`
-          + (r.cerco ? `<div style="opacity:.8">Cerco ${r.cerco.n} · ${r.cerco.name}</div>` : '')
-          + `<div>${r.win ? 'O exército chegou: vocês aguentaram' : 'Aguentaram'} <b>${r.nights} de ${r.of}</b> noite${r.of > 1 ? 's' : ''}</div>`
-          + (r.cerco && r.cerco.freed ? `<div style="color:#ffd24a">🏆 Cerco ${r.cerco.freed.n} liberado: ${r.cerco.freed.name}!</div>` : '')
-          + `<div>⏱ ${r.time} · 🧟 ${r.kills} abates · ${r.score} pontos</div>`
-          + `<div>🪵 ${r.bars} barricada${r.bars === 1 ? '' : 's'} de pé · 🪟 ${r.broken} janela${r.broken === 1 ? '' : 's'} quebrada${r.broken === 1 ? '' : 's'}${r.base ? ' · 📻 base marcada' : ''}</div>`
-          + (r.boss ? `<div>🕯️ Santa Compaña: ${r.boss === 'derrotada' ? '✝ derrotada!' : 'escapou'}</div>` : '')
-          + `<div>${r.levels.join(' · ')}</div>`
-          + (r.account ? `<div>⛪ Paróquia: +${r.account.gained} XP · nível ${r.account.to}${r.account.to > r.account.from ? ' (subiu!)' : ''}${r.account.unlocked.length ? ` · 🗝 novas: ${r.account.unlocked.join(', ')}` : ''}</div>` : '')
-          + (r.finds ? `<div>⭐ ${r.finds} achado${r.finds > 1 ? 's' : ''} novo${r.finds > 1 ? 's' : ''} na coleção (${r.findsTotal}/${r.findsOf})</div>` : '')
-          + `<div>Estoque: ${r.loot}</div><div style="opacity:.6;font-size:13px;margin-top:6px">Voltando ao menu…</div>`
-      }
-      $('#msg').textContent = game.st.msgT > 0 ? game.st.msg : (game.players.size ? '' : 'Entre pelo celular para jogar')
+      if (r !== over) { over = r; panel.set(r ? result(r) : '') }
+      msg.set(say(game.st.msgT > 0 ? game.st.msg : (game.players.size ? '' : 'Entre pelo celular para jogar')))
       if ((t -= dt) > 0) return
       t = 0.1
       // achado raro: a história dele, por alguns segundos
       const f = game.st.find
-      if (f !== found) { found = f; find.innerHTML = f ? `<b>${f.icon} ${f.title}${f.fresh ? ' — novo na coleção!' : ''}</b><br><i style="opacity:.9">${f.text.join('<br>')}</i>` : ''; find.style.display = f ? 'block' : 'none' }
+      if (f !== found) { found = f; find.set(f ? `<h4>${f.icon} ${esc(f.title)}</h4>${f.fresh ? '<div class="tag">novo na coleção!</div>' : ''}<p>${f.text.map(esc).join('<br>')}</p>` : '') }
       // cartas para escolher de quem joga sem celular (teclado: 1, 2 ou 3 · controle: ◀ ▲ ▶ do direcional)
       const own = game.st.over ? [] : [...game.players.values()].filter((p) => p.cards && (p.id === 'local' || p.id.startsWith('pad')))
-      const html = own.map((me) => `<div style="font-size:16px;margin:4px 0 8px">⬆ ${me.name} · nível ${me.level}! Escolha com ${me.id === 'local' ? '<b>1</b>, <b>2</b> ou <b>3</b>' : '<b>◀</b>, <b>▲</b> ou <b>▶</b> do direcional'}</div><div style="display:flex;gap:10px">${me.cards.map((u, i) => `<div style="width:190px;padding:8px;border-radius:9px;background:#ffffff14;border:2px solid #ffd24a88"><div style="font-size:15px"><b>${me.id === 'local' ? i + 1 : ['◀', '▲', '▶'][i]}</b> · ${u.icon} ${u.name}</div><div style="font-weight:400;font-size:12.5px;opacity:.85;margin-top:4px">${u.text}</div></div>`).join('')}</div>`).join('')
-      if (html !== shown) { shown = html; cards.innerHTML = html; cards.style.display = html ? 'block' : 'none' }
-      $('#wave').textContent = `${game.siege.text() || `⏱ ${clock(game.st.time)}`}${game.compana.text() ? ` · ${game.compana.text()}` : ''} · 🧟 ${game.zombies()}` // dia/noite do cerco
-      $('#score').textContent = `Pontos ${game.st.score}`
-      $('#inv').textContent = game.invText() // estoque do grupo (saque) + 📻 se a base está marcada
-      if (climate) $('#clock').textContent = climate.label()
-      $('#plist').innerHTML = [...game.players.values()].map((p) => {
-        const inf = game.info(p)
-        const cds = inf.buttons.filter((b) => b.cd > 0).map((b) => `<span class="cd">${b.l} ${Math.ceil(b.s)}s</span>`).join('')
-        const car = p.vehicle ? ` · 🚗 ${p.vehicle.d.name}${p.seat.mode === 'drive' ? ' (dirigindo)' : ''} ${game.fuel.text(p.vehicle)}` : ''
-        const mana = p.cls.id === 'mage' ? `<div class="bar mana"><i style="width:${p.mana}%"></i></div>` : ''
-        const task = p.task ? ` · ${p.task.icon} ${Math.round((p.task.t / p.task.need) * 100)}%` : ''
-        const mark = p.marked > 0 ? ' · <span style="color:#b89aff">🕯️ marcado</span>' : ''
-        const lv = `${mark} · Nv ${p.level}${p.cards && p.id !== 'local' ? ` <span style="color:#ffd24a">⬆ ${p.id.startsWith('pad') ? 'escolha na TV' : 'escolhendo no celular'}</span>` : ''}`
-        const state = p.dead ? (game.st.over ? '' : p.out ? ' · 💀 fora até o amanhecer' : ` · 🆘 caído ${Math.ceil(p.downT)}s`) : p.held ? ' · <span class="grab">🧟 AGARRADO! (V)</span>' : ''
-        return `<div class="pl ${p.dead ? 'dead' : ''}" style="border-left:4px solid ${PLAYER_COLORS[p.idx % 4]}"><b>${p.cls.icon} ${p.name}</b>${lv} · ${inf.text} · ${p.kills} abates${car}${p.buffT > 0 ? ' · ✨' : ''}${task}${state}<div class="bar"><i style="width:${(p.hp / p.max) * 100}%"></i></div>${mana}<div class="bar xp"><i style="width:${game.levels.progress(p) * 100}%"></i></div>${cds ? `<div class="cds">${cds}</div>` : ''}</div>`
+      const html = own.map((me) => {
+        const keys = me.id === 'local' ? ['1', '2', '3'] : ['◀', '▲', '▶']
+        return `<div class="cards-h">⬆ ${esc(me.name)} · nível ${me.level} · escolha com ${keys.map((k) => `<kbd>${k}</kbd>`).join(' ')}</div>`
+          + `<div class="row">${me.cards.map((u, i) => `<div class="card"><span class="k">${keys[i]}</span><span class="ico">${u.icon}</span><b>${u.name}</b>${u.text}</div>`).join('')}</div>`
       }).join('')
+      if (html !== shown) { shown = html; cards.innerHTML = html; cards.classList.toggle('on', !!html) }
+      $('#wave').textContent = `${game.siege.text() || `⏱ ${clock(game.st.time)}`}${game.compana.text() ? ` · ${game.compana.text()}` : ''}` // dia/noite do cerco
+      $('#zc').textContent = `🧟 ${game.zombies()}`
+      $('#score').textContent = `⭐ ${game.st.score}`
+      $('#inv').textContent = game.invText().trim() // estoque do grupo (saque) + 📻 se a base está marcada
+      if (climate) $('#clock').textContent = climate.label()
+      $('#plist').innerHTML = [...game.players.values()].map((p) => card(game, p)).join('')
     },
   }
 }

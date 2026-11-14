@@ -20,7 +20,6 @@ export function BindKeyboard(game, extra = {}) {
   addEventListener('keydown', (e) => {
     if (typing(e)) return
     const k = e.key.toLowerCase()
-    if (k === 'h') return document.getElementById('room').classList.toggle('hidden')
     if (!active()) return
     if (e.code === 'Space') { e.preventDefault(); game.act('local', 'jump') }
     if (k === 'shift') keys.shift = true

@@ -24,7 +24,9 @@ npm run server      # terminal 1: servidor da sala (porta 8080)
 npm run dev         # terminal 2: jogo (porta 5173)
 ```
 Abra no PC `http://IP-DO-SEU-PC:5173` (não `localhost`, senão o QR code aponta pro lugar errado).
-No celular: escaneie o QR code ou abra `/controller.html` e digite o código.
+No celular: escaneie o QR code ou abra `/controller.html` e digite o código. Na partida, o QR fica no menu (**Esc**, **Start** no controle ou **☰** no celular): o menu pausa o jogo para todos, mostra o desenho dos controles e tem "Voltar ao menu inicial", que abre uma votação (passa com a maioria dos jogadores).
+
+Letras: **Cinzel** (títulos) e **Marcellus** (texto), em `public/fonts/` com a licença OFL (livre para jogo pago); os números usam a letra serifada do sistema, porque nas duas o 1 parece um I.
 Teste sem celular: WASD + mouse (clique esquerdo ataca, direito só mira), E entra/sai do veículo, Q/F/G habilidades, **V empurra**, 1/2/3 armas, R recarrega.
 Testar sozinho com 4 classes: abra o jogo com **`?bots=3`** no fim do endereço (3 jogadores do computador ocupam as vagas livres; tecla **B** espalha/junta, para ver a tela dividida). Só para teste.
 

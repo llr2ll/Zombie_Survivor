@@ -12,7 +12,7 @@ $('#code').value = (params.get('room') || '').toUpperCase()
 $('#name').value = localStorage.getItem('name') || ''
 
 const input = { mx: 0, mz: 0, ax: 0, az: 0, run: 0 }
-let conn, kicked = false, lastUp = '', lastHeld = false, lastDead = false, heldPulse = 0, rvMax = 1, useLabel = null
+let conn, kicked = false, lastUp = '', lastHeld = false, lastDead = false, heldPulse = 0, rvMax = 1, useLabel = null, menuA = null, menuB = null, lastVote = false
 const cds = [0, 0, 0]
 
 // vibração: ms ou padrão [vibra, pausa, vibra…]; uma curta não corta uma mais forte que ainda está tocando
@@ -52,6 +52,7 @@ $('#go').onclick = () => {
       else if (m.t === 'buzz') vibe(m.ms)
       else if (m.t === 'hit') { vibe(90); flash() }
       else if (m.t === 'lobby') onLobby(m)
+      else if (m.t === 'menu') onMenu(m)
       else if (m.t === 'kick') { kicked = true; showPick(''); showMsg(m.msg || 'Removido da sala'); me.close() }
       else if (m.t === 'closed') { showPick(''); showMsg('Jogo encerrado') }
     },
@@ -68,6 +69,7 @@ function setLink(on) {
 // espera no menu: número e cor da vaga (iguais aos da TV) + a classe com ◀ ▶
 function onLobby(m) {
   pad.dataset.mode = 'wait'
+  pad.classList.remove('menu')
   if (m.color) document.documentElement.style.setProperty('--me', m.color)
   $('#slotname').textContent = `JOGADOR ${m.slot}`
   $('#foot').textContent = `Esperando a partida começar · ${m.total} na sala`
@@ -83,8 +85,27 @@ function setState(big, sub = '', ring = null, secs = 0) {
   $('#ring').classList.toggle('on', ring !== null)
   if (ring !== null) { $('#ring .left').style.setProperty('--p', ring); $('#ring b').textContent = secs }
 }
-function showMsg(big, sub = '') { pad.dataset.mode = 'msg'; pad.classList.remove('down', 'grabbed'); setState(big, sub) }
+function showMsg(big, sub = '') { pad.dataset.mode = 'msg'; pad.classList.remove('down', 'grabbed', 'menu'); setState(big, sub) }
 function flash() { pad.classList.remove('hurt'); void pad.offsetWidth; pad.classList.add('hurt') }
+
+// menu da partida aberto na TV (pausa): Continuar / Voltar ao menu; na votação, SIM / NÃO (o jogo manda quem pediu e quantos votos)
+function onMenu(m) {
+  pad.classList.toggle('menu', !!m.open)
+  const v = m.open && m.vote
+  if (v && !lastVote && !v.mine) vibe([60, 40, 60])
+  lastVote = !!v
+  if (!m.open) return
+  const set = (title, sub, a, b) => {
+    $('#mu-title').textContent = title
+    $('#mu-sub').textContent = sub
+    $('#mu-a').textContent = a ? a[0] : ''; menuA = a ? a[1] : null
+    $('#mu-b').textContent = b ? b[0] : ''; menuB = b ? b[1] : null
+  }
+  const count = v && `${v.yes} de ${v.need} votos · ${v.left} s`
+  if (!v) set('Pausado', 'O menu está aberto na TV', ['▶ CONTINUAR', 'resume'], ['🏠 VOLTAR AO MENU', 'quit'])
+  else if (v.mine) set('Voltar ao menu?', `Você votou ${v.mine === 'yes' ? 'SIM' : 'NÃO'} · ${count}`)
+  else set('Voltar ao menu?', `${v.by} pediu · ${count}`, ['SIM', 'yes'], ['NÃO', 'no'])
+}
 
 // "🔍 Revistar" → ['🔍', 'Revistar'] (o ícone vai grande no botão/carta)
 function splitIcon(s) {
@@ -210,6 +231,10 @@ for (const [id, a] of [['#b1', 'b1'], ['#b2', 'b2'], ['#b3', 'b3'], ['#use', 'us
 $('#run').addEventListener('pointerdown', (e) => { e.stopPropagation(); input.run = input.run ? 0 : 1; $('#run').classList.toggle('on', !!input.run); vibe(15) })
 $('#jump').addEventListener('pointerdown', (e) => { e.stopPropagation(); send({ t: 'act', a: 'jump' }); vibe(15) })
 $('#shove').addEventListener('pointerdown', (e) => { e.stopPropagation(); send({ t: 'act', a: 'shove' }); vibe(25) })
+// menu da partida: ☰ abre/fecha na TV; os dois botões grandes mudam com o que a TV mandar (onMenu)
+$('#menu').addEventListener('pointerdown', (e) => { e.stopPropagation(); send({ t: 'act', a: 'menu' }); vibe(15) })
+$('#mu-a').addEventListener('pointerdown', (e) => { e.stopPropagation(); if (menuA) send({ t: 'act', a: menuA }); vibe(15) })
+$('#mu-b').addEventListener('pointerdown', (e) => { e.stopPropagation(); if (menuB) send({ t: 'act', a: menuB }); vibe(15) })
 
 // botões afundam enquanto o dedo está em cima
 document.addEventListener('pointerdown', (e) => { const b = e.target.closest?.('button'); if (b) b.classList.add('press') }, true)

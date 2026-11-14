@@ -1,12 +1,12 @@
 [0s] 1/4 compilando o jogo…
 [1s] 2/4 subindo relay e página…
 [2s] 3/4 abrindo o jogo no navegador sem tela…
-[6s]    sala ECUB aberta no relay
-[105s] 4/4 jogando 60 s…
-[141s]    captura 02-inicio.jpg
-[213s]    captura 03-acao.jpg
-[241s]    captura 04-noite.jpg
-[262s]    captura 05-fim.jpg
-[280s]    HUD: {"topo":"🌙 Noite 1/2 · 🧟 30\nPontos 0\n🪵 0 🩹 0\n🌙 00:10 · Limpo","jogadores":"🔫 Jogador 1 · Nv 1 · Espingarda 6/30 · 0 abates\nGranada 3s\n🪕 Celular · Nv 1 · Alaúde · 0 abates\nCanção de cura 8s\n🔮 Controle 1 · Nv 1 · Mana 100 · 0 abates"}
+[7s]    sala NWAB aberta no relay
+[138s] 4/4 jogando 60 s…
+[179s]    captura 02-inicio.jpg
+[241s]    captura 03-acao.jpg
+[271s]    captura 04-noite.jpg
+[296s]    captura 05-fim.jpg
+[315s]    HUD: {"topo":"🌙 Noite 1/2\n🧟 30\n⭐ 0\n🪵 0 🩹 0\n🌙 00:10 · Limpo","jogadores":"🔫\nJogador 1\nNV 1\nEspingarda 6/30Granada 3s\n🪕\nCelular\nNV 1\nAlaúdeCanção de cura 9s\n🔮\nControle 1\nNV 1\nMana 100"}
 
 PASSOU

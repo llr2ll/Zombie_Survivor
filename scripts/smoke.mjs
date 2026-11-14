@@ -2,7 +2,8 @@
 // abre num navegador sem tela, entra 1 jogador no teclado (aperta W: entra sozinho; Atirador), 1 celular simulado (conexão
 // direta; troca para Bardo no menu), 1 celular sem conexão direta (plano B pelo servidor; troca a classe e é tirado no ✕)
 // e 1 controle de videogame de mentira (entra com A, troca a classe no direcional: fica Mago),
-// joga ~60 s e FALHA se aparecer erro no console. Capturas e log ficam em smoke/.
+// joga ~60 s, abre o menu da partida (Esc) e volta ao menu inicial por votação (teclado + celular).
+// FALHA se aparecer erro no console. Capturas e log ficam em smoke/.
 // Sem placa de vídeo o jogo roda a 1–2 FPS: 60 s reais ≈ 6 s de jogo. Serve para pegar erro de carregar/iniciar/botões.
 import { chromium } from 'playwright'
 import { spawn } from 'node:child_process'
@@ -204,9 +205,19 @@ try {
   const hud = await page.evaluate(() => ({ topo: document.querySelector('#top')?.innerText, jogadores: document.querySelector('#plist')?.innerText }))
   note(`   HUD: ${JSON.stringify(hud)}`)
   if (frames < 3) fail(`o jogo quase não desenhou quadros (${frames} medições de FPS)`)
-  // Esc volta ao menu
+  // Esc abre o menu da partida (pausa para todos; o celular mostra "Pausado"). "Voltar ao menu inicial" abre a votação:
+  // o teclado pediu (conta como sim) e o celular vota SIM → 2 de 3 (maioria) → volta ao menu inicial
   await page.keyboard.press('Escape')
-  await page.waitForFunction(() => !document.querySelector('#lobby').classList.contains('hidden'), null, { timeout: 20000 }).catch(() => fail('Esc não voltou ao menu'))
+  await page.waitForSelector('#pause:not(.hidden)', { timeout: 20000 }).catch(() => fail('Esc não abriu o menu da partida'))
+  await phone.waitForSelector('#menu-ui', { state: 'visible', timeout: 20000 }).catch(() => fail('o celular não mostrou a pausa'))
+  await page.waitForTimeout(1500)
+  await page.screenshot({ path: path.join(OUT, '07-menu.jpg'), type: 'jpeg', quality: 70 })
+  await page.click('#pause .quit')
+  await phone.waitForFunction(() => /SIM/.test(document.querySelector('#mu-a')?.textContent || ''), null, { timeout: 20000 }).catch(() => fail('o celular não recebeu a votação'))
+  await page.screenshot({ path: path.join(OUT, '08-votacao.jpg'), type: 'jpeg', quality: 70 })
+  await phone.screenshot({ path: path.join(OUT, '09-votacao-celular.jpg'), type: 'jpeg', quality: 70 })
+  await phone.dispatchEvent('#mu-a', 'pointerdown')
+  await page.waitForFunction(() => !document.querySelector('#lobby').classList.contains('hidden'), null, { timeout: 20000 }).catch(() => fail('a votação não voltou ao menu'))
 } catch (e) {
   fail(`o teste parou: ${e.message.split('\n')[0]}`)
   log.push(e.stack || String(e))

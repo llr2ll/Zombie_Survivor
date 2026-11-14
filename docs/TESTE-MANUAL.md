@@ -24,7 +24,7 @@ Você precisa de **1 celular** e do teclado do PC. Para o item 12 (4 jogadores),
 | 11 | **Cair e levantar** (2 jogadores): deixe um ser mordido até cair; o outro chega perto e aperta E (ou Usar no celular) | O caído fica no chão com o anel piscando · "🆘 caído 40s" no placar e "Você caiu! Ns" no celular · o botão vira "🤝 Levantar" · anel cresce por 3 s · ele levanta. Deixe cair de novo e não ajude: em 40 s "💀 fora até o amanhecer" | ☐ |
 | 11b | **Sozinho**: caia | "🆘 Você caiu! Usar = levantar sozinho" · E levanta em 3 s. Caia de novo: Usar gasta o 🩹 do começo. Na 3ª queda: tela "💀 DERROTA" e, ~12 s depois, o menu | ☐ |
 | 12 | **Noite**: a partida começa ao meio-dia; aperte N várias vezes (+1 hora cada) até 20:00 | O céu escurece, os postes acendem e aparecem mais zumbis | ☐ |
-| 13 | **Esc** durante a partida | Volta ao menu sem travar | ☐ |
+| 13 | **Esc** durante a partida | Abre o menu da partida e o jogo **pausa** (zumbis param; o celular mostra "PAUSADO"). Continuar (ou Esc de novo) volta ao jogo do mesmo jeito | ☐ |
 | 14 | **Sensação**: atire, jogue granada, dê o 3º golpe da katana | Anel fraco no chão até onde o som foi · zumbi pisca branco · a tela treme na explosão · o 3º golpe dá um "tranco" curtinho · à noite o tiro clareia o chão | ☐ |
 | 15 | **Saque**: entre numa casa, chegue perto de uma cômoda e aperte E (ou o botão do celular) | Losangos amarelos nos móveis perto · o botão do celular vira "🔍 Revistar" · anel cresce sob você · mensagem do que achou · estoque no topo muda. Use de novo: "🪚 Desmontar", martelo, +tábuas. Andar no meio cancela | ☐ |
 | 16 | **Barricada**: junte 2 🪵 (desmonte móveis), fique dentro da casa perto da porta e aperte E | O botão vira "🪵 Barricar (2)" · martelo · tábuas na porta + barrinha verde em cima. Saia e entre pela porta: você passa. Atraia zumbis: eles param na porta e batem; a barrinha cai, aparece "⚠ Barricada sob ataque". Conserte (1 🪵) e reforce (2 🪵) | ☐ |
@@ -41,15 +41,18 @@ Você precisa de **1 celular** e do teclado do PC. Para o item 12 (4 jogadores),
 | 27 | **Controle de videogame** (se tiver um): ligue no PC e, no menu, aperte qualquer botão | Aparece uma vaga "🎮 Controle 1 · pronto". ◀ ▶ do direcional trocam a classe; Start começa. Na partida: stick esquerdo anda, direito mira e ataca, A pula, B empurra, X revista/barrica, LB/RB/Y são os botões da classe, LT corre. Ao subir de nível, as cartas aparecem na TV com ◀ ▲ ▶ e o direcional escolhe. Ao levar dano, o controle vibra; a espingarda e as explosões perto também | ☐ |
 | 28 | **Plano B da conexão**: abra o controle com `&direto=0` no fim do endereço (ex.: `.../controller.html?room=ABCD&direto=0`) e entre | A vaga mostra "📱 Celular conectado · 🌐 servidor" e o celular, 🌐 servidor. Jogue um pouco: anda, mira e os botões funcionam igual. Com 4G no lugar do Wi-Fi, anote se aparece ⚡ ou 🌐 | ☐ |
 | 29 | **Controle novo e vibração** (celular Android; iPhone não vibra pelo navegador): jogue de Atirador e troque para a espingarda (botão Trocar arma) | Fundo de triângulos marrons, sticks desenhados ("MOVER" e "MIRAR E ATACAR"), botões que afundam ao tocar e recarga girando como relógio. O celular vibra: forte em cada tiro da espingarda, fraquinho na pistola e na carabina, ao levar mordida, no agarrão (e em pulsos enquanto agarrado: a borda fica vermelha), ao cair ("Você caiu" com o anel dos segundos), ao levantar e quando chegam as cartas. Explosão de granada perto também vibra. Anote se alguma vibração incomodou | ☐ |
+| 30 | **Tela limpa e letra nova**: jogue alguns minutos | No alto, pílulas (dia, zumbis, pontos, estoque, hora) e "☰ Menu e QR" à direita. Embaixo, à esquerda, um cartão por jogador com vida, nível e uma linha só. Mensagens numa caixa escura com cantos dourados, no alto, sem cobrir os personagens e sem quebrar em várias linhas. Os números aparecem como 1 (não como I). Sem a linha de atalhos embaixo e sem o QR no canto | ☐ |
+| 31 | **Menu da partida**: Esc (ou ☰ Menu e QR, Start no controle, ☰ no celular) | Caixa "PAUSA" com o desenho das teclas (abas Teclado / Controle / Celular) e o QR. Um celular novo escaneia esse QR e entra na partida em andamento | ☐ |
+| 32 | **Votação para voltar**: com 2 ou mais jogadores, no menu toque "Voltar ao menu inicial" | Aparece "Voltar ao menu inicial?" com quem pediu e quantos votos faltam (maioria: 2 de 2, 2 de 3, 3 de 4). Teclado: Y/N · controle: A/B · celular: SIM/NÃO na tela. Com a maioria, volta ao menu; com "não" demais ou 20 s sem maioria, aparece "Votação recusada" e o jogo continua pausado | ☐ |
 
-Para testar outra classe pelo teclado: Esc → no menu, aperte A ou D → Enter.
+Para testar outra classe pelo teclado: Esc → Voltar ao menu inicial (jogando sozinho volta na hora) → no menu, aperte A ou D → Enter.
 
 **Sem amigos por perto?** Abra o jogo com `?bots=3` no fim do endereço (ex.: `.../?bots=3`). Três jogadores do computador entram
 nas vagas livres, cada um com sua classe, e seguem você. Aperte **B** para eles se espalharem (a tela divide) e **B** de novo para voltarem
 (a tela junta). Serve para os itens 4–7, 10 e 11 e para anotar o FPS com 4 jogadores.
 
 ## Anotar o FPS
-O FPS aparece em verde no canto de cima, à direita. Anote depois de 1 minuto de jogo, de dia, na largada.
+O FPS aparece em verde, pequeno, no canto de baixo, à direita. Anote depois de 1 minuto de jogo, de dia, na largada.
 
 | Data | PR | FPS com 1 jogador | FPS com 4 jogadores | Tela dividida em 4? | Observação |
 |---|---|---|---|---|---|

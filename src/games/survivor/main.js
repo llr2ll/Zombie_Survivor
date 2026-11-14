@@ -26,6 +26,7 @@ import { CreateBots } from './bots'
 import { CreateHud } from './ui/hud'
 import { CreateCollection } from './ui/collection'
 import { CreateCercoPicker } from './ui/cercos'
+import { CreatePause } from './ui/pause'
 import { CreateSave } from './save'
 import { UPGRADES } from './config/upgrades'
 import { FINDS } from './config/finds'
@@ -79,7 +80,7 @@ export async function LoadGame() {
 
   const split = CreateSplitScreen(renderer, scene)
   const sound = CreateSoundscape() // vento, chuva, água, motores, passos, zumbis… (efeitos soltos: audio/sfx.js)
-  let hud, game, net, bots
+  let hud, game, net, bots, pause, room
   let phase = 'lobby' // 'lobby' | 'playing'
 
   // celulares conectados recebem "você é o Jogador N, aguardando o host" enquanto o menu está aberto
@@ -89,6 +90,7 @@ export async function LoadGame() {
     for (const e of list) if (e.type === 'phone') net.send(e.id, { t: 'lobby', slot: e.slot + 1, color: PLAYER_COLORS[e.slot], total: list.length, pick: CLASS_LABELS[e.choice] })
   }
   function toLobby() {
+    pause.reset()
     sound.clear()
     game.clear()
     bots.clear()
@@ -102,6 +104,7 @@ export async function LoadGame() {
   const lobby = CreateLobby({
     onStart: (entries) => {
       phase = 'playing'
+      pause.reset()
       sfx('start')
       split.reset()
       lobby.hide()
@@ -117,7 +120,7 @@ export async function LoadGame() {
   })
 
   net = ConnectHost({
-    onRoom: (code) => { hud.setRoom(code); lobby.setRoom(code); lobby.setOnline(true) },
+    onRoom: (code) => { room = code; if (pause) pause.setRoom(code); lobby.setRoom(code); lobby.setOnline(true) }, // QR da partida fica no menu (Esc)
     onOffline: () => {
       lobby.setOnline(false)
       for (const e of lobby.entries()) if (e.type === 'phone') game.removePlayer(e.id)
@@ -131,8 +134,8 @@ export async function LoadGame() {
     onLeave: (id) => { lobby.removeId(id); game.removePlayer(id) },
     onLink: (id, on) => lobby.setLink(id, on), // ⚡ direto / 🌐 servidor na vaga do celular
     onInput: (id, m) => game.setInput(id, m),
-    // no menu, o celular só troca a classe (◀ ▶); na partida, as ações vão para o jogo
-    onAct: (id, a) => (phase === 'lobby' ? lobby.pick(id, a === 'prev' ? -1 : a === 'next' ? 1 : 0) : game.act(id, a)),
+    // no menu, o celular só troca a classe (◀ ▶); na partida, as ações vão para o jogo (menos as do menu da partida: ☰, votar)
+    onAct: (id, a) => (phase === 'lobby' ? lobby.pick(id, a === 'prev' ? -1 : a === 'next' ? 1 : 0) : menuAct(id, a) || game.act(id, a)),
   })
   // controles de videogame (J14): A (ou Start) entra no menu; ◀ ▶ trocam a classe; Start começa. Na partida, o mesmo contrato do
   // celular: sticks no setInput e os botões viram ações (o direcional escolhe as cartas de melhoria)
@@ -148,6 +151,9 @@ export async function LoadGame() {
     button: (id, b) => {
       if (!lobby.has(id)) return pads.forget(id) // tirado da vaga no menu: o próximo A entra de novo
       if (phase === 'lobby') { if (b === 'left' || b === 'right') lobby.pick(id, b === 'left' ? -1 : 1); else if (b === 'start') lobby.start(); return }
+      if (b === 'start') return pause.toggle('pad')
+      // menu aberto: A/B votam; sem votação, Y pede para voltar ao menu inicial e B fecha
+      if (pause.isOpen()) { if (pause.voting()) { if (b === 'a' || b === 'b') pause.cast(id, b === 'a') } else if (b === 'y') pause.ask(id); else if (b === 'b') pause.close(); return }
       if (PAD[b]) game.act(id, PAD[b])
     },
     input: (id, m) => { if (phase === 'playing' && game.players.has(id)) game.setInput(id, m) },
@@ -160,6 +166,23 @@ export async function LoadGame() {
   events.on('vehicle-spot', (p) => game.vehicles.register(p)) // vaga na estrada → carro dirigível
   if (import.meta.env.DEV) window.__game = game // só no npm run dev: para testes automáticos e depuração
   hud = CreateHud(game, climate)
+  // menu da partida (pausa para todos): controles, QR e votação para voltar ao menu inicial
+  pause = CreatePause({
+    voters: () => [...game.players.values()].map((p) => ({ id: p.id, name: p.name, color: PLAYER_COLORS[p.idx % 4], bot: p.id.startsWith('bot') })),
+    onQuit: () => toLobby(),
+    onChange: () => { if (phase === 'playing') for (const e of lobby.entries()) if (e.type === 'phone') net.send(e.id, { t: 'menu', ...pause.info(e.id) }) },
+  })
+  if (room) pause.setRoom(room)
+  document.getElementById('menu-btn').addEventListener('click', () => pause.open('kb'))
+  // ações do menu vindas do celular: ☰ abre/fecha; com o menu aberto, nada chega ao jogo
+  function menuAct(id, a) {
+    if (a === 'menu') { pause.toggle('ph'); return true }
+    if (!pause.isOpen()) return false
+    if (a === 'resume') pause.close()
+    else if (a === 'quit') pause.ask(id)
+    else if (a === 'yes' || a === 'no') pause.cast(id, a === 'yes')
+    return true
+  }
   // menu: nível da paróquia, melhorias liberadas e achados (J12a)
   const collection = CreateCollection(save)
   const cercos = CreateCercoPicker(save) // qual cerco jogar (J12b)
@@ -173,9 +196,16 @@ export async function LoadGame() {
   bots = CreateBots(game, BOTS)
   // teclado: com cartas de melhoria na tela, 1/2/3 escolhem a carta (senão, trocam a arma do Atirador)
   const PICK = { carbine: 'up1', shotgun: 'up2', pistol: 'up3' }
-  BindKeyboard({ players: game.players, setInput: game.setInput, act: (id, a) => game.act(id, game.players.get(id)?.cards && PICK[a] ? PICK[a] : a) }, KEYS)
+  BindKeyboard({ players: game.players, setInput: game.setInput, act: (id, a) => pause.isOpen() || game.act(id, game.players.get(id)?.cards && PICK[a] ? PICK[a] : a) }, KEYS)
   setInterval(notifyPhones, 1000)
-  addEventListener('keydown', (e) => { if (e.key === 'Escape' && phase === 'playing') toLobby() })
+  // Esc abre/fecha o menu da partida; na votação, Y e N votam pelo jogador do teclado
+  // (captura antes dos outros atalhos: o N da votação não pode virar o "+1 hora" de teste)
+  addEventListener('keydown', (e) => {
+    if (phase !== 'playing' || e.repeat) return
+    const k = e.key.toLowerCase()
+    if (k === 'escape') pause.toggle('kb')
+    else if (pause.voting() && (k === 'y' || k === 'n')) { e.stopImmediatePropagation(); pause.cast('local', k === 'y') }
+  }, true)
 
   PrewarmBuildings() // enfileira as geometrias das casas; PrewarmStep gera uma por quadro (evita engasgo ao carregar chunks)
   // carrega o entorno inicial de uma vez
@@ -191,17 +221,20 @@ export async function LoadGame() {
 
   let orbit = 0
   function draw(dt) {
-    if (phase === 'playing') bots.update(dt) // só com ?bots=
+    // menu da partida aberto = pausa: o mundo para (gdt = 0), mas a tela continua desenhando
+    const paused = phase === 'playing' && pause.isOpen(), gdt = paused ? 0 : dt
+    if (phase === 'playing' && !paused) bots.update(dt) // só com ?bots=
     pads.update() // controles de videogame (lidos a cada quadro)
-    game.update(dt)
-    wind.value += dt // vento: só um uniform; o balanço acontece na GPU
+    if (!paused) game.update(dt)
+    pause.update(dt) // tempo da votação
+    wind.value += gdt // vento: só um uniform; o balanço acontece na GPU
     const list = [...game.players.values()]
     const pts = list.length ? list : [{ x: 0, z: 0 }]
-    climate.update(dt, list.length ? list.filter((p) => !p.dead) : [{ x: 8, z: -6 }])
+    climate.update(gdt, list.length ? list.filter((p) => !p.dead) : [{ x: 8, z: -6 }])
     entityShadows.update(list, game.enemies, game.vehicles.list)
-    streetLights.update(dt, climate.time, climate.weather.over, pts)
-    UpdateDoors(dt, list, game.enemies) // portas abrem quando alguém chega perto
-    sound.update(dt, game, climate, streetLights, phase === 'lobby')
+    streetLights.update(gdt, climate.time, climate.weather.over, pts)
+    UpdateDoors(gdt, list, game.enemies) // portas abrem quando alguém chega perto
+    sound.update(gdt, game, climate, streetLights, phase === 'lobby')
     PrewarmStep()
     if (phase === 'lobby') {
       chunks.update(pts)
@@ -216,7 +249,7 @@ export async function LoadGame() {
       split.full(camera)
     } else {
       // uma tela por grupo de jogadores; com a tela dividida cada jogador carrega menos chunks (mantém o FPS)
-      const views = split.update(list, dt)
+      const views = split.update(list, gdt)
       chunks.update(pts, views.length > 1 ? 2 : 3)
       chunks.process(1)
       hud.update(dt)
