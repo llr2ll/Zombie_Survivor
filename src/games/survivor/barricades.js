@@ -8,7 +8,7 @@ import { has } from './levels'
 // - De dentro da casa, perto de uma entrada, Usar prega tábuas do estoque do grupo: barricar, consertar, reforçar.
 // - Porta barricada só segura zumbis (gente e tiro passam pela fresta); zumbi encostado bate até quebrar.
 // - Janela: zumbi atrás de alguém lá dentro vai pela janela se ela for mais perto que a porta; bate na barricada (se houver),
-//   quebra o vidro e pula para dentro (leva alguns segundos). Janela quebrada continua quebrada.
+//   quebra o vidro e pula para dentro (leva alguns segundos, com o corpo passando pelo vão). Janela quebrada continua quebrada.
 // Estado por entrada (id = posição): continua lá quando o chunk sai e volta. Números em balance.js · barricade, window.
 const B = BALANCE.barricade, W = BALANCE.window, Z = BALANCE.zombies
 const COST = { build: B.build.planks, repair: B.repair.planks, reinforce: B.reinforce.planks }
@@ -182,7 +182,6 @@ export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp =
     let wn = wins.get(en.id)
     if (!wn) wins.set(en.id, (wn = { id: en.id, glass: W.glass, broken: false, en, hole: null, b: null }))
     if (bar || !wn.broken) {
-      e.climbT = 0
       if ((e.winT = (e.winT || 0) - dt) > 0) return HOLD
       e.winT = rnd(Z.bash.every[0], Z.bash.every[1])
       if (bar) { hit(bar, force(e)); return HOLD }
@@ -196,11 +195,12 @@ export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp =
       }
       return HOLD
     }
-    // janela aberta: pula para dentro
-    if ((e.climbT = (e.climbT || 0) + dt) < W.climb) return HOLD
-    const i = usable.get(en.id) || inside(en)
-    Object.assign(e, { x: i.x, z: i.z, lx: i.x, lz: i.z, lv: 0, climbT: 0, ent: null, entT: 0.6 })
-    sfx('bodyfall', { x: i.x, z: i.z })
+    // janela aberta: pula para dentro. A horda leva o corpo pelo vão (e.climb): apoia no parapeito, sobe e mergulha
+    if (!e.climb) {
+      const i = usable.get(en.id) || inside(en), fl = FloorAt(i.x, i.z, en.y)
+      e.climb = { x0: e.x, z0: e.z, y0: e.fy ?? en.y, xm: en.x + en.ox * 0.45, zm: en.z + en.oz * 0.45, x1: i.x, z1: i.z, y1: fl ? fl.y : en.y, t: 0, time: W.climb } // de onde está → encostado no parapeito → lá dentro
+      e.ent = null; e.entT = W.climb + 0.6
+    }
     return HOLD
   }
 
@@ -253,7 +253,7 @@ export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp =
       const en = e.ent
       if (!en) return null
       const o = outside(en)
-      if (Math.hypot(o.x - e.x, o.z - e.z) > 0.55) { e.climbT = 0; return o }
+      if (Math.hypot(o.x - e.x, o.z - e.z) > 0.55) return o
       return atWindow(e, en, dt)
     },
     update(dt) {
