@@ -42,13 +42,13 @@ const RING_GEO = new THREE.RingGeometry(0.5, 0.68, 28).rotateX(-Math.PI / 2)
 const RING_MAT = PLAYER_COLORS.map((c) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.85, depthWrite: false }))
 
 // hooks: { onEnd() (fim de jogo), night() (zumbis enxergam menos e são mais numerosos), loaded(x, z) (chunk carregado?),
-//          clock() / setClock(t) (hora do dia 0..1: o cerco conta as noites; sem relógio = sem cerco),
+//          clock() / setClock(t) (hora do dia 0..1: o cerco conta as noites; sem relógio = sem cerco), rain() (chuva agora, 0..1: lava o sangue),
 //          shake(x, z, power, time, radius) (tremor nas telas perto) }
 export function CreateGame(scene, colliders, net, hooks = {}) {
   const players = new Map()
   const wfx = CreateWaterFX(scene) // ondas e respingos
   const fx = CreateFX(scene)
-  const gore = CreateGore(scene) // sangue no chão/paredes e pedaços de zumbi
+  const gore = CreateGore(scene, { wash: J.bloodWash }) // sangue no chão/paredes e pedaços de zumbi; a chuva lava o que está ao ar livre
   const vehicles = CreateVehicles(scene, fx, wfx)
   const st = { time: 0, score: 0, over: false, overT: 0, msg: '', msgT: 0, sync: 0, stopT: 0, result: null, find: null, finds: 0 } // find: achado raro na tela
   const save = hooks.save || CreateSave() // progresso no PC (J12a): nível da paróquia e coleção
@@ -343,7 +343,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     fuel.update(dt)
     tasks.update(list)
     fx.update(dt)
-    gore.update(dt)
+    gore.update(dt, hooks.rain ? hooks.rain() : 0)
 
     // estado para os celulares
     if (net && (st.sync -= dt) <= 0) {

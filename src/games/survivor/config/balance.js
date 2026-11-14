@@ -311,6 +311,7 @@ export const BALANCE = {
     hitStop: { heavyHit: 0.04, stomp: 0.04, runover: 0.04 },
     hitFlash: 0.08, // segundos que o zumbi fica branco ao levar golpe
     noiseRing: { min: 7, every: 0.6, time: 0.7, alpha: 0.28, color: 0xfff1c8 }, // anel de barulho: só a partir de 7 m (99 desliga) · no máx. 1 por lugar a cada 0,6 s · duração · opacidade · cor
+    bloodWash: 30, // segundos para a tempestade lavar uma mancha de sangue ao ar livre (chuva comum: ~55 s; dentro de casa não lava; 0 = nunca)
     muzzleGlow: { radius: 3.2, time: 0.07, alpha: 0.5, color: 0xffd58a }, // clarão do tiro no chão, só à noite: raio · duração · força · cor
   },
 }

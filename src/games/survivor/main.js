@@ -167,7 +167,7 @@ export async function LoadGame() {
   // as regras mandam mensagens para "celulares": as dos controles ficam aqui (levou dano = tremida; buzz = tremida do tamanho do impacto)
   const padMsg = (id, m) => (m.t === 'hit' ? pads.rumble(id) : m.t === 'buzz' && pads.rumble(id, Math.min(1, 0.25 + m.ms / 200), m.ms))
   const gameNet = { send: (id, m) => (id.startsWith('pad') ? padMsg(id, m) : net.send(id, m)) }
-  game = CreateGame(scene, colliders, gameNet, { onEnd: toLobby, night: () => climate.time < BALANCE.day.nightTo || climate.time > BALANCE.day.nightFrom, loaded: chunks.loaded, shake: split.shake, clock: () => climate.time, setClock: (t) => { climate.time = t }, save })
+  game = CreateGame(scene, colliders, gameNet, { onEnd: toLobby, night: () => climate.time < BALANCE.day.nightTo || climate.time > BALANCE.day.nightFrom, loaded: chunks.loaded, shake: split.shake, clock: () => climate.time, setClock: (t) => { climate.time = t }, rain: () => climate.rain, save })
   events.on('vehicle-spot', (p) => game.vehicles.register(p)) // vaga na estrada → carro dirigível
   if (import.meta.env.DEV) window.__game = game // só no npm run dev: para testes automáticos e depuração
   hud = CreateHud(game, climate)
