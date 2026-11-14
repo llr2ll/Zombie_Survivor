@@ -222,6 +222,11 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
 - Velocidades: andar 4,4 m/s, correr 7,6, mirando 3,1 (`player-movement.js`); sedã 23 m/s, picape 20, jipe 19 (`vehicles/models.js`).
 - Raio do barulho que atrai zumbis: tiro 30 m (pistola 22), granada 38, música do Bardo 18, onda 12, dardo 9, katana 7,
   carro andando 18, correr 8, andar 3. A noite muda visão (16 → 9 m) e quantidade (×1,3). Chuva e neblina não afetam os zumbis.
+- **Pulo em móveis (PR pulo-nos-moveis):** pulando, obstáculo baixo (`h`) é ignorado enquanto os pés estão acima dele; descendo com o
+  centro dentro da caixa, `resolve` (`collision.js`) leva para o lugar livre mais perto (4 lados da caixa, depois anéis até 2,4 m) sem
+  parede no meio (`wallBetween`); sem lugar livre, fica onde está e sai andando. Antes saía pelo lado mais perto mesmo que fosse a
+  parede: atravessava e caía fora da casa (20 de 59 pulos no teste; agora 0 de 261). Não dá para ficar em cima de móvel (de propósito:
+  o zumbi não alcançaria).
 - **Caminho dos zumbis (PR zumbis-presos):** no desvio e no A* (`pathing.js`), porta de casa que não é a da rota conta como parede
   (`DoorAt` em `collision.js`; a da rota fica a até 2,5 m do ponto da rota). Na soleira de uma casa que não é a do alvo, `ChaseTarget`
   manda terminar de sair (ponto na frente da porta) antes de seguir. Preso = andou pouco em 0,6 s **ou** não chegou 0,5 m mais perto
@@ -338,6 +343,9 @@ Decidido: a Etapa 3 vai em 3 PRs — F1 mover pastas + `npm run check` (+ cortar
 F2 estado global → instâncias com `reset()` + caches limpos por distância (medir antes) · F3 `balance.js` + `?bots=3`.
 
 ## Histórico de PRs
+- **pulo-nos-moveis** — bug achado pelo dono: pular em cima de móvel encostado na parede jogava o boneco para fora da casa. Agora ele
+  desce no lugar livre mais perto, sem atravessar parede (teste sem tela: 261 pulos em todos os móveis perto da largada, 0 fora da casa;
+  antes 20 de 59). Vale também para zumbi empurrado para dentro de um móvel. Replay atualizado de propósito.
 - **zumbis-presos** — achado no teste geral: zumbis ficavam girando na soleira de casas que estavam entre eles e o alvo e parados na
   beira do lago perto da largada; o cerco chegava mais fraco. Agora: porta de casa fora da rota conta como parede no desvio, quem está
   na soleira termina de sair, andar em círculo sem avançar conta como preso e, travando no caminho calculado, dá um passo de lado e

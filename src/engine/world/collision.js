@@ -54,11 +54,35 @@ export function resolve(obj, r, _colliders, feet = 0) {
       const d = Math.sqrt(d2), p = r - d
       obj.x += (dx / d) * p; obj.z += (dz / d) * p
     } else {
-      const px = c.hw - Math.abs(obj.x - c.x), pz = c.hd - Math.abs(obj.z - c.z)
-      if (px < pz) obj.x += (obj.x >= c.x ? 1 : -1) * (px + r)
-      else obj.z += (obj.z >= c.z ? 1 : -1) * (pz + r)
+      // centro dentro da caixa (ex.: pulou por cima de um móvel e desceu nele): sai para o lugar LIVRE mais perto, sem atravessar
+      // parede. Antes saía sempre pelo lado mais perto, mesmo que fosse a parede: atravessava e ia parar fora da casa.
+      // Primeiro os 4 lados da caixa; depois anéis em volta; sem lugar livre, fica onde está (sai andando).
+      const ok = (x, z) => !Blocked(x, z, r * 0.9, lv) && !wallBetween(obj.x, obj.z, x, z, lv, c)
+      const ex = [[c.x - c.hw - r, obj.z], [c.x + c.hw + r, obj.z], [obj.x, c.z - c.hd - r], [obj.x, c.z + c.hd + r]]
+      ex.sort((a, b) => Math.abs(a[0] - obj.x) + Math.abs(a[1] - obj.z) - Math.abs(b[0] - obj.x) - Math.abs(b[1] - obj.z))
+      let out = ex.find((q) => ok(q[0], q[1]))
+      for (let d = 0.4; !out && d <= 2.4; d += 0.4) for (let i = 0; !out && i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2, x = obj.x + Math.sin(a) * d, z = obj.z + Math.cos(a) * d
+        if (ok(x, z)) out = [x, z]
+      }
+      if (out) { obj.x = out[0]; obj.z = out[1] }
     }
   })
+}
+
+// Tem parede (colisor sem altura = intransponível) entre dois pontos? Amostra a linha a cada 0,15 m; skip = caixa a ignorar
+function wallBetween(x0, z0, x1, z1, lv, skip) {
+  const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 0.15))
+  for (let i = 1; i <= n; i++) {
+    const x = x0 + ((x1 - x0) * i) / n, z = z0 + ((z1 - z0) * i) / n
+    let hit = false
+    forNear(x, z, 0.05, (c) => {
+      if (hit || c === skip || c.off || c.veh || c.h !== undefined || (c.lv !== undefined && c.lv !== lv)) return
+      if (Math.abs(x - c.x) < c.hw && Math.abs(z - c.z) < c.hd) hit = true
+    })
+    if (hit) return true
+  }
+  return false
 }
 
 // "água funda demais neste ponto?" — vem do jogo (o motor não conhece rios e lagos). Água funda também bloqueia.
