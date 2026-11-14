@@ -60,10 +60,13 @@ function card(game, p) {
   else if (p.vehicle) sub = `🚗 ${esc(p.vehicle.d.name)} ${game.fuel.text(p.vehicle)}`
   else sub = esc(inf.text) + inf.buttons.filter((b) => b.cd > 0).map((b) => `<span class="cd">${esc(b.l)} ${Math.ceil(b.s)}s</span>`).join('')
   const tags = `${p.marked > 0 ? '🕯️ ' : ''}${p.buffT > 0 ? '✨ ' : ''}`
+  // quem joga sem celular (teclado, controle) vê ao lado do cartão o que o Usar faz agora (no celular isso está no botão)
+  const key = p.id === 'local' ? 'E' : p.id.startsWith('pad') ? 'X' : '', u = key && !p.held && !p.task && !game.st.over ? game.useLabel(p) : ''
+  const use = u ? `<div class="use"><kbd>${key}</kbd>${esc(u)}</div>` : ''
   const mana = p.cls.id === 'mage' ? `<div class="bar mp"><i style="width:${p.mana}%"></i></div>` : ''
   return `<div class="pl${p.dead ? ' dead' : ''}${p.held ? ' held' : ''}" style="--c:${PLAYER_COLORS[p.idx % 4]}"><span class="badge">${p.cls.icon}</span> `
     + `<div class="nm">${esc(p.name)}<span class="lv">NV ${p.level}</span></div><div class="bar"><i style="width:${(p.hp / p.max) * 100}%"></i></div>${mana}`
-    + `<div class="bar xp"><i style="width:${game.levels.progress(p) * 100}%"></i></div><div class="sub">${tags}${sub}</div></div>`
+    + `<div class="bar xp"><i style="width:${game.levels.progress(p) * 100}%"></i></div><div class="sub">${tags}${sub}</div>${use}</div>`
 }
 
 export function CreateHud(game, climate) {

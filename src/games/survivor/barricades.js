@@ -49,12 +49,17 @@ export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp =
   const usable = new Map() // id da janela -> ponto onde se cai ao pular para dentro (null = móvel, escada ou parede na frente: não dá)
   let scanT = 0, warnT = 0
 
-  // entrada ao alcance de quem está dentro da casa (térreo): porta ou janela, a mais perto
+  // entrada ao alcance de quem está dentro da casa (térreo): porta ou janela, a mais perto em que ainda há o que fazer
   function entryFor(p) {
     if (p.dead || p.vehicle || (p.lv || 0) !== 0 || !PointInBuilding(p.x, p.z)) return null
     let best = null, bd = Infinity
-    for (const d of DoorsNear(p.x, p.z, B.reach)) { const dd = Math.hypot(d.x - p.x, d.z - p.z); if (dd < bd) { bd = dd; best = doorEntry(d) } }
-    for (const w of WindowsNear(p.x, p.z, W.reach + 1)) { const en = winEntry(w), i = inside(en), dd = Math.hypot(i.x - p.x, i.z - p.z); if (dd < W.reach && dd < bd) { bd = dd; best = en } }
+    const take = (en, dd) => { if (dd < bd && actionOf(en)) { bd = dd; best = en } }
+    for (const d of DoorsNear(p.x, p.z, B.reach)) take(doorEntry(d), Math.hypot(d.x - p.x, d.z - p.z))
+    for (const w of WindowsNear(p.x, p.z, W.reach + 1.5)) {
+      // na frente da janela, por dentro, a até W.reach da parede (cabe um móvel entre o jogador e a janela)
+      const depth = (w.x - p.x) * w.nx + (w.z - p.z) * w.nz, lat = Math.abs((p.x - w.x) * w.nz - (p.z - w.z) * w.nx)
+      if (depth > 0 && depth <= W.reach && lat <= w.w / 2 + 0.7) take(winEntry(w), Math.hypot(depth, lat))
+    }
     return best
   }
   function actionOf(en) {
@@ -222,6 +227,12 @@ export function CreateBarricades({ scene, fx, inv, say, sfx, tasks, impact, xp =
     },
     // texto do botão Usar (celular) perto de uma entrada
     label(p, ready = false) { const en = entryFor(p), a = en && actionOf(en); return a && (!ready || inv.tabuas >= COST[a]) ? `${LABEL[a]} (${COST[a]})` : '' },
+    // do lado de fora, encostado numa porta ou janela que dá para barricar (e com tábuas): aviso de que é por dentro
+    hint(p) {
+      if (p.dead || p.vehicle || (p.lv || 0) !== 0 || PointInBuilding(p.x, p.z)) return ''
+      const near = (en) => { const a = actionOf(en); return a && inv.tabuas >= COST[a] && (p.x - en.x) * en.ox + (p.z - en.z) * en.oz > 0 }
+      return DoorsNear(p.x, p.z, 1.8).some((d) => near(doorEntry(d))) || WindowsNear(p.x, p.z, 1.8).some((w) => near(winEntry(w))) ? '🪵 Barricar: só por dentro' : ''
+    },
     // zumbi encostado numa porta barricada bate nela; true = bateu
     bash(e) {
       if ((e.lv || 0) !== 0) return false

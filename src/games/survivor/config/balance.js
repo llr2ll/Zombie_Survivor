@@ -269,7 +269,7 @@ export const BALANCE = {
   window: {
     glass: 4, // vida do vidro (com a pancada de zombies.bash, ~2 pancadas)
     climb: 1.5, // segundos que o zumbi leva para pular para dentro (dá tempo de acertar)
-    reach: 1.4, // distância da janela, por dentro, para barricar
+    reach: 2.4, // até que distância da parede da janela, por dentro e de frente para ela, dá para barricar (cabe um móvel no meio)
     prefer: 1, // o zumbi só troca a porta pela janela se ela estiver pelo menos 1 m mais perto
   },
   radio: { reach: 1.2 }, // distância para pegar o rádio de volta (o rádio marca a casa-base)
