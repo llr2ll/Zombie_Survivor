@@ -1,6 +1,7 @@
 {
   "type": "module",
   "scripts": {
+    "start": "node server/server.js & vite --host",
     "dev": "vite --host",
     "server": "node server/server.js",
     "build": "vite build",

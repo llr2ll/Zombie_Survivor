@@ -6,7 +6,7 @@ Você precisa de **1 celular** e do teclado do PC. Para o item 12 (4 jogadores),
 ## Preparar (1 min)
 1. No Codespaces, pegue a branch do PR (ou a `main` depois do merge) e rode `npm install`.
    Depois do PR "limpeza" isso é obrigatório: a pasta `node_modules` some no `git pull`.
-2. Terminal 1: `npm run server`. Terminal 2: `npm run dev`. Abra o jogo no PC do jeito de sempre.
+2. Rode `npm start` (sobe o servidor da sala e o jogo juntos; Ctrl+C para os dois). Abra o jogo no PC do jeito de sempre.
 
 ## Checklist
 | # | Teste | O que você deve ver | ✓ |
