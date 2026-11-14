@@ -127,6 +127,9 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
       dead: false, out: false, downT: 0, knocked: 0, chill: 0, marked: 0, vehicle: null, seat: null, pad: 0, hurtCar: 0, held: 0, struggle: 0, shoveCd: 0,
       input: { mx: 0, mz: 0, ax: 0, az: 0, run: 0 },
     }
+    // entrou no meio da partida: nasce ao lado de alguém do grupo (de pé, se houver), não na largada
+    const others = [...players.values()], buddy = others.find((o) => !o.dead) || others[0]
+    if (st.time > 0 && buddy) Object.assign(p, beside(buddy), { lv: buddy.lv || 0, gy: buddy.gy })
     InitClassState(p)
     levels.init(p)
     if (p.weapon) model.setWeapon(p.weapon)
@@ -178,15 +181,19 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     sfx('death', { x: p.x, z: p.z, cls: p.cls.id })
     fall.down(p)
   }
+  // lugar livre ao lado de alguém (mesmo andar)
+  function beside(o) {
+    for (let n = 0; n < 8; n++) {
+      const a = (n / 8) * Math.PI * 2, x = o.x + Math.sin(a) * 1.4, z = o.z + Math.cos(a) * 1.4
+      if (!Blocked(x, z, 0.5, o.lv || 0)) return { x, z }
+    }
+    return { x: o.x, z: o.z }
+  }
   // no amanhecer, quem está no chão volta ao lado de um aliado de pé (levantar ali mesmo: fall.js; o bardo levanta com a canção)
   function revive(p, list) {
     let best = list[0]
     for (const o of list) if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 < (best.x - p.x) ** 2 + (best.z - p.z) ** 2) best = o
-    let x = best.x, z = best.z
-    for (let n = 0; n < 8; n++) {
-      const a = (n / 8) * Math.PI * 2, tx = best.x + Math.sin(a) * 1.4, tz = best.z + Math.cos(a) * 1.4
-      if (!Blocked(tx, tz, 0.5, best.lv || 0)) { x = tx; z = tz; break }
-    }
+    const { x, z } = beside(best)
     Object.assign(p, { dead: false, out: false, downT: 0, hp: p.max * RU.fall.hp, x, z, vx: 0, vz: 0, jy: 0, vy: 0, lv: best.lv || 0, gy: best.gy, stamina: 100, tired: false, invulnT: RU.fall.invulnerable })
     p.model.hurt()
     fx.ring(x, best.gy || 0, z, 0x7aff9a, 0.2, 1.6, 0.7)
@@ -341,18 +348,21 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     // estado para os celulares
     if (net && (st.sync -= dt) <= 0) {
       st.sync = 0.15
-      for (const p of players.values()) {
-        if (p.id === 'local') continue
-        const inf = abilities.info(p)
-        const car = p.vehicle ? 2 : !p.dead && vehicles.nearest(p) ? 1 : 0
-        net.send(p.id, { t: 'state', hp: Math.ceil(p.hp), max: p.max, cls: `${p.cls.icon} ${p.cls.name} · Nv ${p.level}`, w: p.vehicle ? `${inf.text} · ${fuel.text(p.vehicle)}` : inf.text, btn: inf.buttons.map((b) => [b.l, +b.cd.toFixed(2)]), car, dead: p.dead, st: Math.round(p.stamina), time: Math.floor(st.time), score: st.score, held: p.held ? 1 : 0, rv: p.dead && !st.over ? (p.out ? -1 : Math.ceil(p.downT)) : 0, u: fall.label(p) || bars.label(p, true) || loot.label(p) || base.label(p) || bars.label(p) || fuel.label(p), inv: invText(), up: p.cards ? p.cards.map((u) => [`${u.icon} ${u.name}`, u.text]) : 0 })
-      }
+      for (const p of players.values()) if (p.id !== 'local') sendState(p)
     }
+  }
+  // o que o celular mostra (vida, botões, Usar, estoque, cartas…)
+  function sendState(p) {
+    const inf = abilities.info(p)
+    const car = p.vehicle ? 2 : !p.dead && vehicles.nearest(p) ? 1 : 0
+    net.send(p.id, { t: 'state', hp: Math.ceil(p.hp), max: p.max, cls: `${p.cls.icon} ${p.cls.name} · Nv ${p.level}`, w: p.vehicle ? `${inf.text} · ${fuel.text(p.vehicle)}` : inf.text, btn: inf.buttons.map((b) => [b.l, +b.cd.toFixed(2)]), car, dead: p.dead, st: Math.round(p.stamina), time: Math.floor(st.time), score: st.score, held: p.held ? 1 : 0, rv: p.dead && !st.over ? (p.out ? -1 : Math.ceil(p.downT)) : 0, u: fall.label(p) || bars.label(p, true) || loot.label(p) || base.label(p) || bars.label(p) || fuel.label(p), inv: invText(), up: p.cards ? p.cards.map((u) => [`${u.icon} ${u.name}`, u.text]) : 0 })
   }
 
   // estoque do grupo + base marcada (placar e celular)
   const invText = () => loot.text() + (base.at() ? '  📻' : '')
-  return { players, enemies, vehicles, loot, bars, base, siege, invText, st, clear, addPlayer, removePlayer, setInput, act, update, alive, zombies: () => horde.alive(), info: (p) => abilities.info(p), hurt, levels, fuel, compana, save, setCerco, cerco: cercoInfo }
+  // manda o estado na hora para um celular (ex.: entrou com o menu aberto: sem isso ficava em "Entrando na sala…")
+  const sync = (id) => { const p = players.get(id); if (net && p && id !== 'local') sendState(p) }
+  return { players, enemies, vehicles, loot, bars, base, siege, invText, st, clear, addPlayer, removePlayer, setInput, act, update, sync, alive, zombies: () => horde.alive(), info: (p) => abilities.info(p), hurt, levels, fuel, compana, save, setCerco, cerco: cercoInfo }
 }
 
 export const clock = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`
