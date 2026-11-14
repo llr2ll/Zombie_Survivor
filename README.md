@@ -20,9 +20,10 @@ A **tela** (PC/TV) roda o jogo. Os **celulares** viram controle: entram numa sal
 ## Rodar (mesma rede Wi‑Fi)
 ```bash
 npm install
-npm run server      # terminal 1: servidor da sala (porta 8080)
-npm run dev         # terminal 2: jogo (porta 5173)
+npm start           # servidor da sala (porta 8080) + jogo (porta 5173) juntos; Ctrl+C para os dois
 ```
+(Separados, como antes: `npm run server` num terminal e `npm run dev` em outro.) No `npm run dev`, a conexão com o servidor da sala
+passa pela própria porta do jogo (`/ws`), então no Codespaces basta a porta 5173 estar aberta.
 Abra no PC `http://IP-DO-SEU-PC:5173` (não `localhost`, senão o QR code aponta pro lugar errado).
 No celular: escaneie o QR code ou abra `/controller.html` e digite o código. Na partida, o QR fica no menu (**Esc**, **Start** no controle ou **☰** no celular): o menu pausa o jogo para todos, mostra o desenho dos controles e tem "Voltar ao menu inicial", que abre uma votação (passa com a maioria dos jogadores).
 

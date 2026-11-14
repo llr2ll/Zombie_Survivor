@@ -10,7 +10,7 @@ O `README.md` descreve cada sistema em detalhe. Para o dono, a explicação leig
 ## Quem é o dono e como falar com ele
 - Não lê código. Todo o código foi escrito por IA. Ele testa jogando.
 - Português do Brasil, frases curtas, sem jargão. Termo técnico → explique em uma frase.
-- Testa no GitHub Codespaces: `npm run server` (relay, porta 8080) + `npm run dev` (Vite, porta 5173), celulares como controle.
+- Testa no GitHub Codespaces com `npm start` (relay na porta 8080 + Vite na 5173, juntos), celulares como controle.
 - **Antes de qualquer etapa que altere arquivos**: diga em até 5 linhas o que vai mudar e espere o "ok".
 - Toda mudança chega como pull request em `llr2ll/Zombie_Survivor` (antes `llr2ll/Game`; o GitHub redireciona o nome antigo). **Nunca** faça push direto na `main`.
 - Na dúvida entre abordagens: pergunte com opções e marque sua recomendação.
@@ -18,11 +18,14 @@ O `README.md` descreve cada sistema em detalhe. Para o dono, a explicação leig
 ## Como rodar
 ```bash
 npm install
-npm run server   # terminal 1: relay WebSocket (porta 8080; muda com PORT=...)
-npm run dev      # terminal 2: jogo (porta 5173)
+npm start        # relay WebSocket (porta 8080; muda com PORT=...) + jogo (porta 5173) juntos; Ctrl+C para os dois
+npm run server   # só o relay
+npm run dev      # só o jogo
 npm run build    # gera dist/ (para hospedar)
 ```
-Endereço do servidor da sala no navegador: `VITE_WS_URL` se existir; senão `ws(s)://<mesmo host>:8080` (`RelayURL` em `src/engine/net/link.js`).
+Endereço do servidor da sala no navegador (`RelayURL` em `src/engine/net/link.js`): `VITE_WS_URL` se existir; no `npm run dev`, o mesmo endereço
+da página + `/ws` (o Vite repassa para `localhost:8080`, ou `PORT`: `server.proxy` em `vite.config.js`; no Codespaces só a porta 5173 precisa estar
+aberta); na versão compilada, `ws(s)://<mesmo host>:8080`.
 Celular e tela conversam **direto** (WebRTC); o servidor só apresenta os dois e é o plano B (detalhes em "Fatos": Conexão direta).
 
 ## Como testar
@@ -324,6 +327,9 @@ Decidido: a Etapa 3 vai em 3 PRs — F1 mover pastas + `npm run check` (+ cortar
 F2 estado global → instâncias com `reset()` + caches limpos por distância (medir antes) · F3 `balance.js` + `?bots=3`.
 
 ## Histórico de PRs
+- **comando-unico** — pedido do dono: `npm start` sobe o servidor da sala e o jogo juntos. Correção: no Codespaces o QR não conectava
+  (cada porta tem um endereço próprio e a 8080 nem estava aberta); agora o `npm run dev` repassa a conexão pela porta do jogo (`/ws`).
+  O site compilado e o smoke continuam iguais. Nenhuma mudança no jogo.
 - **tela-da-partida** — pedido do dono ("muito texto na tela", letra feia, mensagens que saem da tela ou quebram linha): letras Cinzel +
   Marcellus (OFL, dentro do jogo); placar em pílulas; cartão pequeno por jogador; mensagens, achado raro e resultado em caixas com cantos
   dourados (título + texto, sem cobrir o meio da tela); cartas da TV de papel. Menu da partida (Esc · Start · ☰ no celular): pausa para todos

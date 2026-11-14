@@ -5,9 +5,12 @@
 const STUN = [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302'] }]
 const GIVE_UP = 12000 // ms sem abrir = desiste (fica pelo servidor)
 
-// endereço do servidor: VITE_WS_URL na compilação, senão o mesmo endereço da página na porta 8080
+// endereço do servidor: VITE_WS_URL se definido; no dev, pelo proxy do Vite (mesma porta e host do jogo); senão porta 8080
 export function RelayURL() {
-  return import.meta.env.VITE_WS_URL || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.hostname}:8080`
+  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL
+  const ws = location.protocol === 'https:' ? 'wss' : 'ws'
+  if (import.meta.env.DEV) return `${ws}://${location.host}/ws`
+  return `${ws}://${location.hostname}:8080`
 }
 
 // servidores que dizem o endereço de fora de cada aparelho (STUN, grátis). VITE_ICE (JSON) troca a lista; '[]' = só a rede local
