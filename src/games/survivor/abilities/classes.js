@@ -49,7 +49,8 @@ export function InitClassState(p) {
 }
 
 // ctx: { scene, fx, wfx, colliders, enemies, players, hit(e, dmg, p, kx, kz), noise(x, z, raio) — atrai zumbis,
-//        impact(x, z, tipo) — tremor/pausa (balance.js · juice), night(), others() (mais alvos além dos zumbis, ex.: Santa Compaña) }
+//        impact(x, z, tipo) — tremor/pausa/vibração (balance.js · juice), recoil(p, arma) — vibra só quem atirou,
+//        night(), others() (mais alvos além dos zumbis, ex.: Santa Compaña) }
 export function CreateAbilities(ctx) {
   const { scene, fx, wfx, colliders, enemies, players } = ctx
   const foes = () => { const o = ctx.others && ctx.others(); return o && o.length ? enemies.concat(o) : enemies } // zumbis + outros alvos (ex.: a Santa Compaña)
@@ -136,6 +137,7 @@ export function CreateAbilities(ctx) {
     p.model.kick()
     p.model.muzzle(tmp)
     if (p.weapon === 'shotgun' && ctx.impact) ctx.impact(p.x, p.z, 'shotgun')
+    else if (ctx.recoil) ctx.recoil(p, p.weapon)
     // à noite o tiro clareia o chão em volta (brilho falso, não é luz de verdade)
     if (ctx.night && ctx.night()) { const L = BALANCE.juice.muzzleGlow; fx.ring(tmp.x, GroundAt(tmp.x, tmp.z), tmp.z, L.color, 0.4, L.radius, L.time, { fill: true, alpha: L.alpha }) }
     for (let n = 0; n < (w.pellets || 1); n++) {
