@@ -2,7 +2,9 @@
 
 ## A ideia em uma frase
 O **PC** (ou a TV) roda o jogo inteiro. Os **celulares** são só controles: mandam para onde o jogador anda e que botão apertou.
-Um **servidor pequeno** fica no meio, só passando recados entre a tela e os celulares.
+Os celulares conversam **direto** com a tela (conexão direta, WebRTC: já vem em todo navegador).
+Um **servidor pequeno** só "apresenta" os dois na hora de entrar (passa o endereço de um para o outro) e fica de **plano B**:
+se a rede bloquear a conexão direta, os recados passam por ele, como antes.
 
 ## Quem conversa com quem
 
@@ -12,26 +14,34 @@ flowchart LR
         JOGO["Jogo no navegador<br/>mundo, zumbis, carros, som e regras"]
         TECLADO["⌨️ Teclado e mouse<br/>1 jogador, opcional"]
     end
-    RELAY["📡 Servidor relay<br/>server/server.js · porta 8080<br/>só repassa recados"]
+    RELAY["📡 Servidor da sala<br/>server/server.js · porta 8080<br/>apresenta e é o plano B"]
     C1["📱 Celular 1"]
     C2["📱 Celular 2"]
     C3["📱 Celular 3"]
     TECLADO --> JOGO
-    JOGO <-->|"abre a sala (código de 4 letras)<br/>manda vida e botões de cada um"| RELAY
-    RELAY <-->|"➜ sticks e botões<br/>⬅ vida, recargas, vibração"| C1
-    RELAY <--> C2
-    RELAY <--> C3
+    JOGO <-.->|"abre a sala (código de 4 letras)<br/>troca os endereços na entrada"| RELAY
+    RELAY <-.-> C1
+    RELAY <-.-> C2
+    RELAY <-.-> C3
+    JOGO <==>|"⚡ direto: ➜ sticks e botões<br/>⬅ vida, recargas, vibração"| C1
+    JOGO <==> C2
+    JOGO <==> C3
 ```
 
 O que acontece quando alguém entra:
 1. A tela abre o jogo e pede uma **sala** ao servidor. O servidor devolve um código de 4 letras (aparece no menu com o QR code).
 2. O celular lê o QR code, abre a página de controle e manda o código. O servidor coloca o celular naquela sala.
+   Logo depois, celular e tela trocam os endereços pelo servidor e abrem a **conexão direta** (em ~1 s). A vaga na TV e o
+   celular mostram **⚡ direto**. Se não der (algumas redes de 4G ou de empresa bloqueiam), mostram **🌐 servidor** e tudo
+   continua funcionando pelo servidor.
 3. A tela recebe "entrou alguém" e ocupa uma vaga no menu. Cada um **escolhe a classe** com ◀ ▶ (no celular, no mouse ou com A/D no teclado).
    Pode repetir classe. A cor da vaga aparece como um anel no chão, sob o jogador, para cada um se achar na tela.
 4. Durante a partida, cada celular manda os sticks ~30 vezes por segundo. A tela devolve vida, botões e recargas ~7 vezes por segundo.
 5. O teclado do PC usa **exatamente o mesmo formato** do celular. Por isso dá para misturar teclado e celulares.
 
 Por que assim: ninguém precisa instalar nada nem ter controle. E, como o jogo só roda na tela, todo mundo vê a mesma coisa.
+Por que a conexão direta: o servidor quase não trabalha (só na entrada), então dá para deixá-lo num plano grátis na internet,
+e os comandos chegam mais rápido (não dão a volta pelo servidor).
 
 ## O que cada pasta faz
 
@@ -51,10 +61,10 @@ Exemplo: o mundo avisa "a porta abriu" e o jogo decide qual som tocar. O gerador
 |---|---|---|
 | `index.html`, `main.css` | A página do jogo e o visual do placar (HUD) | Relógio, pontos e vida no canto |
 | `controller.html` | A página do controle no celular | Os dois sticks e os botões |
-| `server/` | O servidor que passa recados entre tela e celulares | O código de 4 letras |
+| `server/` | O servidor da sala: apresenta tela e celulares e é o plano B | O código de 4 letras |
 | `src/engine/render/` | Desenhar, dividir a tela, luz, cores | A tela que divide quando o grupo se separa |
 | `src/engine/input/` | Teclado, mouse e o código que roda no celular | WASD; vibrar quando leva mordida |
-| `src/engine/net/` | A conexão da tela com o servidor | "Servidor conectado" no menu |
+| `src/engine/net/` | A conexão da tela e do celular: com o servidor e direta entre os dois | "Servidor conectado" no menu · "⚡ direto" na vaga |
 | `src/engine/world/` | Carregar o mapa em pedaços, colisão, caminho dos inimigos | Zumbi contornando um muro |
 | `src/engine/ui/` | O menu de 4 vagas | O menu inicial |
 | `src/shared/characters/` | O corpo e as animações dos personagens | O jeito de andar mirando |
@@ -71,10 +81,15 @@ Exemplo: o mundo avisa "a porta abriu" e o jogo decide qual som tocar. O gerador
 | `src/games/survivor/siege.js` | O cerco: conta as noites, avisa pelo rádio, manda a horda contra a base à noite, decide a vitória | "🌙 Noite 1/2 · 🧟 pico!" |
 | `src/games/survivor/bots.js` | Jogadores do computador, só para teste (`?bots=3`) | 🤖 Bot 1 no placar |
 | `src/games/survivor/levels.js` | XP, subir de nível e escolher melhorias (nomes das 28 em `config/upgrades.js`) | "⬆ Ana subiu para o nível 2!" |
+| `src/engine/input/gamepad.js` | Controle de videogame (Xbox/PlayStation) como jogador, igual a um celular | "🎮 Controle 1 · pronto" no menu |
+| `src/games/survivor/ui/cercos.js` | A escolha do cerco no menu (5 cercos, cada um numa paróquia) | "◀ Cerco 2 · Santa Mariña de Cerdeira — 3 noites ▶" |
+| `src/games/survivor/save.js` | O progresso guardado no PC: nível da paróquia e coleção de achados (`?zerar` apaga) | "⛪ Paróquia nível 3" no menu |
+| `src/games/survivor/compana.js` | A Santa Compaña: o chefe da meia-noite da última noite | "🕯️ Meia-noite: a Santa Compaña chegou!" |
+| `src/games/survivor/fuel.js` | Gasolina: o carro gasta andando, abastecer, bomba do posto com alarme | "⛽ Acabou a gasolina!" |
 | `src/games/survivor/fall.js` | Quem cai: 40 s no chão, levantar com ajuda ou remédio, fora até o amanhecer, ajustes do solo | "🆘 Ana caiu! Levantem em 40 s" |
 | `src/games/survivor/rules/` | **As regras**: dano, morte, vitória/derrota e a tela de resultado | "🚁 VITÓRIA · 2/2 noites" |
 | `src/games/survivor/abilities/` | As 4 classes e as habilidades | Samurai dando a investida |
-| `src/games/survivor/enemies/` | O que os zumbis veem, ouvem e fazem | Zumbi vindo atrás do barulho do tiro |
+| `src/games/survivor/enemies/` | O que os zumbis veem, ouvem e fazem (e os especiais: Berrador, Labrego, Escoitador) | Zumbi vindo atrás do barulho do tiro |
 | `scripts/` | Testes automáticos: `smoke` (abre o jogo e procura erros) e `check` (andares + mapa igual) | — |
 | `smoke/` | Fotos e anotações do último teste automático | As capturas no PR |
 | `docs/` | Documentos para você | Este arquivo |

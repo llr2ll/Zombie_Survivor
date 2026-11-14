@@ -2,40 +2,45 @@
 // Botões da classe chegam do jogo (nome + recarga) e o botão 🚗 aparece perto de um veículo.
 // Empurrar: afasta/derruba zumbis e solta do agarrão (pisa em quem está caído); pisca quando um zumbi agarra.
 // Cartas: quando o jogo manda `up` ([título, texto] de cada opção), mostra os botões; tocar manda a ação up1, up2, up3…
+import { JoinRoom } from '../net/join'
+
 const $ = (s) => document.querySelector(s)
 const params = new URLSearchParams(location.search)
 $('#code').value = (params.get('room') || '').toUpperCase()
 $('#name').value = localStorage.getItem('name') || ''
 
-const url = import.meta.env.VITE_WS_URL || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.hostname}:8080`
 const input = { mx: 0, mz: 0, ax: 0, az: 0, run: 0 }
-let ws, lastHp = 100, lastHeld = false, kicked = false, lastUp = ''
+let conn, lastHp = 100, lastHeld = false, kicked = false, lastUp = ''
 
-function send(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)) }
+// direto com a tela quando der (⚡), senão pelo servidor (🌐) — engine/net/join.js escolhe
+function send(o) { if (conn) conn.send(o) }
 
 $('#go').onclick = () => {
   const code = $('#code').value.trim().toUpperCase(), name = $('#name').value.trim() || 'Jogador'
   if (code.length !== 4) return ($('#err').textContent = 'Digite o código de 4 letras')
   localStorage.setItem('name', name)
   $('#err').textContent = ''
-  ws = new WebSocket(url)
-  ws.onopen = () => send({ t: 'join', code, name })
-  ws.onerror = () => ($('#err').textContent = 'Não consegui conectar ao servidor')
-  ws.onmessage = (e) => {
-    const m = JSON.parse(e.data)
-    if (m.t === 'joined') {
-      $('#join').style.display = 'none'
-      $('#pad').style.display = 'block'
-      document.documentElement.requestFullscreen?.().catch(() => {})
-      screen.orientation?.lock?.('landscape').catch(() => {})
-    } else if (m.t === 'error') $('#err').textContent = m.msg
-    else if (m.t === 'state') { showPick(''); onState(m) }
-    else if (m.t === 'hit') navigator.vibrate?.(120)
-    else if (m.t === 'lobby') { showState(`Você é o Jogador ${m.slot}\nAguardando o host iniciar… (${m.total} na sala)`); showPick(m.pick || '') }
-    else if (m.t === 'kick') { kicked = true; showPick(''); showState(m.msg || 'Removido da sala'); ws.close() }
-    else if (m.t === 'closed') { showPick(''); showState('Jogo encerrado') }
-  }
-  ws.onclose = () => { if (!kicked && $('#pad').style.display === 'block') showState('Desconectado — recarregue a página') }
+  if (conn) conn.close() // tentou de novo (ex.: código errado): fecha a tentativa anterior
+  const me = (conn = JoinRoom({
+    code, name, direct: params.get('direto') !== '0',
+    onError: () => ($('#err').textContent = 'Não consegui conectar ao servidor'),
+    onLink: (on) => ($('#link').textContent = on ? '⚡ direto' : '🌐 servidor'),
+    onClose: () => { if (conn === me && !kicked && $('#pad').style.display === 'block') showState('Desconectado — recarregue a página') },
+    onMessage: (m) => {
+      if (m.t === 'joined') {
+        $('#join').style.display = 'none'
+        $('#pad').style.display = 'block'
+        $('#link').textContent = '🌐 servidor' // vira ⚡ quando a conexão direta abrir
+        document.documentElement.requestFullscreen?.().catch(() => {})
+        screen.orientation?.lock?.('landscape').catch(() => {})
+      } else if (m.t === 'error') $('#err').textContent = m.msg
+      else if (m.t === 'state') { showPick(''); onState(m) }
+      else if (m.t === 'hit') navigator.vibrate?.(120)
+      else if (m.t === 'lobby') { showState(`Você é o Jogador ${m.slot}\nAguardando o host iniciar… (${m.total} na sala)`); showPick(m.pick || '') }
+      else if (m.t === 'kick') { kicked = true; showPick(''); showState(m.msg || 'Removido da sala'); me.close() }
+      else if (m.t === 'closed') { showPick(''); showState('Jogo encerrado') }
+    },
+  }))
 }
 
 function showState(t) { const s = $('#state'); s.textContent = t; s.style.display = t ? 'block' : 'none' }

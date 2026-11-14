@@ -24,8 +24,14 @@ import { CLASS_ORDER, CLASSES } from './abilities/classes'
 import { BALANCE } from './config/balance'
 import { CreateBots } from './bots'
 import { CreateHud } from './ui/hud'
+import { CreateCollection } from './ui/collection'
+import { CreateCercoPicker } from './ui/cercos'
+import { CreateSave } from './save'
+import { UPGRADES } from './config/upgrades'
+import { FINDS } from './config/finds'
 import { CreateLobby } from '../../engine/ui/lobby'
 import { BindKeyboard } from '../../engine/input/keyboard'
+import { CreateGamepads } from '../../engine/input/gamepad'
 import { CreateSoundscape } from '../../shared/audio/soundscape'
 import { sfx, gate } from '../../shared/audio/sfx'
 
@@ -33,6 +39,9 @@ const CLASS_LABELS = CLASS_ORDER.map((k) => `${CLASSES[k].icon} ${CLASSES[k].nam
 const KEYS = { r: 'reload', 1: 'carbine', 2: 'shotgun', 3: 'pistol' } // teclas do Atirador (as outras são padrão do motor)
 // ?bots=1..3 na URL: jogadores controlados pelo computador, só para teste (bots.js)
 const BOTS = Math.min(3, Math.max(0, parseInt(new URLSearchParams(location.search).get('bots'), 10) || 0))
+// progresso no PC (J12a): nível da paróquia e coleção. ?zerar no endereço apaga o progresso (para testar do começo)
+const save = CreateSave()
+if (new URLSearchParams(location.search).has('zerar')) save.reset()
 
 // O motor e o mundo não conhecem este jogo: aqui o jogo liga as peças (água, casas, sons do mundo).
 function Wire() {
@@ -86,6 +95,7 @@ export async function LoadGame() {
     split.reset()
     phase = 'lobby'
     lobby.show()
+    paroquia()
     notifyPhones()
   }
 
@@ -95,10 +105,13 @@ export async function LoadGame() {
       sfx('start')
       split.reset()
       lobby.hide()
+      game.setCerco(cercos.value()) // J12b: paróquia, noites e regras do cerco escolhido
+      const o = game.cerco().origin
+      chunks.update([o]); chunks.process(999) // a paróquia pode ser longe da largada: carrega antes de começar
       for (const e of entries) game.addPlayer(e.id, e.name, e.slot, e.choice)
       if (BOTS) bots.add([0, 1, 2, 3].filter((s) => !entries.some((e) => e.slot === s))) // bots nas vagas livres
     },
-    onKick: (id) => net.send(id, { t: 'kick', msg: 'Você foi removido da sala' }),
+    onKick: (id) => (id.startsWith('pad') ? pads.forget(id) : net.send(id, { t: 'kick', msg: 'Você foi removido da sala' })), // controle: pode entrar de novo com A
     onChange: notifyPhones,
     choices: CLASS_LABELS, sound: sfx, subtitle: 'Sobreviva aos zumbis · até 4 jogadores',
   })
@@ -116,14 +129,46 @@ export async function LoadGame() {
       if (phase === 'playing') game.addPlayer(id, name, slot, lobby.entries().find((e) => e.id === id)?.choice) // entrada tardia: já nasce na partida
     },
     onLeave: (id) => { lobby.removeId(id); game.removePlayer(id) },
+    onLink: (id, on) => lobby.setLink(id, on), // ⚡ direto / 🌐 servidor na vaga do celular
     onInput: (id, m) => game.setInput(id, m),
     // no menu, o celular só troca a classe (◀ ▶); na partida, as ações vão para o jogo
     onAct: (id, a) => (phase === 'lobby' ? lobby.pick(id, a === 'prev' ? -1 : a === 'next' ? 1 : 0) : game.act(id, a)),
   })
-  game = CreateGame(scene, colliders, net, { onEnd: toLobby, night: () => climate.time < BALANCE.day.nightTo || climate.time > BALANCE.day.nightFrom, loaded: chunks.loaded, shake: split.shake, clock: () => climate.time, setClock: (t) => { climate.time = t } })
+  // controles de videogame (J14): A (ou Start) entra no menu; ◀ ▶ trocam a classe; Start começa. Na partida, o mesmo contrato do
+  // celular: sticks no setInput e os botões viram ações (o direcional escolhe as cartas de melhoria)
+  const PAD = { a: 'jump', b: 'shove', x: 'use', lb: 'b1', rb: 'b2', y: 'b3', left: 'up1', up: 'up2', right: 'up3' }
+  const pads = CreateGamepads({
+    join: (id) => { // A ou Start de um controle novo: ocupa uma vaga (na partida, já nasce jogando)
+      const slot = lobby.addPad(id, `Controle ${+id.slice(3) + 1}`)
+      if (slot < 0) return false
+      const e = lobby.entries().find((q) => q.id === id)
+      if (phase === 'playing') game.addPlayer(id, e.name, slot, e.choice)
+      return true
+    },
+    button: (id, b) => {
+      if (!lobby.has(id)) return pads.forget(id) // tirado da vaga no menu: o próximo A entra de novo
+      if (phase === 'lobby') { if (b === 'left' || b === 'right') lobby.pick(id, b === 'left' ? -1 : 1); else if (b === 'start') lobby.start(); return }
+      if (PAD[b]) game.act(id, PAD[b])
+    },
+    input: (id, m) => { if (phase === 'playing' && game.players.has(id)) game.setInput(id, m) },
+    leave: (id) => { lobby.removeId(id); game.removePlayer(id) }, // controle desligado
+  })
+  // as regras mandam mensagens para "celulares": as dos controles ficam aqui (levou dano = tremida)
+  const gameNet = { send: (id, m) => (id.startsWith('pad') ? m.t === 'hit' && pads.rumble(id) : net.send(id, m)) }
+  game = CreateGame(scene, colliders, gameNet, { onEnd: toLobby, night: () => climate.time < BALANCE.day.nightTo || climate.time > BALANCE.day.nightFrom, loaded: chunks.loaded, shake: split.shake, clock: () => climate.time, setClock: (t) => { climate.time = t }, save })
   events.on('vehicle-spot', (p) => game.vehicles.register(p)) // vaga na estrada → carro dirigível
   if (import.meta.env.DEV) window.__game = game // só no npm run dev: para testes automáticos e depuração
   hud = CreateHud(game, climate)
+  // menu: nível da paróquia, melhorias liberadas e achados (J12a)
+  const collection = CreateCollection(save)
+  const cercos = CreateCercoPicker(save) // qual cerco jogar (J12b)
+  function paroquia() {
+    const d = save.data, open = UPGRADES.filter((u) => (u.unlock || 1) <= d.nivel).length
+    lobby.setSubtitle(`⛪ Paróquia nível ${d.nivel} · 🗝 ${open}/${UPGRADES.length} melhorias · ⭐ ${d.achados.length}/${FINDS.length} achados`)
+    collection.refresh()
+    cercos.refresh()
+  }
+  paroquia()
   bots = CreateBots(game, BOTS)
   // teclado: com cartas de melhoria na tela, 1/2/3 escolhem a carta (senão, trocam a arma do Atirador)
   const PICK = { carbine: 'up1', shotgun: 'up2', pistol: 'up3' }
@@ -146,6 +191,7 @@ export async function LoadGame() {
   let orbit = 0
   function draw(dt) {
     if (phase === 'playing') bots.update(dt) // só com ?bots=
+    pads.update() // controles de videogame (lidos a cada quadro)
     game.update(dt)
     wind.value += dt // vento: só um uniform; o balanço acontece na GPU
     const list = [...game.players.values()]
