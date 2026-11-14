@@ -6,63 +6,218 @@
     <meta name="theme-color" content="#1b1512" />
     <title>Controle</title>
     <style>
+      /* mesmas cores da TV (main.css): marrom, título pêssego com sombra sólida, rosa. --me = cor da vaga (vem da TV no menu) */
+      :root { color-scheme: dark; --ground: #1b1512; --ink: #fff4e6; --muted: #fff4e699; --peach: #ffcf9a; --ember: #7a3b2a; --rose: #c85b72;
+        --fire: #ff9d3f; --sky: #7fd0ff; --life: #6fd36f; --danger: #e25555; --stam: #f0c040; --paper-ink: #2a1a12; --me: var(--peach);
+        --sl: env(safe-area-inset-left, 0px); --sr: env(safe-area-inset-right, 0px) }
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none }
-      html, body { margin: 0; height: 100%; background: #1b1512; color: #fff; font-family: system-ui, sans-serif; overflow: hidden; touch-action: none }
-      #join { position: fixed; inset: 0; display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; padding: 20px }
-      #join h1 { margin: 0 0 6px; font-size: 26px }
-      #join input { font-size: 22px; padding: 12px; width: 240px; text-align: center; border-radius: 10px; border: 0; text-transform: uppercase }
-      #join button { font-size: 20px; font-weight: 700; padding: 12px 28px; border: 0; border-radius: 10px; background: #c85b72; color: #fff }
-      #err { color: #ff8a8a; min-height: 20px }
+      html, body { margin: 0; height: 100%; overflow: hidden; touch-action: none; color: var(--ink); line-height: 1.25;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif }
+      /* fundo: triângulos gerados pelo phone.js (--facets-l / --facets-p) + vinheta */
+      body { background: radial-gradient(ellipse 75% 70% at 50% 45%, transparent 55%, #000000a0), var(--facets-l, none) center / cover no-repeat, var(--ground) }
+      @media (orientation: portrait) { body { background: radial-gradient(ellipse 90% 60% at 50% 40%, transparent 55%, #000000a0), var(--facets-p, none) center / cover no-repeat, var(--ground) } }
+      button { font: inherit; color: inherit; border: 0; padding: 0; cursor: pointer; touch-action: manipulation }
+      /* botões com degrau: afundam ao tocar (classe .press posta pelo phone.js) */
+      .press { transform: translateY(4px) }
+
+      /* ---------- entrar ---------- */
+      #join { position: fixed; inset: 0; max-width: 420px; margin: 0 auto; display: grid; align-content: center; gap: 16px; overflow: auto; touch-action: pan-y;
+        padding: 24px max(24px, var(--sr)) 24px max(24px, var(--sl)) }
+      .brand { display: grid; justify-items: center; gap: 2px; margin-bottom: 8px; text-align: center }
+      .brand small { font-size: 12px; font-weight: 800; letter-spacing: .3em; color: var(--muted) }
+      .brand h1 { margin: 0; font-size: 68px; font-weight: 900; letter-spacing: .14em; line-height: 1; color: var(--peach); text-shadow: 0 5px 0 var(--ember) }
+      .brand span { font-size: 14px; color: #fff4e6cc; margin-top: 8px }
+      #join label { display: grid; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .18em; color: var(--muted) }
+      #join input { font: inherit; font-size: 20px; font-weight: 700; color: var(--ink); width: 100%; border: 0; outline: 0; padding: 13px 14px; border-radius: 12px;
+        background: #000000a0; box-shadow: inset 0 0 0 2px #ffffff1f, inset 0 3px 0 #0006; user-select: text; -webkit-user-select: text }
+      #join input:focus { box-shadow: inset 0 0 0 2px var(--peach), inset 0 3px 0 #0006 }
+      #join #code { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 36px; text-align: center; letter-spacing: .4em;
+        padding-left: calc(14px + .4em); color: var(--peach); text-transform: uppercase }
+      #go { margin-top: 6px; padding: 16px; border-radius: 14px; font-size: 21px; font-weight: 900; letter-spacing: .16em; color: #fff;
+        background: linear-gradient(#d8708a, var(--rose)); text-shadow: 0 2px 0 #7a2e40; box-shadow: inset 0 2px 0 #ffffff45, 0 6px 0 #7a2e40, 0 10px 18px #0007 }
+      #go.press { box-shadow: inset 0 2px 0 #ffffff45, 0 1px 0 #7a2e40 }
+      #err { min-height: 20px; text-align: center; font-weight: 700; color: #ff9a9a }
+      #join .tip { margin: 0; text-align: center; font-size: 13px; color: var(--muted) }
+      @media (orientation: landscape) and (max-height: 520px) {
+        #join { max-width: 760px; grid-template-columns: minmax(0, 1fr) minmax(0, 320px); column-gap: 36px; row-gap: 10px }
+        #join .brand { grid-column: 1; grid-row: 1 / span 5; margin: 0 }
+        #join > :not(.brand) { grid-column: 2 }
+        .brand h1 { font-size: 56px }
+        #join input { padding: 10px 12px }
+        #join #code { font-size: 30px }
+      }
+
+      /* ---------- controle: modos wait (menu) · play (partida) · msg (removido, encerrado, desconectado) ---------- */
       #pad { position: fixed; inset: 0; display: none }
-      .zone { position: absolute; top: 0; bottom: 0; width: 50% }
-      #zl { left: 0 } #zr { right: 0 }
-      .hint { position: absolute; bottom: 24px; left: 0; right: 0; text-align: center; opacity: .35; font-size: 13px }
-      .base { position: fixed; width: 130px; height: 130px; margin: -65px 0 0 -65px; border-radius: 50%; border: 3px solid #fff5; background: #fff1; display: none; pointer-events: none }
-      .knob { position: absolute; left: 37px; top: 37px; width: 56px; height: 56px; border-radius: 50%; background: #fffb }
-      #zr .base { border-color: #ff8a1f88; background: #ff8a1f18 } #zr .knob { background: #ff9d3fdd }
-      #top { position: absolute; left: 0; right: 0; top: 0; padding: 10px 14px; display: flex; gap: 12px; align-items: center; pointer-events: none; font-size: 14px }
-      #hp { width: 140px; height: 10px; background: #444; border-radius: 5px; overflow: hidden } #hp i { display: block; height: 100%; width: 100%; background: #6fd36f }
-      #btns { position: absolute; left: 50%; transform: translateX(-50%); bottom: 14px; display: flex; gap: 14px }
-      #btns button { position: relative; overflow: hidden; font-size: 15px; font-weight: 700; padding: 12px 16px; border: 0; border-radius: 12px; background: #fff2; color: #fff; touch-action: manipulation }
-      #btns button:active { background: #fff5 }
-      #btns button::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--cd, 0) * 100%); background: #000a; pointer-events: none }
+      #pad:not([data-mode=play]) :is(.zone, #top, #btns, .round, #use, #pickup, #turn) { display: none }
+      #pad:not([data-mode=wait]) #wait { display: none }
+      #pad::before, #pad::after { content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0 }
+      #pad.down::before { opacity: 1; background: #0d0806b8 }
+      #pad.grabbed::before { opacity: 1; box-shadow: inset 0 0 80px 14px var(--danger); animation: throb .45s infinite alternate }
+      #pad.hurt::after { box-shadow: inset 0 0 60px 8px var(--danger); animation: hurt .35s ease-out }
+      #pad.down :is(.round, #btns, .ghost) { visibility: hidden }
+      #pad.down #pickup { display: none } /* caído não escolhe carta: voltam quando levantar */
+      @keyframes throb { to { box-shadow: inset 0 0 40px 4px #e25555aa } }
+      @keyframes hurt { from { opacity: 1 } }
+
+      /* topo */
+      #top { position: absolute; inset: 0 0 auto 0; display: flex; align-items: center; gap: 10px; z-index: 3; pointer-events: none; white-space: nowrap;
+        padding: 9px calc(14px + var(--sr)) 20px calc(14px + var(--sl)); background: linear-gradient(#000000b0, #0000); font-size: 13px; font-weight: 700 }
+      #cls { background: var(--me); color: var(--ground); padding: 5px 10px; border-radius: 9px; font-weight: 900;
+        box-shadow: 0 3px 0 color-mix(in srgb, var(--me) 45%, black) }
+      #cls:empty { display: none }
+      .bars { display: grid; gap: 4px; width: 150px; flex: none }
+      .bar { height: 11px; border-radius: 6px; background: #000000a0; box-shadow: inset 0 0 0 2px #ffffff1c; overflow: hidden }
+      .bar i { display: block; height: 100%; width: 100%; border-radius: 6px; background: linear-gradient(#a6eea6, var(--life)); transition: width .15s }
+      #hp.low i { background: linear-gradient(#ff9a9a, var(--danger)) }
+      #st { height: 5px } #st i { background: var(--stam) }
+      #weapon { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: #fff4e6d9 }
+      .grow { flex: 1 }
+      .chip { background: #000000a0; border-radius: 8px; padding: 4px 8px; font-variant-numeric: tabular-nums }
+      .chip:empty { display: none }
+      #link { font-size: 11px; color: #8fe08f } #link.relay { color: var(--peach) }
+      @media (max-width: 700px) { #top { gap: 7px; font-size: 12px } .bars { width: 110px } }
+
+      /* sticks: desenhados onde o polegar vai; ao tocar, o stick aparece embaixo do dedo */
+      .zone { position: absolute; top: 0; bottom: 0; width: 50%; z-index: 1 }
+      #zl { left: 0; --c: var(--me) } #zr { right: 0; --c: var(--fire) }
+      .ghost { position: absolute; top: 47%; width: 116px; height: 116px; margin: -58px 0 0 -58px; border-radius: 50%; border: 2px dashed #ffffff30;
+        display: grid; place-items: center; pointer-events: none; transition: opacity .15s }
+      #zl .ghost { left: 50% } #zr .ghost { left: 40% }
+      .ghost::before { content: ''; width: 46px; height: 46px; border-radius: 50%; background: color-mix(in srgb, var(--c) 22%, transparent); box-shadow: inset 0 -3px 0 #0000004d }
+      .ghost span { position: absolute; top: calc(100% + 8px); font-size: 11px; font-weight: 800; letter-spacing: .16em; color: #fff4e673; white-space: nowrap }
+      .zone.busy .ghost { opacity: 0 }
+      .base { position: fixed; width: 130px; height: 130px; margin: -65px 0 0 -65px; border-radius: 50%; display: none; pointer-events: none;
+        border: 3px solid color-mix(in srgb, var(--c) 75%, transparent);
+        background: radial-gradient(circle, color-mix(in srgb, var(--c) 20%, transparent), color-mix(in srgb, var(--c) 6%, transparent)) }
+      .knob { position: absolute; left: 33px; top: 33px; width: 58px; height: 58px; border-radius: 50%;
+        background: radial-gradient(circle at 50% 35%, #fff, color-mix(in srgb, var(--c) 60%, white)); box-shadow: 0 4px 0 color-mix(in srgb, var(--c) 50%, black), 0 6px 14px #0007 }
+
+      /* botões redondos */
+      .round { position: absolute; bottom: 16px; width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; align-content: center; gap: 2px;
+        font-size: 12px; font-weight: 800; z-index: 2; background: radial-gradient(circle at 50% 30%, #5e3e2b, #2c1c14 75%);
+        box-shadow: inset 0 0 0 3px #ffffff26, inset 0 2px 0 #ffffff2e, 0 5px 0 #0b0706, 0 8px 14px #0006 }
+      .round svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round }
+      .round.press { box-shadow: inset 0 0 0 3px #ffffff38, 0 1px 0 #0b0706 }
+      #run { left: calc(16px + var(--sl)) } #jump { right: calc(16px + var(--sr)) }
+      #shove { right: calc(112px + var(--sr)); box-shadow: inset 0 0 0 3px #e2555599, inset 0 2px 0 #ffffff2e, 0 5px 0 #0b0706, 0 8px 14px #0006 }
+      #run.on { color: var(--ground); background: radial-gradient(circle at 50% 30%, #ffc98a, var(--fire) 75%); box-shadow: inset 0 0 0 3px #ffe2bf, 0 5px 0 #8a4a14, 0 0 20px #ff9d3f88 }
+      #shove.alert { background: radial-gradient(circle at 50% 30%, #ff9a9a, var(--danger) 75%); animation: shake .22s infinite alternate }
+      @keyframes shake { from { transform: rotate(-7deg) scale(1.06) } to { transform: rotate(7deg) scale(1.12) } }
+
+      /* Usar: muda com o que está perto (revistar, barricar, carro…) */
+      #use { position: absolute; right: calc(26px + var(--sr)); bottom: 118px; width: 96px; height: 96px; border-radius: 50%; display: none; place-items: center;
+        align-content: center; gap: 3px; padding: 0 8px; z-index: 5; font-size: 12px; font-weight: 800; color: #fff; line-height: 1.1; text-align: center }
+      #use.near { display: grid; background: radial-gradient(circle at 50% 30%, #4a9ad8, #1f4f78 75%);
+        box-shadow: inset 0 0 0 3px var(--sky), 0 5px 0 #0f2a40, 0 0 0 0 #7fd0ff99; animation: call 1.1s ease-out infinite }
+      #use.in { display: grid; background: radial-gradient(circle at 50% 30%, #c87a3a, #6a3a18 75%); box-shadow: inset 0 0 0 3px var(--peach), 0 5px 0 #3a1e0c }
+      #use .ico { font-size: 26px; line-height: 1 } #use .ico:empty { display: none }
+      @keyframes call { to { box-shadow: inset 0 0 0 3px var(--sky), 0 5px 0 #0f2a40, 0 0 0 18px #7fd0ff00 } }
+
+      /* habilidades da classe: a recarga gira como um relógio (--cd: 1 → 0) */
+      #btns { position: absolute; left: calc(112px + var(--sl)); right: calc(208px + var(--sr)); bottom: 18px; display: flex; justify-content: center; gap: 10px; z-index: 2 }
+      #btns button { position: relative; flex: 0 1 112px; min-width: 0; height: 62px; padding: 6px 8px; border-radius: 14px; overflow: hidden;
+        font-size: 13px; font-weight: 800; color: var(--peach); text-wrap: balance; background: linear-gradient(#5e3e2b, #3a2418);
+        box-shadow: inset 0 0 0 2px #ffcf9a59, inset 0 2px 0 #ffffff24, 0 5px 0 #160d09, 0 8px 14px #0006 }
+      #btns button::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: conic-gradient(#0d0806d0 0 calc(var(--cd, 0) * 360deg), transparent 0) }
+      #btns button.cool { color: #ffcf9a80 }
+      #btns button.press { box-shadow: inset 0 0 0 2px #ffcf9a88, 0 1px 0 #160d09 }
+      #btns button.ready { animation: ready .45s }
       #btns button.hide { display: none }
-      #use { position: absolute; right: 22px; bottom: 124px; width: 84px; height: 84px; border-radius: 50%; border: 3px solid #7fd0ff; background: #2a6a9a99; color: #fff; font-size: 14px; font-weight: 800; display: none; touch-action: manipulation }
-      #use.near { display: block; animation: pulse 1s infinite alternate } #use.in { display: block; border-color: #ffcf9a; background: #9a5a2a99 }
-      @keyframes pulse { to { transform: scale(1.08); background: #3a8ac8cc } }
-      #cls { font-weight: 800 }
-      .side { position: absolute; bottom: 14px; width: 96px; height: 96px; border-radius: 50%; border: 3px solid #fff4; background: #fff2; color: #fff; font-size: 15px; font-weight: 800; touch-action: manipulation }
-      #run { left: 16px } #jump { right: 16px } #shove { right: 124px; border-color: #ff8a8a77 }
-      #shove.alert { background: #e2555599; border-color: #ff6a6a; animation: shake .25s infinite alternate }
-      @keyframes shake { from { transform: rotate(-6deg) scale(1.08) } to { transform: rotate(6deg) scale(1.12) } }
-      .side:active, #run.on { background: #ff9d3f99; border-color: #ff9d3f }
-      #st { width: 140px; height: 6px; background: #444; border-radius: 3px; overflow: hidden } #st i { display: block; height: 100%; width: 100%; background: #f0c040 }
-      #cards { position: absolute; left: 50%; top: 42px; transform: translateX(-50%); display: none; gap: 8px; z-index: 6 }
-      #cards button { width: 150px; min-height: 84px; padding: 6px 8px; border: 2px solid #ffd24a; border-radius: 12px; background: #2a2340ee; color: #fff; font-size: 12.5px; line-height: 1.3; touch-action: manipulation }
-      #cards b { display: block; font-size: 14px; margin-bottom: 3px }
-      #pick { position: absolute; left: 0; right: 0; top: 64%; display: none; justify-content: center; align-items: center; gap: 18px; z-index: 5 }
-      #pick button { font-size: 28px; font-weight: 800; width: 72px; height: 60px; border: 0; border-radius: 12px; background: #fff3; color: #fff; touch-action: manipulation }
-      #pick b { font-size: 26px; min-width: 200px; text-align: center; text-shadow: 0 2px 6px #000 }
-      #state { position: absolute; left: 0; right: 0; top: 40%; pointer-events: none; text-align: center; font-size: 32px; font-weight: 800; display: none; text-shadow: 0 2px 6px #000; white-space: pre-line; padding: 0 20px }
+      @keyframes ready { 50% { box-shadow: inset 0 0 0 2px var(--peach), 0 5px 0 #160d09, 0 0 24px #ffcf9acc } }
+
+      /* avisos grandes no meio (agarrado, caído, removido…) */
+      #state { position: absolute; inset: 0; display: none; place-content: center; justify-items: center; text-align: center; gap: 8px; padding: 0 24px;
+        pointer-events: none; z-index: 4 }
+      #state.on { display: grid }
+      #state .big { font-size: 46px; font-weight: 900; letter-spacing: .06em; line-height: 1.05; text-transform: uppercase; text-wrap: balance;
+        text-shadow: 0 4px 0 var(--ember), 0 10px 22px #000c }
+      #state .sub { font-size: 16px; font-weight: 700; color: var(--peach); text-shadow: 0 2px 6px #000 }
+      #state .sub:empty { display: none }
+      #pad.grabbed #state .big { text-shadow: 0 4px 0 #7a1f1f, 0 10px 22px #000c; animation: shake .3s infinite alternate }
+      #ring { position: relative; width: 112px; height: 112px; display: none }
+      #ring.on { display: block }
+      #ring svg { width: 100%; height: 100%; transform: rotate(-90deg) }
+      #ring circle { fill: none; stroke-width: 8 }
+      #ring .track { stroke: #ffffff1f }
+      #ring .left { stroke: var(--danger); stroke-linecap: round; stroke-dasharray: 276.5; stroke-dashoffset: calc(276.5 * (1 - var(--p, 1))); transition: stroke-dashoffset .3s }
+      #ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 40px; font-weight: 900; font-variant-numeric: tabular-nums }
+
+      /* cartas de melhoria (subiu de nível): papel; os sticks continuam funcionando em volta */
+      #pickup { position: absolute; left: 0; right: 0; top: 44px; display: none; justify-items: center; gap: 10px; z-index: 6; pointer-events: none }
+      #pickup.on { display: grid }
+      #pickup h3 { margin: 0; font-size: 13px; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; color: var(--peach);
+        text-shadow: 0 2px 0 var(--ember), 0 2px 10px #000 }
+      #cards { display: flex; gap: 12px; align-items: flex-start; padding: 0 12px; pointer-events: auto }
+      #cards button { flex: 0 1 160px; min-width: 0; min-height: 112px; padding: 10px 12px 12px; border-radius: 10px; text-align: left; color: var(--paper-ink);
+        font-size: 12.5px; font-weight: 600; line-height: 1.3; background: linear-gradient(#f8ebce, #e8d0a2);
+        box-shadow: inset 0 0 0 2px #b8893f, inset 0 0 0 5px #f8ebce, inset 0 0 0 6px #b8893f66, 0 6px 0 #6b4a1f, 0 12px 22px #000b;
+        animation: deal .35s cubic-bezier(.2, 1.4, .4, 1) backwards }
+      #cards .ico { display: block; font-size: 24px; line-height: 1; margin-bottom: 6px }
+      #cards b { display: block; font-size: 14.5px; font-weight: 900; color: var(--ember); margin-bottom: 3px }
+      #cards button:nth-child(1) { rotate: -3deg; translate: 0 5px }
+      #cards button:nth-child(2) { animation-delay: .06s }
+      #cards button:nth-child(3) { rotate: 3deg; translate: 0 5px; animation-delay: .12s }
+      @keyframes deal { from { opacity: 0; transform: translateY(-40px) } }
+
+      /* espera no menu: "você é o Jogador N" + a classe com ◀ ▶ */
+      #wait { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 24px;
+        padding: 40px calc(44px + var(--sr)) 64px calc(44px + var(--sl)) }
+      .who { display: grid; gap: 4px; min-width: 0 }
+      .who small, #pick small { font-size: 12px; font-weight: 800; letter-spacing: .18em; color: var(--muted) }
+      #slotname { font-size: 48px; font-weight: 900; letter-spacing: .05em; line-height: 1.05; color: var(--me);
+        text-shadow: 0 4px 0 color-mix(in srgb, var(--me) 35%, black) }
+      #wlink { font-size: 14px; font-weight: 700; color: #fff4e6cc }
+      #pick { display: none; gap: 10px; justify-items: center; background: #00000080; border-radius: 16px; padding: 16px 16px 14px; box-shadow: inset 6px 0 0 var(--me) }
+      #pick .row { display: flex; align-items: center; gap: 12px }
+      #pickname { font-size: 26px; font-weight: 900; min-width: 150px; text-align: center; text-shadow: 0 2px 6px #000 }
+      #pick button { width: 62px; height: 56px; border-radius: 14px; font-size: 22px; color: var(--peach); background: linear-gradient(#5e3e2b, #3a2418);
+        box-shadow: inset 0 0 0 2px #ffcf9a59, inset 0 2px 0 #ffffff24, 0 5px 0 #160d09 }
+      #pick button.press { box-shadow: inset 0 0 0 2px #ffcf9a88, 0 1px 0 #160d09 }
+      #pick .tip { font-size: 12px; color: var(--muted) }
+      #foot { position: absolute; left: 0; right: 0; bottom: 20px; margin: 0; text-align: center; font-size: 14px; font-weight: 700; color: var(--peach) }
+      #foot::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--peach); margin-right: 8px;
+        vertical-align: 1px; animation: blink 1s infinite alternate }
+      @keyframes blink { to { opacity: .2 } }
+      @media (orientation: portrait) {
+        #wait { grid-template-columns: 1fr; justify-items: center; text-align: center; align-content: center; padding: 32px 20px 72px }
+        #turn { display: block; position: absolute; left: 50%; top: 56px; transform: translateX(-50%); z-index: 5; pointer-events: none; white-space: nowrap;
+          background: #000000b0; color: var(--peach); padding: 6px 12px; border-radius: 10px; font-size: 13px; font-weight: 800 }
+      }
+      #turn { display: none }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important } }
     </style>
   </head>
   <body>
     <div id="join">
-      <h1>Entrar no jogo</h1>
-      <input id="code" maxlength="4" placeholder="CÓDIGO" autocomplete="off" />
-      <input id="name" maxlength="12" placeholder="seu nome" />
-      <button id="go">Entrar</button>
+      <div class="brand"><small>CONTROLE</small><h1>GAME</h1><span>Entre na sala que aparece na TV</span></div>
+      <label for="code">CÓDIGO DA SALA<input id="code" maxlength="4" placeholder="ABCD" autocomplete="off" /></label>
+      <label for="name">SEU NOME<input id="name" maxlength="12" placeholder="seu nome" autocomplete="off" /></label>
+      <button id="go">ENTRAR</button>
       <div id="err"></div>
+      <p class="tip">Depois de entrar, vire o celular de lado.</p>
     </div>
-    <div id="pad">
-      <div class="zone" id="zl"><div class="base"><div class="knob"></div></div><div class="hint">mover</div></div>
-      <div class="zone" id="zr"><div class="base"><div class="knob"></div></div><div class="hint">mirar e atacar</div></div>
-      <div id="top"><div><div id="hp"><i></i></div><div id="st" style="margin-top:4px"><i></i></div></div><span id="cls"></span><span id="weapon"></span><span id="time"></span><span id="inv"></span><span id="link" style="margin-left:auto;opacity:.7;font-size:12px"></span></div>
+    <div id="pad" data-mode="wait">
+      <div class="zone" id="zl"><div class="ghost"><span>MOVER</span></div><div class="base"><div class="knob"></div></div></div>
+      <div class="zone" id="zr"><div class="ghost"><span>MIRAR E ATACAR</span></div><div class="base"><div class="knob"></div></div></div>
+      <div id="top"><span id="cls"></span><div class="bars"><div id="hp" class="bar"><i></i></div><div id="st" class="bar"><i></i></div></div>
+        <span id="weapon"></span><span class="grow"></span><span id="time" class="chip"></span><span id="inv" class="chip"></span><span id="link"></span></div>
       <div id="btns"><button id="b1" class="hide"></button><button id="b2" class="hide"></button><button id="b3" class="hide"></button></div>
-      <button class="side" id="run">Correr</button><button class="side" id="jump">Pular</button><button class="side" id="shove">Empurrar</button><button id="use">🚗 Entrar</button>
-      <div id="state"></div>
-      <div id="cards"></div>
-      <div id="pick"><button id="prev">◀</button><b id="pickname"></b><button id="next">▶</button></div>
+      <button class="round" id="run"><svg viewBox="0 0 24 24"><path d="M5 6l6 6-6 6M12 6l6 6-6 6" /></svg>Correr</button>
+      <button class="round" id="shove"><svg viewBox="0 0 24 24"><path d="M3 12h11M10 7l5 5-5 5M20 4v16" /></svg>Empurrar</button>
+      <button class="round" id="jump"><svg viewBox="0 0 24 24"><path d="M6 13l6-6 6 6M6 19l6-6 6 6" /></svg>Pular</button>
+      <button id="use"><span class="ico"></span><span class="lbl"></span></button>
+      <div id="state"><div id="ring"><svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="44" /><circle class="left" cx="50" cy="50" r="44" /></svg><b></b></div>
+        <div class="big"></div><div class="sub"></div></div>
+      <div id="pickup"><h3>Escolha uma melhoria</h3><div id="cards"></div></div>
+      <div id="turn">↻ Vire o celular de lado</div>
+      <div id="wait">
+        <div class="who"><small>VOCÊ É O</small><strong id="slotname">JOGADOR</strong><span id="wlink"></span></div>
+        <div id="pick"><small>SUA CLASSE</small>
+          <div class="row"><button id="prev">◀</button><b id="pickname"></b><button id="next">▶</button></div>
+          <span class="tip">Toque ◀ ▶ para trocar</span></div>
+        <p id="foot">Entrando na sala…</p>
+      </div>
     </div>
     <script type="module" src="/src/engine/input/phone.js"></script>
   </body>

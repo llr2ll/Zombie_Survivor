@@ -67,6 +67,13 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     const sh = (J.shake[kind] || 0) * amount * J.shake.scale
     if (sh > 0 && hooks.shake) hooks.shake(x, z, sh, J.shake.time, J.shake.radius)
     if (J.hitStop[kind]) st.stopT = Math.max(st.stopT, J.hitStop[kind])
+    const ms = (J.buzz[kind] || 0) * amount
+    if (ms > 0) for (const p of players.values()) buzz(p, ms * (1 - Math.hypot(p.x - x, p.z - z) / J.buzz.radius))
+  }
+  // vibra o celular/controle de um jogador (o teclado não tem como)
+  function buzz(p, ms) {
+    ms *= J.buzz.scale
+    if (net && p.id !== 'local' && ms >= J.buzz.min) net.send(p.id, { t: 'buzz', ms: Math.round(ms) })
   }
 
   const say = (t, s = 2.2) => { st.msg = t; st.msgT = s }
@@ -93,7 +100,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     ringT.set(k, st.time + R.every)
     fx.ring(x, GroundAt(x, z), z, R.color, 0.6, r, R.time, { alpha: R.alpha })
   }
-  const abilities = CreateAbilities({ scene, fx, wfx, colliders, enemies, players, hit, noise, impact, night: hooks.night || (() => false), others: () => compana.list })
+  const abilities = CreateAbilities({ scene, fx, wfx, colliders, enemies, players, hit, noise, impact, recoil: (p, w) => buzz(p, J.buzz.shot[w] || 0), night: hooks.night || (() => false), others: () => compana.list })
   const tasks = CreateTasks({ scene, noise, sfx }) // parado fazendo algo (revistar, desmontar, barricar)
   const levels = CreateLevels({ scene, fx, players, say, sfx, move: MOVE, account: () => save.data.nivel }) // XP, níveis e melhorias
   const xp = (p, n) => levels.add(p, n)

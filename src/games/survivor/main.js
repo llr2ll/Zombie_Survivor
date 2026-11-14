@@ -12,7 +12,7 @@ import { GenerateChunk } from '../../shared/worldgen/generator'
 import { CHUNK_SIZE } from '../../shared/worldgen/map'
 import { TooDeep } from '../../shared/worldgen/sidewalk'
 import { Fps } from '../../engine/render/follow'
-import { CreateSplitScreen } from '../../engine/render/splitscreen'
+import { CreateSplitScreen, PLAYER_COLORS } from '../../engine/render/splitscreen'
 import { Light } from '../../engine/render/light'
 import { CreateEntityShadows } from '../../engine/render/entity-shadows'
 import { CreateClimate } from '../../shared/worldgen/climate'
@@ -86,7 +86,7 @@ export async function LoadGame() {
   function notifyPhones() {
     if (phase !== 'lobby' || !net) return
     const list = lobby.entries()
-    for (const e of list) if (e.type === 'phone') net.send(e.id, { t: 'lobby', slot: e.slot + 1, total: list.length, pick: CLASS_LABELS[e.choice] })
+    for (const e of list) if (e.type === 'phone') net.send(e.id, { t: 'lobby', slot: e.slot + 1, color: PLAYER_COLORS[e.slot], total: list.length, pick: CLASS_LABELS[e.choice] })
   }
   function toLobby() {
     sound.clear()
@@ -153,8 +153,9 @@ export async function LoadGame() {
     input: (id, m) => { if (phase === 'playing' && game.players.has(id)) game.setInput(id, m) },
     leave: (id) => { lobby.removeId(id); game.removePlayer(id) }, // controle desligado
   })
-  // as regras mandam mensagens para "celulares": as dos controles ficam aqui (levou dano = tremida)
-  const gameNet = { send: (id, m) => (id.startsWith('pad') ? m.t === 'hit' && pads.rumble(id) : net.send(id, m)) }
+  // as regras mandam mensagens para "celulares": as dos controles ficam aqui (levou dano = tremida; buzz = tremida do tamanho do impacto)
+  const padMsg = (id, m) => (m.t === 'hit' ? pads.rumble(id) : m.t === 'buzz' && pads.rumble(id, Math.min(1, 0.25 + m.ms / 200), m.ms))
+  const gameNet = { send: (id, m) => (id.startsWith('pad') ? padMsg(id, m) : net.send(id, m)) }
   game = CreateGame(scene, colliders, gameNet, { onEnd: toLobby, night: () => climate.time < BALANCE.day.nightTo || climate.time > BALANCE.day.nightFrom, loaded: chunks.loaded, shake: split.shake, clock: () => climate.time, setClock: (t) => { climate.time = t }, save })
   events.on('vehicle-spot', (p) => game.vehicles.register(p)) // vaga na estrada → carro dirigível
   if (import.meta.env.DEV) window.__game = game // só no npm run dev: para testes automáticos e depuração

@@ -51,7 +51,7 @@ Regra: **imports só descem** — `src/games/<jogo>` → `src/shared` → `src/e
 `engine` não sabe que existem zumbis nem classes. `shared` = peças prontas que os 3 jogos podem usar. `games/survivor` = regras deste jogo.
 ```
 index.html, main.css      página do jogo (tela) + HUD → carrega src/games/survivor/main.js
-controller.html           página do celular (controle) → carrega src/engine/input/phone.js
+controller.html           página do celular (controle; mesmas cores da TV) → carrega src/engine/input/phone.js
 server/server.js          servidor da sala (WebSocket): cria sala (4 letras), apresenta tela ↔ celular (rtc/ice) e é o plano B
 scripts/                  smoke.mjs (teste no navegador sem tela), check.mjs (camadas, mundo, caches, replay), sim.mjs (replay), *-fingerprint.txt
 smoke/                    capturas + log do último npm run smoke
@@ -139,7 +139,8 @@ Teclado e celular usam exatamente o mesmo formato. Não mude sem pedir.
 - Celular → relay: `{t:'join', code, name}`, `{t:'in', mx, mz, ax, az, run}` a cada 33 ms, `{t:'act', a}`.
   Com a conexão direta aberta, `in` e `act` (e tudo da tela → celular) vão pelo WebRTC com o mesmo formato; o servidor só passa
   `rtc` (oferta/resposta) e `ice` (endereços). `ConnectHost` entrega ao jogo igual de onde vier (+ `onLink(id, direto)`).
-- Tela → celular: `{t:'state', hp, max, cls, w, btn, car, dead, st, time, score, held, rv, u, inv, up}` a cada 0,15 s; `hit`, `lobby`, `kick`, `closed`.
+- Tela → celular: `{t:'state', hp, max, cls, w, btn, car, dead, st, time, score, held, rv, u, inv, up}` a cada 0,15 s; `hit`, `lobby`, `kick`, `closed`;
+  `{t:'buzz', ms}` = vibrar ms (tiro, explosão…: `buzz()`/`impact()` em `survival.js`, números em `balance.js · juice.buzz`).
   `up` = cartas para escolher (`[[título, texto], …]`, ou 0); tocar numa manda `{t:'act', a:'up1'|'up2'|'up3'}`. `cls` traz o nível ("🔫 Atirador · Nv 2").
   `u` = texto do botão Usar (🤝 Levantar/🩹 Levantar já/💪 Levantar sozinho · 🪵 Barricar/🔨 Consertar/🪵 Reforçar · 🔍 Revistar/🪚 Desmontar ·
   ⛽ Abastecer/⛽ Bomba); `w` ganha " · ⛽ 1,2/3" dentro do carro;
@@ -147,12 +148,12 @@ Teclado e celular usam exatamente o mesmo formato. Não mude sem pedir.
   `use`: aliado caído → barricada (se há tábuas) → móvel → rádio (pôr/pegar) → aviso "precisa de tábuas" → bomba do posto / abastecer
   (se há ⛽ e o tanque não está cheio) → carro. Caído: só `use` (solo).
 - No menu: celular manda `{t:'act', a:'prev'|'next'}` para trocar a classe (o `main.js` manda para `lobby.pick` só na fase de menu);
-  a tela manda `{t:'lobby', slot, total, pick}` (pick = texto da classe escolhida). `game.addPlayer(id, nome, vaga, classe)`.
+  a tela manda `{t:'lobby', slot, color, total, pick}` (pick = texto da classe escolhida; color = cor da vaga, a mesma do anel no chão). `game.addPlayer(id, nome, vaga, classe)`.
 - Jogador do teclado tem id `'local'`. Bots de teste têm id `bot1`…`bot3` e usam o mesmo contrato (`games/survivor/bots.js`).
 - Controle de videogame (J14): id `pad0`…`pad3`; `engine/input/gamepad.js` lê a cada quadro e entrega `input` (stick esquerdo = mx/mz,
   direito = ax/az, LT ou L3 = run) e `button` (nomes do padrão). O `main.js` traduz: A jump · B shove · X use · LB b1 · RB b2 · Y b3 ·
   direcional ◀ ▲ ▶ = up1/up2/up3 (cartas, mostradas na TV). No menu: qualquer botão entra (`lobby.addPad`), ◀ ▶ trocam a classe, Start começa.
-  Mensagens das regras para "celulares" com id `pad…` não vão ao relay: `hit` vira tremida (`rumble`), o resto é ignorado.
+  Mensagens das regras para "celulares" com id `pad…` não vão ao relay: `hit` e `buzz` viram tremida (`rumble`), o resto é ignorado.
 
 ## Decisões tomadas (não reabra sem perguntar ao dono)
 - Multiplayer local e online. Online, por enquanto = modelo Jackbox: amigos remotos assistem pela transmissão (Discord ou Steam Remote Play Together)
@@ -284,6 +285,12 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
   Servidor: celular só pode mandar `in`, `act`, `rtc`, `ice` (antes um `join` repetido ocupava outra vaga); mensagem > 64 KB derruba.
   Próximos passos combinados com o dono: servidor da sala num plano grátis na internet (2º PR; onde hospedar o site: decidir) ·
   celular volta sozinho à vaga · Electron pela rede de casa. Amigos longe na Steam: Remote Play Together + controle (J14).
+- **Controle do celular (PR controle-novo):** modos em `#pad[data-mode]`: `wait` (menu), `play`, `msg` (removido/encerrado/desconectado).
+  O fundo de triângulos é um SVG gerado em texto no `phone.js`. **Não usar canvas na abertura do controle:** canvas + JPEG levava 1 s sozinho
+  e 14–19 s com a TV aberta no smoke (a placa de vídeo ocupada); o 2º celular do smoke passava do tempo. Com SVG: 0,1 s, igual ao antigo.
+  Vibração: `vibe()` no `phone.js` não deixa uma vibração curta cortar uma mais forte. Do celular: agarrão (+ pulsos), dano (`hit`), cair,
+  levantar, cartas, toque nos botões. Da TV (`buzz`): cada `impact()` vibra quem está a até `buzz.radius` m (mais fraco longe) e `recoil`
+  vibra só quem atirou com pistola/carbina (a espingarda já é um `impact`). iPhone não vibra pelo navegador (a Apple não deixa).
 - `window.__game` existe só no `npm run dev` (testes automáticos e depuração); a versão compilada não tem.
 - Interiores (`buildings.js`): térreo (cozinha/sala: fogão, balcão, mesa, sofá, cômoda, baú, estante), andar de cima (quarto: cama,
   guarda-roupa, baú, escrivaninha) e sótão das casas de 3 andares (caixotes, barris, sacos, baú). Lojas: prateleiras, balcão, vitrine.
@@ -302,6 +309,11 @@ Decidido: a Etapa 3 vai em 3 PRs — F1 mover pastas + `npm run check` (+ cortar
 F2 estado global → instâncias com `reset()` + caches limpos por distância (medir antes) · F3 `balance.js` + `?bots=3`.
 
 ## Histórico de PRs
+- **controle-novo** — pedido do dono ("controle muito feio" + vibração): o controle do celular ganhou o visual da TV (fundo de triângulos,
+  título pêssego, botões com degrau, sticks desenhados, cor da vaga, recarga em relógio, avisos grandes de agarrado/caído com anel dos
+  segundos, cartas de papel) e vibração (espingarda forte, pistola/carbina leve, explosão/batida/3º golpe/pisão/grito por distância,
+  agarrão em pulsos, cair, levantar, cartas). O controle de videogame treme junto. Mensagens novas: `buzz` e `color` no `lobby`.
+  Mesmos botões no mesmo lugar e mesmos comandos. Replay igual.
 - **conexao-direta** — pedido do dono (sem dinheiro para servidor; site na Netlify e depois Electron na Steam): celular e tela conversam
   direto (WebRTC, sem biblioteca nova); o servidor só apresenta os dois na entrada e fica de plano B se a rede bloquear. A vaga na TV e o
   celular mostram ⚡ direto / 🌐 servidor. O servidor só repassa `in`/`act`/`rtc`/`ice` de um celular. Smoke: celular direto + 2º celular

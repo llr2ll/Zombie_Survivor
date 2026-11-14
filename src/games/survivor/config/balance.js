@@ -304,6 +304,9 @@ export const BALANCE = {
   juice: {
     // tremor de tela: quanto a câmera balança (metros) em cada caso; scale 0 desliga todos. Só treme a tela de quem está perto (radius)
     shake: { scale: 1, explosion: 0.45, crash: 0.4, runover: 0.18, shotgun: 0.1, heavyHit: 0.12, stomp: 0.1, scream: 0.25, time: 0.3, radius: 25 },
+    // vibração no celular e no controle: milissegundos para quem está em cima do impacto, menos quanto mais longe (some em radius m;
+    // abaixo de min ms não vibra); shot = só quem atira (a espingarda usa a linha de cima). scale 0 desliga. iPhone não vibra pelo navegador
+    buzz: { scale: 1, explosion: 160, crash: 180, runover: 60, shotgun: 70, heavyHit: 45, stomp: 45, scream: 120, radius: 14, min: 12, shot: { pistol: 18, carbine: 12 } },
     // pausa no impacto: o jogo quase para por alguns segundos (0,04 = 40 ms) nos golpes fortes; 0 desliga. Vale para todos ao mesmo tempo
     hitStop: { heavyHit: 0.04, stomp: 0.04, runover: 0.04 },
     hitFlash: 0.08, // segundos que o zumbi fica branco ao levar golpe
