@@ -71,6 +71,7 @@ Exemplo: o mundo avisa "a porta abriu" e o jogo decide qual som tocar. O gerador
 | `src/games/survivor/siege.js` | O cerco: conta as noites, avisa pelo rádio, manda a horda contra a base à noite, decide a vitória | "🌙 Noite 1/2 · 🧟 pico!" |
 | `src/games/survivor/bots.js` | Jogadores do computador, só para teste (`?bots=3`) | 🤖 Bot 1 no placar |
 | `src/games/survivor/levels.js` | XP, subir de nível e escolher melhorias (nomes das 28 em `config/upgrades.js`) | "⬆ Ana subiu para o nível 2!" |
+| `src/games/survivor/ui/cercos.js` | A escolha do cerco no menu (5 cercos, cada um numa paróquia) | "◀ Cerco 2 · Santa Mariña de Cerdeira — 3 noites ▶" |
 | `src/games/survivor/save.js` | O progresso guardado no PC: nível da paróquia e coleção de achados (`?zerar` apaga) | "⛪ Paróquia nível 3" no menu |
 | `src/games/survivor/compana.js` | A Santa Compaña: o chefe da meia-noite da última noite | "🕯️ Meia-noite: a Santa Compaña chegou!" |
 | `src/games/survivor/fuel.js` | Gasolina: o carro gasta andando, abastecer, bomba do posto com alarme | "⛽ Acabou a gasolina!" |

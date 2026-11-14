@@ -25,6 +25,7 @@ import { BALANCE } from './config/balance'
 import { CreateBots } from './bots'
 import { CreateHud } from './ui/hud'
 import { CreateCollection } from './ui/collection'
+import { CreateCercoPicker } from './ui/cercos'
 import { CreateSave } from './save'
 import { UPGRADES } from './config/upgrades'
 import { FINDS } from './config/finds'
@@ -103,6 +104,9 @@ export async function LoadGame() {
       sfx('start')
       split.reset()
       lobby.hide()
+      game.setCerco(cercos.value()) // J12b: paróquia, noites e regras do cerco escolhido
+      const o = game.cerco().origin
+      chunks.update([o]); chunks.process(999) // a paróquia pode ser longe da largada: carrega antes de começar
       for (const e of entries) game.addPlayer(e.id, e.name, e.slot, e.choice)
       if (BOTS) bots.add([0, 1, 2, 3].filter((s) => !entries.some((e) => e.slot === s))) // bots nas vagas livres
     },
@@ -134,10 +138,12 @@ export async function LoadGame() {
   hud = CreateHud(game, climate)
   // menu: nível da paróquia, melhorias liberadas e achados (J12a)
   const collection = CreateCollection(save)
+  const cercos = CreateCercoPicker(save) // qual cerco jogar (J12b)
   function paroquia() {
     const d = save.data, open = UPGRADES.filter((u) => (u.unlock || 1) <= d.nivel).length
     lobby.setSubtitle(`⛪ Paróquia nível ${d.nivel} · 🗝 ${open}/${UPGRADES.length} melhorias · ⭐ ${d.achados.length}/${FINDS.length} achados`)
     collection.refresh()
+    cercos.refresh()
   }
   paroquia()
   bots = CreateBots(game, BOTS)

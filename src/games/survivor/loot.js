@@ -23,7 +23,7 @@ const kindOf = (key) => {
 }
 const randInt = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1))
 // longe da largada (vilas vizinhas): 0 até 120 m, depois cresce até far.max
-const farOf = (s) => Math.min(1, Math.max(0, (Math.hypot(s.x, s.z) - L.far.from) / L.far.span)) * L.far.max
+const farOf = (s, o) => Math.min(1, Math.max(0, (Math.hypot(s.x - o.x, s.z - o.z) - L.far.from) / L.far.span)) * L.far.max // o = largada do cerco
 const richer = (w, k) => (k > 0 ? { ...w, remedio: w.remedio * (1 + L.far.rich * k), municao: w.municao * (1 + L.far.rich * k) } : w)
 function pick(weights) {
   let r = Math.random() * Object.values(weights).reduce((s, w) => s + w, 0)
@@ -33,8 +33,9 @@ function pick(weights) {
 const MARK_GEO = new THREE.OctahedronGeometry(0.22, 0).scale(1, 1.4, 1) // losango em pé, visível de cima
 const MARK = { search: new THREE.MeshBasicMaterial({ color: 0xffc81e, toneMapped: false }), dismantle: new THREE.MeshBasicMaterial({ color: 0xd9894a, toneMapped: false }) } // amarelo: revistar · laranja: desmontar
 
-// ctx: { scene, fx, players (Map), say(texto, s), sfx(nome, opções), tasks (tasks.js: parado fazendo algo), xp(p, n), rare(p) (achado raro: coleção) }
-export function CreateLoot({ scene, fx, players, say, sfx, tasks, xp = () => {}, rare = null }) {
+// ctx: { scene, fx, players (Map), say(texto, s), sfx(nome, opções), tasks (tasks.js: parado fazendo algo), xp(p, n), rare(p) (achado raro: coleção),
+//        origin() (largada do cerco: "longe" conta dali), scarce() (chance de achar × do cerco) }
+export function CreateLoot({ scene, fx, players, say, sfx, tasks, xp = () => {}, rare = null, origin = () => ({ x: 0, z: 0 }), scarce = () => 1 }) {
   const done = new Map() // id do móvel -> 1 revistado · 2 desmontado
   const inv = { tabuas: 0, remedio: 0, municao: 0, gasolina: 0, raro: 0 }
   const marks = Array.from({ length: 12 }, () => { const m = new THREE.Mesh(MARK_GEO, MARK.search); m.visible = false; scene.add(m); return m })
@@ -78,8 +79,8 @@ export function CreateLoot({ scene, fx, players, say, sfx, tasks, xp = () => {},
     if (a === 'search') {
       done.set(s.id, 1)
       xp(p, BALANCE.levels.xp.search)
-      const far = farOf(s) // vilas vizinhas: mais saque, mais remédio e munição
-      if (Math.random() >= L.chance * (players.size === 1 ? BALANCE.solo.loot : 1) * (1 + far)) { say(`${p.name}: ${k.name} sem nada`, 1.4); sfx('ui', { f: 300 }); return }
+      const far = farOf(s, origin()) // vilas vizinhas: mais saque, mais remédio e munição
+      if (Math.random() >= L.chance * (players.size === 1 ? BALANCE.solo.loot : 1) * (1 + far) * scarce()) { say(`${p.name}: ${k.name} sem nada`, 1.4); sfx('ui', { f: 300 }); return }
       give(p, pick(richer(L.rooms[s.room] || L.rooms.terreo, far)))
       fx.burst(s.fx, y, s.fz, 0xffe08a, 8, 3, 0.5)
     } else {

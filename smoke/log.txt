@@ -1,12 +1,12 @@
 [0s] 1/4 compilando o jogo…
 [1s] 2/4 subindo relay e página…
-[3s] 3/4 abrindo o jogo no navegador sem tela…
-[23s]    sala UYXC aberta no relay
-[101s] 4/4 jogando 60 s…
-[136s]    captura 02-inicio.jpg
-[190s]    captura 03-acao.jpg
-[213s]    captura 04-noite.jpg
-[234s]    captura 05-fim.jpg
-[251s]    HUD: {"topo":"🌙 Noite 1/2 · 🧟 25\nPontos 0\n🪵 0 🩹 0\n🌙 00:10 · Limpo","jogadores":"🔫 Jogador 1 · Nv 1 · Espingarda 6/30 · 0 abates\nGranada 4s\n🪕 Celular · Nv 1 · Alaúde · 0 abates\nCanção de cura 9s"}
+[2s] 3/4 abrindo o jogo no navegador sem tela…
+[9s]    sala RVAY aberta no relay
+[88s] 4/4 jogando 60 s…
+[127s]    captura 02-inicio.jpg
+[184s]    captura 03-acao.jpg
+[210s]    captura 04-noite.jpg
+[229s]    captura 05-fim.jpg
+[244s]    HUD: {"topo":"🌙 Noite 1/2 · 🧟 25\nPontos 0\n🪵 0 🩹 0\n🌙 00:10 · Limpo","jogadores":"🔫 Jogador 1 · Nv 1 · Espingarda 6/30 · 0 abates\nGranada 4s\n🪕 Celular · Nv 1 · Alaúde · 0 abates\nCanção de cura 9s"}
 
 PASSOU

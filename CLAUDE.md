@@ -96,6 +96,7 @@ src/games/survivor/       este jogo
   enemies/zombies.js      IA da horda: visão, audição, agarrão, renascer; especiais (e.kind): Berrador (J9), Labrego e Escoitador (J10)
   ui/hud.js               placar da partida (+ painel do achado raro e do resultado)
   ui/collection.js        tela "Coleção" no menu (botão ⭐ ou tecla C)
+  ui/cercos.js            escolha do cerco no menu (◀ ▶ ou Q/E; só os liberados)
 ```
 
 **Como as camadas conversam sem import subindo** (ligado em `games/survivor/main.js`):
@@ -259,6 +260,11 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
   com a paróquia no nível n (começa com 16 das 28: as 8 gerais + 2 por classe). ⭐ achado raro (saque) → `onRare`: um achado ainda não
   coletado (`config/finds.js`), salvo na hora, história na tela (`st.find`) e `loot.rareCard` cartas para quem achou (`levels.grant`).
   Replay: o nível 1 restringe o sorteio, então mudou de propósito. Prova: com nível 99 e o achado raro do jeito antigo, deu igual ao J11.
+- **Cercos (J12b):** `balance.cercos` (5): paróquia = vila do cruzamento `j` da N-550 (nome por `NodeName(0, j)`), noites, `bruteFrom`,
+  `loot` (× chance) e `horde` (× população). `game.setCerco(n)` antes de `addPlayer` (o `main.js` chama no começo e carrega os chunks da
+  paróquia na hora). Largada da paróquia = `(0, NodeZ(j) − 32)` — no Cerco 1 dá (0, 0), a largada de sempre; os 3 carros da largada são
+  registrados de novo ali. "Longe" do saque e a gasolina inicial contam dessa largada. Vencer guarda o cerco em `save.cercos` e libera o
+  próximo (`save.open`). Sem `setCerco` = Cerco 1 com tudo igual (por isso o replay ficou igual).
 - `window.__game` existe só no `npm run dev` (testes automáticos e depuração); a versão compilada não tem.
 - Interiores (`buildings.js`): térreo (cozinha/sala: fogão, balcão, mesa, sofá, cômoda, baú, estante), andar de cima (quarto: cama,
   guarda-roupa, baú, escrivaninha) e sótão das casas de 3 andares (caixotes, barris, sacos, baú). Lojas: prateleiras, balcão, vitrine.
@@ -266,7 +272,7 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
 
 ## Plano da sessão de fundação (30/10/2026)
 0. Verificação ✓ · 1. PR "limpeza" ✓ · 2. `docs/GAME-DESIGN.md` ✓ (decisões registradas) · 3. Fundação em 3 PRs: F1 (PR #4) · F2 (PR #5) · F3 (PR aberto).
-4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 · J9 · J10 · J11 · J12a + correção das janelas (PRs abertos, aguardando merge em ordem) · próximo: J12b (os 5 cercos e as paróquias). J13 (combinações) já entrou no J7b.
+4. Vertical slice (seção 10 do GAME-DESIGN), um PR por vez: J1 · J2 · J3 · J4 · J5a · J5b · J6 · J7a · J7b ✓ (merge em 01/11/2026) · J8 · J9 · J10 · J11 · J12a + correção das janelas · J12b (PRs abertos, aguardando merge em ordem) · próximo: J14 (controle de videogame). J13 (combinações) já entrou no J7b.
 Estrutura-alvo da Etapa 3 (criar só pastas com conteúdo real; imports só descem `games` → `shared` → `engine`, verificado por `npm run check`):
 ```
 src/engine/   {core, render, input, net, audio, world, ui}     genérico, não sabe que existem zumbis
@@ -279,6 +285,10 @@ F2 estado global → instâncias com `reset()` + caches limpos por distância (m
 ## Histórico de PRs
 - **limpeza** — `node_modules/` fora do Git; `.gitignore` aceita .glb/.gltf; `player-moviment.js` → `player-movement.js`; README sem `reflections.js`;
   `npm run smoke`; este CLAUDE.md; `docs/COMO-FUNCIONA.md`; `docs/TESTE-MANUAL.md`. Nenhuma mudança no jogo.
+- **j12b-cercos (J12b)** — 5 cercos escolhidos no menu (◀ ▶ / Q E), cada um numa paróquia da N-550: 1 San Xoán de Vilar (a largada,
+  2 noites), 2 Santa Mariña de Cerdeira (3 noites), 3 Santiago de Moreira (Labrego desde a 1ª noite), 4 San Martiño de Lamas (menos saque),
+  5 San Xoán de Rois (tudo junto + horda ×1,2). Vencer libera o próximo (save); o rádio e o resultado dizem a paróquia; "🏆 Cerco N liberado".
+  Santa Compaña na meia-noite da última noite de cada cerco. Replay igual (Cerco 1).
 - **correcao-janelas** — achado no teste geral (partida inteira sem tela): todo zumbi que pulava uma janela caía encostado na parede e ficava
   preso para sempre; a partir da 1ª noite a horda inteira travava empilhada dentro da base (sem morrer nem renascer), então dia 2, 2ª noite e os
   especiais não aconteciam. Agora: ponto de queda livre para o corpo inteiro e fora da escada (42 de 346 janelas usáveis, antes 49 — todas prendiam),

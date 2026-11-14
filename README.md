@@ -89,6 +89,19 @@ Código em `src/games/survivor/levels.js`; nomes em `config/upgrades.js`; númer
 ## Progresso entre partidas (save no PC)
 O progresso fica no PC (no navegador), não nos celulares — eles entram sem conta. **Nível da paróquia:** no fim de cada partida (ganhando ou perdendo) a média do XP dos jogadores soma ao nível da paróquia, mostrado no menu ("⛪ Paróquia nível 3 · 🗝 20/28 melhorias · ⭐ 6/30 achados"). Cada nível libera mais melhorias no sorteio das cartas: o jogo começa com 16 das 28 (as 8 gerais e 2 de cada classe). **Coleção:** o ⭐ achado raro do saque vira um de **30 achados** (fitas do rádio da paróquia, cartas, fotos, recortes), cada um com 2 linhas da história da Galiza e do surto; a história aparece na tela e quem achou escolhe 1 melhoria na hora. No menu, o botão **⭐ Coleção** (ou a tecla **C**) mostra o álbum. Para começar do zero: `?zerar` no fim do endereço. Código em `save.js`, `config/finds.js` e `ui/collection.js`; números em `balance.js`, seções `account` e `loot.rareCard`.
 
+## Os 5 cercos
+No menu, escolha o cerco com **◀ ▶** (ou **Q** / **E**); só aparecem os já liberados — **vencer um libera o próximo** (fica salvo no PC). Cada cerco começa numa **paróquia diferente** do mapa (uma vila da N-550), com seus carros na largada:
+
+| Cerco | Paróquia | Regra |
+|---|---|---|
+| 1 | San Xoán de Vilar (a largada de sempre) | 2 noites (a demo) |
+| 2 | Santa Mariña de Cerdeira | 3 noites |
+| 3 | Santiago de Moreira | 3 noites · o Labrego desde a 1ª noite |
+| 4 | San Martiño de Lamas | 3 noites · menos saque (60% da chance) |
+| 5 | San Xoán de Rois | 3 noites · Labrego desde a 1ª · menos saque · horda maior |
+
+A Santa Compaña vem à meia-noite da última noite de cada cerco. Números em `balance.js`, seção `cercos`; tela em `ui/cercos.js`.
+
 ## Gasolina e vilas vizinhas
 O carro **gasta gasolina** andando: o tanque leva 3 latas e 1 lata anda uns 320 m (≈ 10 km nas placas, o bastante para ir à vila vizinha e voltar). O medidor ⛽ aparece no placar e no celular de quem está dentro. Sem gasolina o motor desliga: o carro desliza, freia e vira, mas não acelera. **Abastecer:** perto do carro, com ⛽ no estoque do grupo e o tanque não cheio, **Usar** abastece 1 lata (2 s parado); senão, Usar entra no carro. **Bomba do posto:** Usar perto da bomba (3 s) dá 2 ⛽, uma vez por posto, mas dispara um **alarme** de 10 s que chama a horda a 30 m. Os carros da largada têm meia lata; um em cada quatro carros abandonados já tem 1 lata no tanque. **Longe da largada** (depois de ~120 m) os móveis têm mais chance de ter algo (até +60%) e mais remédio e munição. Código em `src/games/survivor/fuel.js`; números em `balance.js`, seções `fuel` e `loot.far`.
 

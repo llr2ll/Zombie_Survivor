@@ -26,8 +26,12 @@ import { CreateCompana } from '../compana'
 import { CreateSave } from '../save'
 import { FINDS } from '../config/finds'
 import { UPGRADES } from '../config/upgrades'
+import { NodeZ } from '../../../shared/worldgen/layout'
+import { NodeName } from '../../../shared/worldgen/names'
 
 const MAX_PLAYERS = 4
+// carros da largada (os mesmos de vehicles.js), repetidos em volta da largada de cada paróquia
+const START_CARS = [{ x: 1.6, z: 9, ry: 0.04, kind: 'jeep', c: 0 }, { x: -1.6, z: 16, ry: Math.PI - 0.05, kind: 'pickup', c: 0 }, { x: 1.6, z: -13, ry: Math.PI + 0.03, kind: 'sedan', c: 1 }]
 // números das regras: config/balance.js
 const RU = BALANCE.rules, PL = BALANCE.player, J = BALANCE.juice, XP = BALANCE.levels.xp, CP = BALANCE.boss
 // movimento (shared) com os números deste jogo; a balada do Bardo também acelera
@@ -48,6 +52,15 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
   const vehicles = CreateVehicles(scene, fx, wfx)
   const st = { time: 0, score: 0, over: false, overT: 0, msg: '', msgT: 0, sync: 0, stopT: 0, result: null, find: null, finds: 0 } // find: achado raro na tela
   const save = hooks.save || CreateSave() // progresso no PC (J12a): nível da paróquia e coleção
+  // cerco escolhido no menu (J12b): paróquia (onde a partida começa), noites e regras. Sem escolha: Cerco 1 (a largada)
+  let cn = 1, cerco = BALANCE.cercos[0], origin = { x: 0, z: 0 }
+  const carsAt = new Set()
+  function setCerco(n) {
+    cn = Math.max(1, Math.min(BALANCE.cercos.length, n || 1)); cerco = BALANCE.cercos[cn - 1]
+    origin = { x: 0, z: NodeZ(cerco.j) - NodeZ(0) } // na N-550, 32 m ao norte do centro da vila (como a largada do Cerco 1)
+    if (cn > 1 && !carsAt.has(cn)) { carsAt.add(cn); for (const c of START_CARS) vehicles.register({ ...c, x: origin.x + c.x, z: origin.z + c.z }, true) }
+  }
+  const cercoInfo = () => ({ n: cn, of: BALANCE.cercos.length, name: NodeName(0, cerco.j), origin, ...cerco })
 
   // sensação de impacto: tremor nas telas perto e, nos golpes fortes, uma pausa curtinha no jogo (números em balance.js · juice)
   function impact(x, z, kind, amount = 1) {
@@ -59,7 +72,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
   const say = (t, s = 2.2) => { st.msg = t; st.msgT = s }
   const alive = () => [...players.values()].filter((p) => !p.dead)
 
-  const horde = CreateHorde({ scene, fx, gore, players, hurt: (p, d) => hurt(p, d), hit: (...a) => hit(...a), night: hooks.night || (() => false), loaded: hooks.loaded || (() => true), impact, bash: (e) => bars.bash(e), entry: (e, x, z, dt) => bars.entry(e, x, z, dt), director: () => siege.director(), nightNo: () => siege.st.night, scream: (e, phase) => onScream(e, phase), knock: (p, e) => knock(p, e), haste: () => compana.haste() })
+  const horde = CreateHorde({ scene, fx, gore, players, hurt: (p, d) => hurt(p, d), hit: (...a) => hit(...a), night: hooks.night || (() => false), loaded: hooks.loaded || (() => true), impact, bash: (e) => bars.bash(e), entry: (e, x, z, dt) => bars.entry(e, x, z, dt), director: () => siege.director(), nightNo: () => siege.st.night, scream: (e, phase) => onScream(e, phase), knock: (p, e) => knock(p, e), haste: () => compana.haste(), nightFrom: (k) => (k === 'brute' ? cerco.bruteFrom : undefined), horde: () => cerco.horde || 1 })
   const enemies = horde.list
 
   // dano num zumbi (todas as fontes: tiro, espada, magia, onda, pisão, atropelamento); p = quem leva o crédito
@@ -84,12 +97,12 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
   const tasks = CreateTasks({ scene, noise, sfx }) // parado fazendo algo (revistar, desmontar, barricar)
   const levels = CreateLevels({ scene, fx, players, say, sfx, move: MOVE, account: () => save.data.nivel }) // XP, níveis e melhorias
   const xp = (p, n) => levels.add(p, n)
-  const loot = CreateLoot({ scene, fx, players, say, sfx, tasks, xp, rare: (p) => onRare(p) }) // saque nas casas (Usar perto de um móvel)
+  const loot = CreateLoot({ scene, fx, players, say, sfx, tasks, xp, rare: (p) => onRare(p), origin: () => origin, scarce: () => cerco.loot || 1 }) // saque nas casas (Usar perto de um móvel)
   const bars = CreateBarricades({ scene, fx, inv: loot.inv, say, sfx, tasks, impact, xp, solo: () => players.size === 1 }) // barricadas em portas e janelas (Usar por dentro)
   const base = CreateBase({ scene, say, sfx }) // rádio: a casa onde ele está é a base
-  const siege = CreateSiege({ clock: hooks.clock, base, say, sfx }) // noites, picos da horda contra a base, vitória
+  const siege = CreateSiege({ clock: hooks.clock, base, say, sfx, nights: () => cerco.nights, bruteFrom: () => cerco.bruteFrom || BALANCE.zombies.brute.nightFrom }) // noites, picos da horda contra a base, vitória
   const compana = CreateCompana({ scene, fx, players, base, say, sfx, xp: (p, n) => levels.add(p, n), score: (n) => { st.score += n }, impact }) // o chefe (J11)
-  const fuel = CreateFuel({ vehicles, inv: loot.inv, tasks, say, sfx, noise }) // gasolina: gastar, abastecer, bomba do posto
+  const fuel = CreateFuel({ vehicles, inv: loot.inv, tasks, say, sfx, noise, origin: () => origin }) // gasolina: gastar, abastecer, bomba do posto
   const fall = CreateFall({ players, tasks, inv: loot.inv, fx, say, sfx }) // caído: levantar com ajuda, remédio ou no amanhecer
 
   // slot = vaga do lobby: cor e ponto de largada · choice = classe escolhida (0 Atirador · 1 Samurai · 2 Mago · 3 Bardo; sem escolha = a da vaga)
@@ -102,7 +115,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     ring.renderOrder = 2
     scene.add(model.root, ring)
     const p = {
-      id, name, idx, cls, model, ring, x: (idx - 1.5) * 1.3, z: 0, vx: 0, vz: 0, aimAngle: Math.PI, facing: Math.PI, turn: 0, speed: 0, aiming: false, firing: false,
+      id, name, idx, cls, model, ring, x: origin.x + (idx - 1.5) * 1.3, z: origin.z, vx: 0, vz: 0, aimAngle: Math.PI, facing: Math.PI, turn: 0, speed: 0, aiming: false, firing: false,
       jy: 0, vy: 0, gy: 0, y: 0, lv: 0, stamina: 100, tired: false, running: false, cool: 0, kills: 0, lastIn: performance.now(),
       dead: false, out: false, downT: 0, knocked: 0, chill: 0, marked: 0, vehicle: null, seat: null, pad: 0, hurtCar: 0, held: 0, struggle: 0, shoveCd: 0,
       input: { mx: 0, mz: 0, ax: 0, az: 0, run: 0 },
@@ -208,7 +221,8 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     // paróquia (J12a): o XP da partida (média dos jogadores) vai para o save, mesmo perdendo
     const ps = [...players.values()], acc = save.match(ps.length ? ps.reduce((n, p) => n + (p.earned || 0), 0) / ps.length : 0, win)
     const unlocked = UPGRADES.filter((u) => u.unlock > acc.from && u.unlock <= acc.to).map((u) => `${u.icon} ${u.name}`)
-    st.result = { account: { ...acc, unlocked }, finds: st.finds, findsTotal: save.data.achados.length, findsOf: FINDS.length, win, nights: win ? BALANCE.siege.nights : Math.max(0, siege.st.night - (siege.st.wasNight ? 1 : 0)), of: BALANCE.siege.nights, time: clock(st.time), kills, score: st.score, bars: bars.list().length, broken: bars.broken().length, loot: loot.text(), base: !!base.at(), levels: [...players.values()].map((p) => `${p.cls.icon} ${p.name} Nv ${p.level}`), boss: compana.result() }
+    const freed = win && save.win(cn) && cn < BALANCE.cercos.length ? { n: cn + 1, name: NodeName(0, BALANCE.cercos[cn].j) } : null // venceu: libera o próximo cerco
+    st.result = { cerco: { n: cn, name: NodeName(0, cerco.j), freed }, account: { ...acc, unlocked }, finds: st.finds, findsTotal: save.data.achados.length, findsOf: FINDS.length, win, nights: win ? cerco.nights : Math.max(0, siege.st.night - (siege.st.wasNight ? 1 : 0)), of: cerco.nights, time: clock(st.time), kills, score: st.score, bars: bars.list().length, broken: bars.broken().length, loot: loot.text(), base: !!base.at(), levels: [...players.values()].map((p) => `${p.cls.icon} ${p.name} Nv ${p.level}`), boss: compana.result() }
     st.msg = ''; st.msgT = 0 // o painel de resultado (hud.js) mostra tudo
     sfx(win ? 'supply' : 'gameover')
   }
@@ -240,7 +254,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     vehicles.clear()
     Object.assign(st, { time: 0, score: 0, over: false, stopT: 0, result: null, find: null, finds: 0 })
     for (const p of players.values()) {
-      Object.assign(p, { dead: false, stamina: 100, tired: false, jy: 0, vy: 0, lv: 0, gy: undefined, x: (p.idx - 1.5) * 1.3, z: 0, vx: 0, vz: 0, held: 0, struggle: 0, out: false, downT: 0, knocked: 0, chill: 0, marked: 0 })
+      Object.assign(p, { dead: false, stamina: 100, tired: false, jy: 0, vy: 0, lv: 0, gy: undefined, x: origin.x + (p.idx - 1.5) * 1.3, z: origin.z, vx: 0, vz: 0, held: 0, struggle: 0, out: false, downT: 0, knocked: 0, chill: 0, marked: 0 })
       InitClassState(p)
       levels.init(p)
       if (p.weapon) p.model.setWeapon(p.weapon)
@@ -278,7 +292,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
       if (st.time === 0) {
         if (hooks.setClock) hooks.setClock(BALANCE.siege.start)
         fall.start()
-        say(`📻 Rádio: o exército chega no amanhecer do ${BALANCE.siege.nights + 1}º dia. Ponham o rádio numa casa e barriquem!`, 6)
+        say(`📻 Rádio de ${NodeName(0, cerco.j)}: o exército chega no amanhecer do ${cerco.nights + 1}º dia. Ponham o rádio numa casa e barriquem!`, 6)
       }
       st.time += dt
       fall.tick(dt)
@@ -331,7 +345,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
 
   // estoque do grupo + base marcada (placar e celular)
   const invText = () => loot.text() + (base.at() ? '  📻' : '')
-  return { players, enemies, vehicles, loot, bars, base, siege, invText, st, clear, addPlayer, removePlayer, setInput, act, update, alive, zombies: () => horde.alive(), info: (p) => abilities.info(p), hurt, levels, fuel, compana, save }
+  return { players, enemies, vehicles, loot, bars, base, siege, invText, st, clear, addPlayer, removePlayer, setInput, act, update, alive, zombies: () => horde.alive(), info: (p) => abilities.info(p), hurt, levels, fuel, compana, save, setCerco, cerco: cercoInfo }
 }
 
 export const clock = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`

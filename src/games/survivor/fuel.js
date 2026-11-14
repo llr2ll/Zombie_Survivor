@@ -9,13 +9,14 @@ const F = BALANCE.fuel
 const PUMPS = [[-2.4, 1.6], [-0.2, 1.6]] // as duas bombas, em relação ao centro do posto (props.js: cobertura em x -1,3 ± 1,1)
 const fmt = (n) => n.toFixed(1).replace('.', ',')
 
-// ctx: { vehicles, inv (estoque do grupo), tasks, say(texto, s), sfx(nome, opções), noise(x, z, raio) }
-export function CreateFuel({ vehicles, inv, tasks, say, sfx, noise }) {
+// ctx: { vehicles, inv (estoque do grupo), tasks, say(texto, s), sfx(nome, opções), noise(x, z, raio), origin() (largada do cerco) }
+export function CreateFuel({ vehicles, inv, tasks, say, sfx, noise, origin = () => ({ x: 0, z: 0 }) }) {
   const used = new Set() // postos cuja bomba já foi usada (z do posto)
   const alarms = [] // { x, z, t, beat }: alarme tocando
   // gasolina que o carro tem quando aparece: fixa por lugar (o mesmo carro tem sempre a mesma)
   function initial(v) {
-    if (Math.hypot(v.x, v.z) < F.startArea) return F.start
+    const o = origin()
+    if (Math.hypot(v.x - o.x, v.z - o.z) < F.startArea) return F.start
     const [a, b] = v.key.split(',').map(Number)
     const L = F.found.little
     return hash(a, b, 91) < F.found.chance ? F.found.full : L[0] + hash(a, b, 92) * (L[1] - L[0])

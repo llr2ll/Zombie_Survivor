@@ -49,7 +49,9 @@ export function CreateHud(game, climate) {
       panel.style.display = r ? 'block' : 'none'
       if (r) {
         panel.innerHTML = `<div style="font-size:34px;font-weight:800;margin-bottom:6px">${r.win ? '🚁 VITÓRIA' : '💀 DERROTA'}</div>`
+          + (r.cerco ? `<div style="opacity:.8">Cerco ${r.cerco.n} · ${r.cerco.name}</div>` : '')
           + `<div>${r.win ? 'O exército chegou: vocês aguentaram' : 'Aguentaram'} <b>${r.nights} de ${r.of}</b> noite${r.of > 1 ? 's' : ''}</div>`
+          + (r.cerco && r.cerco.freed ? `<div style="color:#ffd24a">🏆 Cerco ${r.cerco.freed.n} liberado: ${r.cerco.freed.name}!</div>` : '')
           + `<div>⏱ ${r.time} · 🧟 ${r.kills} abates · ${r.score} pontos</div>`
           + `<div>🪵 ${r.bars} barricada${r.bars === 1 ? '' : 's'} de pé · 🪟 ${r.broken} janela${r.broken === 1 ? '' : 's'} quebrada${r.broken === 1 ? '' : 's'}${r.base ? ' · 📻 base marcada' : ''}</div>`
           + (r.boss ? `<div>🕯️ Santa Compaña: ${r.boss === 'derrotada' ? '✝ derrotada!' : 'escapou'}</div>` : '')

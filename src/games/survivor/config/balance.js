@@ -278,15 +278,27 @@ export const BALANCE = {
   // Começa ao meio-dia. À noite, o diretor manda a horda contra a base (casa do rádio) em picos. Sem rádio, a horda vai atrás de vocês.
   // Vitória no amanhecer depois de `nights` noites; derrota se todos caírem ao mesmo tempo. Horas em fração do dia (0,5 = meio-dia).
   siege: {
-    nights: 2, // noites para aguentar até o resgate (o exército chega no amanhecer seguinte)
+    nights: 2, // noites para aguentar até o resgate, se o cerco não disser outra (o exército chega no amanhecer seguinte)
     start: 0.5, // hora em que a partida começa (0,5 = meio-dia)
     warn: 0.083, // o rádio avisa esse tanto antes de escurecer (0,083 ≈ 2 horas do jogo ≈ 50 s reais)
     pulses: [{ from: 0.875, to: 0.958 }, { from: 0.083, to: 0.167 }], // picos da noite: 21h–23h e 2h–4h
     pulseSize: 12, // zumbis a mais durante um pico da 1ª noite
-    perNight: [1, 1.6], // multiplicador do pico em cada noite (a 2ª é mais forte)
+    perNight: [1, 1.6, 2.2], // multiplicador do pico em cada noite (a 2ª é mais forte, a 3ª mais ainda)
     share: 0.75, // fração dos zumbis que nasce em volta da base durante o pico (o resto, em volta de vocês)
     ring: [40, 50], // distância da base onde a horda do cerco nasce (fora da vista)
   },
+
+  // ---------------------------------------------------------------- os 5 cercos (J12b)
+  // Escolhidos no menu; vencer um libera o próximo (fica no save). Cada um numa paróquia: a vila do cruzamento j da N-550
+  // (layout.js; o nome vem das placas). A partida começa 32 m ao norte do centro da vila, na estrada (como a largada do Cerco 1).
+  // nights = noites para aguentar · bruteFrom = noite em que o Labrego aparece · loot = chance de achar no saque × · horde = horda ×
+  cercos: [
+    { j: 0, nights: 2 }, // Cerco 1: a largada (a demo)
+    { j: -7, nights: 3 }, // Cerco 2: 3 noites
+    { j: -15, nights: 3, bruteFrom: 1 }, // Cerco 3: o Labrego desde a 1ª noite
+    { j: 21, nights: 3, loot: 0.6 }, // Cerco 4: menos saque
+    { j: 30, nights: 3, bruteFrom: 1, loot: 0.6, horde: 1.2 }, // Cerco 5: tudo junto (e uma horda maior)
+  ],
 
   // ---------------------------------------------------------------- sensação ("juice"): só aparência, a não ser a pausa
   juice: {

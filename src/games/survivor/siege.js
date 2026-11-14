@@ -7,8 +7,10 @@ const isNight = (t) => t < D.nightTo || t > D.nightFrom
 const inside = (t, a, b) => (a < b ? t >= a && t < b : t >= a || t < b) // janela de horário (pode passar da meia-noite)
 const ord = (n) => `${n}ª`
 
-// ctx: { clock() (hora do dia, 0..1; sem relógio = sem cerco), base (base.js), say(texto, s), sfx(nome, opções) }
-export function CreateSiege({ clock, base, say, sfx }) {
+// ctx: { clock() (hora do dia, 0..1; sem relógio = sem cerco), base (base.js), say(texto, s), sfx(nome, opções), nights() e bruteFrom() (do cerco escolhido) }
+export function CreateSiege({ clock, base, say, sfx, nights = () => S.nights, bruteFrom = () => BALANCE.zombies.brute.nightFrom }) {
+  // aviso dos especiais que entram nesta noite (o cerco pode trazer o Labrego mais cedo)
+  const specials = (n) => { const b = n >= bruteFrom(), l = n >= BALANCE.zombies.listener.nightFrom; return b && l ? ' 🪓👂 Labregos e Escoitadores na horda!' : b ? ' 🪓 Labregos na horda!' : l ? ' 👂 Escoitadores na horda!' : '' }
   const st = { night: 0, wasNight: false, warned: false, done: false, pulse: null, boost: null, boss: false, lastT: 0 } // boost: pico extra do grito do Berrador · boss: Santa Compaña já veio
   return {
     st,
@@ -20,13 +22,13 @@ export function CreateSiege({ clock, base, say, sfx }) {
       let ev = null
       if (n && !st.wasNight) {
         st.night++
-        say(`🌙 ${ord(st.night)} noite de ${S.nights}${base.at() ? ': a horda vem atrás da base!' : ' — sem rádio posto, a horda vem atrás de vocês'}` + (st.night >= BALANCE.zombies.brute.nightFrom ? ' 🪓👂 Labregos e Escoitadores na horda!' : ''), 4)
+        say(`🌙 ${ord(st.night)} noite de ${nights()}${base.at() ? ': a horda vem atrás da base!' : ' — sem rádio posto, a horda vem atrás de vocês'}` + specials(st.night), 4)
         sfx('gameover', { vol: 0.5 })
       }
       if (!n && st.wasNight) {
         st.wasNight = false
-        if (st.night >= S.nights) { st.done = true; return 'win' }
-        say(`☀ Amanheceu. Falta${S.nights - st.night > 1 ? 'm' : ''} ${S.nights - st.night} noite${S.nights - st.night > 1 ? 's' : ''}`, 3.5)
+        if (st.night >= nights()) { st.done = true; return 'win' }
+        say(`☀ Amanheceu. Falta${nights() - st.night > 1 ? 'm' : ''} ${nights() - st.night} noite${nights() - st.night > 1 ? 's' : ''}`, 3.5)
         ev = 'dawn'
       }
       if (!n && !st.warned && t > D.nightFrom - S.warn && t < D.nightFrom) {
@@ -38,7 +40,7 @@ export function CreateSiege({ clock, base, say, sfx }) {
       if (st.boost && (!n || !inside(t, st.boost.from, st.boost.to))) st.boost = null
       st.pulse = n ? S.pulses.find((p) => inside(t, p.from, p.to)) || st.boost : null
       // meia-noite da última noite: a Santa Compaña
-      if (n && st.night >= S.nights && !st.boss && t < 0.5 && st.lastT >= 0.5) { st.boss = true; ev = 'boss' }
+      if (n && st.night >= nights() && !st.boss && t < 0.5 && st.lastT >= 0.5) { st.boss = true; ev = 'boss' }
       st.lastT = t
       return ev
     },
@@ -53,7 +55,7 @@ export function CreateSiege({ clock, base, say, sfx }) {
     // placar: "☀ Dia 1" / "🌙 Noite 1/2" (+ "pico" quando a horda aperta)
     text() {
       if (!clock) return ''
-      return st.wasNight ? `🌙 Noite ${st.night}/${S.nights}${st.pulse ? ' · 🧟 pico!' : ''}` : `☀ Dia ${st.night + 1}`
+      return st.wasNight ? `🌙 Noite ${st.night}/${nights()}${st.pulse ? ' · 🧟 pico!' : ''}` : `☀ Dia ${st.night + 1}`
     },
     // grito do Berrador à noite, com base: pico extra por alguns segundos
     boost() {

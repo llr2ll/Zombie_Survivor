@@ -39,6 +39,14 @@ export function CreateSave() {
       write(d)
       return true
     },
+    // venceu o cerco n: guarda e devolve true se é a 1ª vez (libera o próximo)
+    win(n) {
+      if (d.cercos.includes(n)) return false
+      d.cercos.push(n)
+      write(d)
+      return true
+    },
+    open: (total) => Math.min(total, Math.max(0, ...d.cercos) + 1), // maior cerco liberado (o 1º sempre)
     progress: () => d.xp / need(d.nivel), // fração até o próximo nível
     reset() { d = blank(); write(d) },
   }

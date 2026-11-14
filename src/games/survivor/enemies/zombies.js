@@ -47,7 +47,8 @@ const sameLv = (a, b) => (a.lv || 0) === (b.lv || 0)
 //        entry(e, x, z, dt) (ir pela janela? null = normal · {x, z} = ande até aqui · {hold} = parado na janela),
 //        director() (cerco: { x, z (base), extra, share, ring } à noite com base, senão null),
 //        nightNo() (qual noite do cerco), scream(e, fase) (Berrador: 'inhale' começou a encher o peito · 'yell' gritou),
-//        knock(p, e) (Labrego acertou: derruba o jogador), haste() (velocidade da horda ×; Santa Compaña) }
+//        knock(p, e) (Labrego acertou: derruba o jogador), haste() (velocidade da horda ×; Santa Compaña),
+//        nightFrom(kind) (noite em que o especial aparece, se o cerco mudar), horde() (tamanho da horda × do cerco) }
 export function CreateHorde(ctx) {
   const { scene, fx, gore } = ctx
   const list = []
@@ -92,7 +93,8 @@ export function CreateHorde(ctx) {
     for (const kind in SPECIAL) {
       const c = SPECIAL[kind].c
       if (!(c.chance > 0) || list.filter((o) => o !== e && o.kind === kind && o.state !== 'dead').length >= c.max) continue
-      const ok = ctx.night() ? (ctx.nightNo ? ctx.nightNo() : 0) >= c.nightFrom : kind === 'screamer' && InZone(x, z, 8)
+      const from = (ctx.nightFrom && ctx.nightFrom(kind)) || c.nightFrom // o cerco pode trazer um especial mais cedo
+      const ok = ctx.night() ? (ctx.nightNo ? ctx.nightNo() : 0) >= from : kind === 'screamer' && InZone(x, z, 8)
       if (ok && Math.random() < c.chance) return kind
     }
     return null
@@ -484,6 +486,7 @@ export function CreateHorde(ctx) {
     if (ctx.night()) n *= P.night
     if (alive.some((p) => InZone(p.x, p.z, 10))) n *= P.town // povoados e cidades: mais gente (morta)
     if (dir) n += dir.extra // cerco: pico da noite
+    if (ctx.horde) n *= ctx.horde() // cerco mais difícil: horda maior
     return Math.min(MAX_ZOMBIES, Math.round(n))
   }
   // ponto livre num anel em volta de um jogador, fora da vista, em chunk carregado (com colisores)
