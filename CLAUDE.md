@@ -23,7 +23,9 @@ npm run dev      # terminal 2: jogo (porta 5173)
 npm run build    # gera dist/ (para hospedar)
 ```
 Endereço do servidor da sala no navegador: `VITE_WS_URL` se existir; senão `ws(s)://<mesmo host>:8080` (`RelayURL` em `src/engine/net/link.js`).
+No ar (Netlify/Pages): `VITE_WS_URL=wss://paroquia-relay.SEU_USUARIO.workers.dev` aponta para o Cloudflare Worker em `worker/`.
 Celular e tela conversam **direto** (WebRTC); o servidor só apresenta os dois e é o plano B (detalhes em "Fatos": Conexão direta).
+Deploy passo a passo em `docs/DEPLOY.md`.
 
 ## Como testar
 - `npm run check` — ~25 s, sem navegador. Rodar SEMPRE antes de abrir PR. Quatro verificações:
@@ -52,7 +54,11 @@ Regra: **imports só descem** — `src/games/<jogo>` → `src/shared` → `src/e
 ```
 index.html, main.css      página do jogo (tela) + HUD → carrega src/games/survivor/main.js
 controller.html           página do celular (controle) → carrega src/engine/input/phone.js
-server/server.js          servidor da sala (WebSocket): cria sala (4 letras), apresenta tela ↔ celular (rtc/ice) e é o plano B
+server/server.js          servidor local (Codespaces/dev): cria sala (4 letras), apresenta tela ↔ celular (rtc/ice) e é o plano B
+worker/                   Cloudflare Worker (produção): mesma lógica do server.js; deploy gratuito (ver docs/DEPLOY.md)
+  src/index.js            entrada do Worker: redireciona todo WebSocket para o Hub
+  src/hub.js              Durable Object Hub: gerencia salas com hibernação de WebSocket
+  wrangler.toml           configuração do Worker (nome, binding do DO)
 scripts/                  smoke.mjs (teste no navegador sem tela), check.mjs (camadas, mundo, caches, replay), sim.mjs (replay), *-fingerprint.txt
 smoke/                    capturas + log do último npm run smoke
 docs/                     COMO-FUNCIONA (leigo), TESTE-MANUAL (checklist), GAME-DESIGN (direção criativa)
@@ -302,6 +308,10 @@ Decidido: a Etapa 3 vai em 3 PRs — F1 mover pastas + `npm run check` (+ cortar
 F2 estado global → instâncias com `reset()` + caches limpos por distância (medir antes) · F3 `balance.js` + `?bots=3`.
 
 ## Histórico de PRs
+- **apresentador-gratis** — servidor de salas na Cloudflare (Worker + Durable Object), de graça. Mesma lógica do `server/server.js`,
+  portada para a API Web padrão com hibernação de WebSocket (o DO dorme entre mensagens; CPU = zero esperando). Deploy uma vez,
+  `VITE_WS_URL=wss://paroquia-relay.SEU_USUARIO.workers.dev` no Netlify; Codespaces continua com `npm run server`. Passo a passo
+  em `docs/DEPLOY.md`. O jogo não muda (replay igual).
 - **conexao-direta** — pedido do dono (sem dinheiro para servidor; site na Netlify e depois Electron na Steam): celular e tela conversam
   direto (WebRTC, sem biblioteca nova); o servidor só apresenta os dois na entrada e fica de plano B se a rede bloquear. A vaga na TV e o
   celular mostram ⚡ direto / 🌐 servidor. O servidor só repassa `in`/`act`/`rtc`/`ice` de um celular. Smoke: celular direto + 2º celular
