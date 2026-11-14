@@ -38,8 +38,10 @@ import { sfx, gate } from '../../shared/audio/sfx'
 
 const CLASS_LABELS = CLASS_ORDER.map((k) => `${CLASSES[k].icon} ${CLASSES[k].name}`) // cada vaga escolhe uma (◀ ▶ no menu); repetir pode
 const KEYS = { r: 'reload', 1: 'carbine', 2: 'shotgun', 3: 'pistol' } // teclas do Atirador (as outras são padrão do motor)
+// teclas e opções de teste (N +1 hora, K tempo, T desfoque, ?bots=): só no npm run dev ou num build com VITE_TEST_KEYS (o smoke)
+const TEST = !!(import.meta.env.DEV || import.meta.env.VITE_TEST_KEYS)
 // ?bots=1..3 na URL: jogadores controlados pelo computador, só para teste (bots.js)
-const BOTS = Math.min(3, Math.max(0, parseInt(new URLSearchParams(location.search).get('bots'), 10) || 0))
+const BOTS = !TEST ? 0 : Math.min(3, Math.max(0, parseInt(new URLSearchParams(location.search).get('bots'), 10) || 0))
 // progresso no PC (J12a): nível da paróquia e coleção. ?zerar no endereço apaga o progresso (para testar do começo)
 const save = CreateSave()
 if (new URLSearchParams(location.search).has('zerar')) save.reset()

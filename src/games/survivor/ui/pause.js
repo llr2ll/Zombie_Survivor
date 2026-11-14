@@ -15,7 +15,7 @@ const KEYS = [
 ]
 const KEYBOARD = `<div class="kb">${KEYS.map(([k, a, x, y, w, t]) => `<div class="k ${t || ''}" style="left:${x}em;top:${y}em${w ? `;width:${w}em` : ''}"><b>${k}</b><i>${a}</i></div>`).join('')}</div>
   <div class="mouse"><span class="l">clique<br>atacar</span><span class="r">direito<br>só mirar</span></div>
-  <div class="kb-note"><b>Cartas:</b> 1 2 3 · <b>Teste:</b> M som · T desfoque · N +1 hora · K tempo · B bots</div>`
+  <div class="kb-note"><b>Cartas:</b> 1 2 3 · <b>M</b> som${import.meta.env.DEV || import.meta.env.VITE_TEST_KEYS ? ' · <b>Teste:</b> T desfoque · N +1 hora · K tempo · B bots' : ''}</div>`
 const GAMEPAD = `<svg viewBox="0 0 560 262" aria-label="Controle de videogame">
   <path d="M170 70 Q280 52 390 70 Q440 78 458 140 Q476 210 432 222 Q400 230 372 186 Q280 170 188 186 Q160 230 128 222 Q84 210 102 140 Q120 78 170 70Z" fill="#3a2418" stroke="#e8c27a" stroke-opacity=".5" stroke-width="2"/>
   <rect x="160" y="52" width="60" height="14" rx="7" fill="#c85b72"/><rect x="340" y="52" width="60" height="14" rx="7" fill="#c85b72"/>

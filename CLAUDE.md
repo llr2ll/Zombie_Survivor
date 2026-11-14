@@ -101,7 +101,7 @@ src/games/survivor/       este jogo
   fuel.js                 gasolina (J8): carro gasta andando, abastecer com ⛽, bomba do posto (alarme), gasolina inicial dos carros
   siege.js                cerco (J5b): conta as noites, avisos do rádio, picos da horda, vitória no amanhecer do 3º dia
   tasks.js                "parado fazendo algo" (revistar, desmontar, barricar): cancelamento, barulho por segundo, anel de progresso
-  bots.js                 ?bots=1..3: jogadores do computador SÓ PARA TESTE (contrato do celular; tecla B espalha/junta)
+  bots.js                 ?bots=1..3: jogadores do computador SÓ PARA TESTE (contrato do celular; tecla B espalha/junta; só no dev)
   enemies/zombies.js      IA da horda: visão, audição, agarrão, renascer; especiais (e.kind): Berrador (J9), Labrego e Escoitador (J10)
   ui/hud.js               placar da partida: pílulas, cartão de cada jogador, mensagens em caixa (Dialog, Parts), achado, resultado, cartas da TV
   ui/pause.js             menu da partida (Esc · Start · ☰ no celular): pausa para todos, desenho dos controles, QR, votação para voltar
@@ -309,6 +309,8 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
   = metade + 1 dos jogadores da partida, quem pede vota sim, bots votam sim, quem sai deixa de contar. Y/N do teclado são capturados antes
   dos outros atalhos (o N de teste = +1 hora). A biblioteca do QR fixa 300px no estilo: o `pause.js` limpa depois de desenhar.
   O QR da partida saiu do canto da tela (e a tecla H que o escondia); a linha de atalhos virou o desenho do menu; o FPS foi para baixo.
+- **Teclas de teste** (N +1 hora, K tempo, T desfoque, `?bots=` e B) só existem no `npm run dev` ou num build com `VITE_TEST_KEYS=1`
+  (o smoke compila assim: usa N para chegar à noite). No jogo publicado, o N pularia a noite. M (som) vale sempre.
 - `window.__game` existe só no `npm run dev` (testes automáticos e depuração); a versão compilada não tem.
 - Interiores (`buildings.js`): térreo (cozinha/sala: fogão, balcão, mesa, sofá, cômoda, baú, estante), andar de cima (quarto: cama,
   guarda-roupa, baú, escrivaninha) e sótão das casas de 3 andares (caixotes, barris, sacos, baú). Lojas: prateleiras, balcão, vitrine.
@@ -327,6 +329,8 @@ Decidido: a Etapa 3 vai em 3 PRs — F1 mover pastas + `npm run check` (+ cortar
 F2 estado global → instâncias com `reset()` + caches limpos por distância (medir antes) · F3 `balance.js` + `?bots=3`.
 
 ## Histórico de PRs
+- **teclas-de-teste** — achado no teste geral: N (+1 hora) funcionava no jogo publicado e pulava a noite (vencia o cerco sem lutar);
+  K, T e `?bots=` também. Agora só no `npm run dev` (ou build com `VITE_TEST_KEYS=1`, o smoke). O menu só mostra "Teste" no dev. Replay igual.
 - **comando-unico** — pedido do dono: `npm start` sobe o servidor da sala e o jogo juntos. Correção: no Codespaces o QR não conectava
   (cada porta tem um endereço próprio e a 8080 nem estava aberta); agora o `npm run dev` repassa a conexão pela porta do jogo (`/ws`).
   O site compilado e o smoke continuam iguais. Nenhuma mudança no jogo.

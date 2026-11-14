@@ -1,12 +1,12 @@
 [0s] 1/4 compilando o jogo…
 [1s] 2/4 subindo relay e página…
-[3s] 3/4 abrindo o jogo no navegador sem tela…
-[21s]    sala QRUT aberta no relay
-[93s] 4/4 jogando 60 s…
-[125s]    captura 02-inicio.jpg
-[174s]    captura 03-acao.jpg
-[195s]    captura 04-noite.jpg
-[212s]    captura 05-fim.jpg
-[228s]    HUD: {"topo":"🌙 Noite 1/2\n🧟 29\n⭐ 0\n🪵 0 🩹 0\n🌙 00:10 · Limpo","jogadores":"🔫\nJogador 1\nNV 1\nEspingarda 6/30Granada 3s\n🪕\nCelular\nNV 1\nAlaúdeCanção de cura 8s\n🔮\nControle 1\nNV 1\nMana 100Meteoro 3s"}
+[2s] 3/4 abrindo o jogo no navegador sem tela…
+[6s]    sala ZBPK aberta no relay
+[75s] 4/4 jogando 60 s…
+[105s]    captura 02-inicio.jpg
+[161s]    captura 03-acao.jpg
+[185s]    captura 04-noite.jpg
+[202s]    captura 05-fim.jpg
+[215s]    HUD: {"topo":"🌙 Noite 1/2\n🧟 30\n⭐ 0\n🪵 0 🩹 0\n🌙 00:10 · Limpo","jogadores":"🔫\nJogador 1\nNV 1\nEspingarda 6/30Granada 3s\n🪕\nCelular\nNV 1\nAlaúdeCanção de cura 8s\n🔮\nControle 1\nNV 1\nMana 100Meteoro 3s"}
 
 PASSOU
