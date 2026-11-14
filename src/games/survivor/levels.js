@@ -14,13 +14,15 @@ const BEAM_TIME = 1.4
 const BEAM_GEO = new THREE.CylinderGeometry(0.5, 0.8, 9, 20, 1, true).translate(0, 4.5, 0)
 const BEAM_MAT = new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 0.6, depthWrite: false, toneMapped: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })
 
-// ctx: { scene, fx, players (Map), say(texto, s), sfx(nome, opções), move (números do movimento: o Pulmão de atleta muda o fôlego) }
-export function CreateLevels({ scene, fx, players, say, sfx, move }) {
+// ctx: { scene, fx, players (Map), say(texto, s), sfx(nome, opções), move (números do movimento: o Pulmão de atleta muda o fôlego),
+//        account() (nível da paróquia: libera cartas com `unlock`) }
+export function CreateLevels({ scene, fx, players, say, sfx, move, account = () => 99 }) {
   const beams = [] // { mesh, p, t }
   const inGroup = (cls) => [...players.values()].some((o) => o.cls.id === cls)
   // sorteia as cartas: melhorias que o jogador ainda não tem (gerais, da classe dele e combinações com quem está no grupo)
   function deal(p) {
-    const pool = UPGRADES.filter((u) => !p.mods.has(u.id) && (!u.cls || u.cls === p.cls.id) && (!u.with || inGroup(u.with)))
+    const lvl = account()
+    const pool = UPGRADES.filter((u) => !p.mods.has(u.id) && (!u.cls || u.cls === p.cls.id) && (!u.with || inGroup(u.with)) && (u.unlock || 1) <= lvl)
     const cards = []
     while (cards.length < L.cards && pool.length) cards.push(pool.splice((Math.random() * pool.length) | 0, 1)[0])
     p.cards = cards.length ? cards : null
@@ -37,11 +39,13 @@ export function CreateLevels({ scene, fx, players, say, sfx, move }) {
 
   return {
     // jogador novo (ou partida nova): nível 1, sem melhorias
-    init(p) { Object.assign(p, { level: 1, xp: 0, picks: 0, cards: null, mods: new Set(), move: null }) },
+    init(p) { Object.assign(p, { level: 1, xp: 0, earned: 0, picks: 0, cards: null, mods: new Set(), move: null }) },
+    // escolhas extras na hora (ex.: achado raro), sem subir de nível
+    grant(p, n = 1) { if (!p || !p.mods || n <= 0) return; p.picks += n; if (!p.cards) deal(p) },
     // ganhar XP; sobe quantos níveis der (cada nível = uma escolha)
     add(p, n) {
       if (!p || !p.mods || !n) return
-      p.xp += n
+      p.xp += n; p.earned += n // earned: XP da partida inteira (vai para a paróquia no fim)
       while (p.xp >= need(p.level)) {
         p.xp -= need(p.level); p.level++; p.picks++
         p.invulnT = Math.max(p.invulnT || 0, L.invulnerable)

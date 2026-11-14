@@ -1,7 +1,8 @@
 import { BALANCE } from './balance'
 
 // Melhorias (J7): nome e texto aqui; os números ficam em balance.js · upgrades. Sem `cls` = geral (qualquer classe pode sortear);
-// `cls` = só essa classe; `with` = combinação, só sorteia se essa outra classe estiver no grupo.
+// `cls` = só essa classe; `with` = combinação, só sorteia se essa outra classe estiver no grupo;
+// `unlock` = nível da paróquia que libera a carta (sem `unlock` = desde o começo: as 8 gerais + 2 de cada classe).
 // O efeito de cada uma está onde a coisa acontece (procure por has(p, 'id')): movimento/vida em levels.js, empurrão e pisão
 // em enemies/zombies.js, revistar e desmontar em loot.js, barricadas em barricades.js, levantar em fall.js,
 // habilidades das classes em abilities/classes.js.
@@ -18,27 +19,27 @@ export const UPGRADES = [
   { id: 'cold', icon: '🧊', name: 'Sangue frio', text: 'Agarrado: o empurrão não gasta fôlego e derruba quem agarrou' },
   // 🔫 Atirador
   { id: 'silencer', cls: 'gunner', icon: '🔇', name: 'Silenciador caseiro', text: `A pistola chama zumbis a ${Math.round(BALANCE.gunner.pistolNoise * U.silencer)} m em vez de ${BALANCE.gunner.pistolNoise} m` },
-  { id: 'pockets', cls: 'gunner', icon: '🎒', name: 'Bolsos fundos', text: `+${pct(U.pockets.ammo)} de munição na reserva; recarga mais rápida` },
-  { id: 'pierce', cls: 'gunner', icon: '🎯', name: 'Bala que atravessa', text: `A carabina atravessa 1 zumbi (${Math.round(U.pierce * 100)}% do dano no segundo)` },
+  { id: 'pockets', unlock: 4, cls: 'gunner', icon: '🎒', name: 'Bolsos fundos', text: `+${pct(U.pockets.ammo)} de munição na reserva; recarga mais rápida` },
+  { id: 'pierce', unlock: 2, cls: 'gunner', icon: '🎯', name: 'Bala que atravessa', text: `A carabina atravessa 1 zumbi (${Math.round(U.pierce * 100)}% do dano no segundo)` },
   { id: 'fisher', cls: 'gunner', icon: '🎣', name: 'Granada de pescador', text: `Granada recarrega em ${U.fisher.cd} s; raio +${pct(U.fisher.radius)}` },
   // ⚔️ Samurai
-  { id: 'clean', cls: 'samurai', icon: '🗡️', name: 'Corte limpo', text: `O 3º golpe mata zumbis com menos de ${Math.round(U.clean * 100)}% de vida` },
+  { id: 'clean', unlock: 4, cls: 'samurai', icon: '🗡️', name: 'Corte limpo', text: `O 3º golpe mata zumbis com menos de ${Math.round(U.clean * 100)}% de vida` },
   { id: 'double', cls: 'samurai', icon: '💨', name: 'Investida dupla', text: 'A investida tem 2 cargas' },
   { id: 'cat', cls: 'samurai', icon: '🐈', name: 'Passo de gato', text: 'A katana e a corrida fazem metade do barulho' },
-  { id: 'steel', cls: 'samurai', icon: '🌀', name: 'Redemoinho de aço', text: 'O redemoinho dura o dobro e puxa os zumbis para o centro' },
+  { id: 'steel', unlock: 2, cls: 'samurai', icon: '🌀', name: 'Redemoinho de aço', text: 'O redemoinho dura o dobro e puxa os zumbis para o centro' },
   // 🔮 Mago
-  { id: 'chain', cls: 'mage', icon: '⚡', name: 'Dardo em cadeia', text: `O dardo salta para mais ${U.chain.jumps} zumbis` },
-  { id: 'rain', cls: 'mage', icon: '☄️', name: 'Chuva de pedras', text: `O meteoro cai em ${U.rain.pieces} pedaços menores numa área maior` },
+  { id: 'chain', unlock: 3, cls: 'mage', icon: '⚡', name: 'Dardo em cadeia', text: `O dardo salta para mais ${U.chain.jumps} zumbis` },
+  { id: 'rain', unlock: 5, cls: 'mage', icon: '☄️', name: 'Chuva de pedras', text: `O meteoro cai em ${U.rain.pieces} pedaços menores numa área maior` },
   { id: 'deep', cls: 'mage', icon: '❄️', name: 'Gelo profundo', text: `A nova de gelo congela por ${U.deep} s em vez de deixar lento` },
   { id: 'burn', cls: 'mage', icon: '🔥', name: 'Queimada', text: `Matar com o meteoro devolve ${U.burn} de mana` },
   // 🪕 Bardo
   { id: 'muineira', cls: 'bard', icon: '💃', name: 'Muiñeira', text: `A balada também acelera ataques e recargas em ${pct(U.muineira)}` },
   { id: 'choir', cls: 'bard', icon: '🎶', name: 'Coro', text: `A canção de cura cura ${pct(U.choir.heal)} a mais e dá ${U.choir.shield} s de proteção` },
-  { id: 'loud', cls: 'bard', icon: '📢', name: 'Onda forte', text: `A onda sonora derruba quem está a menos de ${U.loud} m` },
-  { id: 'lure', cls: 'bard', icon: '🪤', name: 'Isca', text: `Mirando, a canção de cura toca a ${U.lure} m: atrai os zumbis para lá` },
+  { id: 'loud', unlock: 5, cls: 'bard', icon: '📢', name: 'Onda forte', text: `A onda sonora derruba quem está a menos de ${U.loud} m` },
+  { id: 'lure', unlock: 3, cls: 'bard', icon: '🪤', name: 'Isca', text: `Mirando, a canção de cura toca a ${U.lure} m: atrai os zumbis para lá` },
   // combinações: `with` = a outra classe tem de estar no grupo
-  { id: 'shatter', cls: 'samurai', with: 'mage', icon: '🧊⚔️', name: 'Estilhaçar', text: 'Zumbi lento ou congelado pelo gelo do Mago morre com um golpe de katana' },
-  { id: 'rhythm', cls: 'gunner', with: 'bard', icon: '🥁', name: 'Ritmo de guerra', text: 'Sob a balada do Bardo, você recarrega na hora e ganha 1 granada extra' },
-  { id: 'wheel', cls: 'mage', with: 'bard', icon: '🔥🎵', name: 'Fogo na roda', text: `Zumbi empurrado pela onda do Bardo leva ${U.wheel.damage}x de dano do meteoro` },
-  { id: 'cutdown', cls: 'samurai', with: 'gunner', icon: '🔫⚔️', name: 'Derrubar e cortar', text: 'A investida mata na hora todo zumbi caído que ela atravessar' },
+  { id: 'shatter', unlock: 6, cls: 'samurai', with: 'mage', icon: '🧊⚔️', name: 'Estilhaçar', text: 'Zumbi lento ou congelado pelo gelo do Mago morre com um golpe de katana' },
+  { id: 'rhythm', unlock: 7, cls: 'gunner', with: 'bard', icon: '🥁', name: 'Ritmo de guerra', text: 'Sob a balada do Bardo, você recarrega na hora e ganha 1 granada extra' },
+  { id: 'wheel', unlock: 7, cls: 'mage', with: 'bard', icon: '🔥🎵', name: 'Fogo na roda', text: `Zumbi empurrado pela onda do Bardo leva ${U.wheel.damage}x de dano do meteoro` },
+  { id: 'cutdown', unlock: 6, cls: 'samurai', with: 'gunner', icon: '🔫⚔️', name: 'Derrubar e cortar', text: 'A investida mata na hora todo zumbi caído que ela atravessar' },
 ]
