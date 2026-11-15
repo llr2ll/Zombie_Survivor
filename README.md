@@ -35,6 +35,7 @@ Testar sozinho com 4 classes (só no `npm run dev`, como as teclas de teste N, K
 Ligue o controle no PC (USB ou Bluetooth). No menu, aperte **qualquer botão**: ele ocupa uma vaga livre como "🎮 Controle". **◀ ▶** do direcional trocam a classe e **Start** começa a partida. Na partida: **stick esquerdo** anda · **stick direito** mira (e ataca enquanto inclinado) · **A** pula · **B** empurra · **X** usa (revistar, barricar, levantar, carro) · **LB / RB / Y** são os botões da classe · **LT** corre · ao subir de nível, as cartas aparecem na TV e o **direcional ◀ ▲ ▶** escolhe. O controle vibra ao levar dano, no tiro da espingarda e com explosões perto (como o celular Android; números em `balance.js · juice.buzz`). Dá para entrar no meio da partida. Código em `src/engine/input/gamepad.js`.
 
 ## Controles do celular
+Segure o celular **de lado**. Em pé também funciona (aparece "↻ Vire o celular de lado" e as habilidades vão para uma fileira própria), mas fica apertado. Quem não digita um nome vira "Jogador N", com o número da vaga.
 Na espera do menu: **◀ ▶** trocam a classe. Na partida: stick esquerdo = mover (ou dirigir) · stick direito = mirar (ataca enquanto inclinado) · botões da classe (nome e recarga vêm do jogo) · 🚗 aparece perto de um veículo (Entrar/Sair) · Correr · Pular · **Empurrar** (pisca quando um zumbi agarra).
 
 ## Zumbis (estilo Project Zomboid)

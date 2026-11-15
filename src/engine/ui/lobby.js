@@ -159,7 +159,8 @@ export function CreateLobby({ onStart, onKick, onChange, choices = [], sound = (
       let i = slots.findIndex((s) => s && s.type === 'phone' && !s.id)
       if (i < 0) i = slots.findIndex((s) => !s)
       if (i < 0) return -1
-      slots[i] = { type: 'phone', id, name: (name || '').slice(0, 12) || `Jogador ${i + 1}`, choice: slots[i] ? slots[i].choice : undefined }
+      const nm = (name || '').slice(0, 12)
+      slots[i] = { type: 'phone', id, name: nm && nm !== 'Jogador' ? nm : `Jogador ${i + 1}`, choice: slots[i] ? slots[i].choice : undefined } // sem nome: o número da vaga
       sound('join')
       render(); onChange()
       return i
