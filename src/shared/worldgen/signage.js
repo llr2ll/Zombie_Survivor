@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { VisionUnlit } from '../../engine/render/vision'
 import { P, merge, MAT, bx, cyl } from '../../engine/render/style'
 import { AtlasTexture, SignUV, ReleaseSignUV } from './sign-atlas'
 import { KM_POST, TRAFFIC_BODY, TRAFFIC_LENS } from './assets-road'
@@ -7,6 +8,7 @@ import { TrafficMat } from './streetlights'
 // Desenha as placas, semáforos e marcos de km de um chunk. Postes e fundos entram numa geometria fundida (cor por vértice);
 // as faces com texto ficam em OUTRA geometria fundida com UV do atlas. Resultado: ~3 draw calls por chunk, não importa quantas placas.
 export const SignMat = new THREE.MeshBasicMaterial({ alphaTest: 0.5, color: 0xffffff })
+SignMat.onBeforeCompile = (sh) => VisionUnlit(sh, 0.25) // à noite a placa só se lê perto de uma luz ou no facho da lanterna
 let matInit = false
 function ensureMat() {
   if (matInit) return

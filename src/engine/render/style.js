@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
+import { VisionShader } from './vision' // à noite, longe da luz escurece (vale para todo MeshLambertMaterial)
 
 // =====================================================================================
 //  Kit visual (estilo "diorama de brinquedo", tipo Link's Awakening) — pensado para FPS:
@@ -16,6 +17,7 @@ export const shade = { off: { value: new THREE.Vector2(-0.87, 0) }, alpha: { val
 
 function sway(mat, amp, speed) {
   mat.onBeforeCompile = (sh) => {
+    VisionShader(sh)
     sh.uniforms.uWind = wind
     sh.uniforms.uGust = gust
     sh.vertexShader = sh.vertexShader

@@ -22,6 +22,7 @@ import { WATER_Y } from './water'
 import { BuildSidewalks, GroundAt } from './sidewalk'
 import * as L from './assets-lights'
 import { LampGlassMat, BuildLampFx } from './streetlights'
+import { LitHouses, BuildHouseLightFx } from './house-lights'
 
 const col = (hex) => new THREE.Color(hex)
 const GRASS_A = col(0x7ccf34), GRASS_B = col(0x9be04a), GRASS_DARK = col(0x58b52b) // verdes saturados
@@ -313,6 +314,9 @@ export function GenerateChunk(cx, cz) {
   for (const [type, kind] of [['lamp', L.STREET_LAMP], ['lamp2', L.STREET_LAMP_FLOWERS], ['lantern', L.LANTERN]]) lightUp(kind, d.decor.filter((o) => o.type === type), -0.05)
   for (const [type, kind] of [['lamp', L.LANTERN], ['glamp', L.GARDEN_LAMP]]) lightUp(kind, d.objs.filter((o) => o.type === type), -0.02)
   BuildLampFx(g, lamps, dispose)
+  // ---------- casas acesas à noite (só algumas): vidro aceso + luz da janela no chão; a lista vai para o gerenciador ----------
+  const houses = LitHouses(bList)
+  BuildHouseLightFx(g, houses, dispose)
 
   // ---------- sombras de contato (1 draw call para o chunk inteiro) ----------
   inst(SHADOW_GEO, MAT.shadow, shadows, (s) => [s.x, GroundAt(s.x, s.z) + 0.07, s.z, 0, s.rx * 2, 1, s.rz * 2])
@@ -325,5 +329,6 @@ export function GenerateChunk(cx, cz) {
   g.userData.buildings = bList
   g.userData.dispose = dispose
   g.userData.lamps = lamps
+  g.userData.houses = houses
   return g
 }

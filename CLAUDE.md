@@ -64,7 +64,7 @@ src/engine/               genérico
   core/                   events.js (avisos entre partes), loop.js (laço de desenho com THREE.Timer, dt ≤ 0,05),
                           memo.js (cache com limite para o mundo infinito)
   render/                 splitscreen.js (junta <13 m, separa >19 m; shake = tremor só nas telas perto), light.js, style.js (paleta, materiais, vento),
-                          entity-shadows.js (sombras falsas), follow.js (contador de FPS)
+                          entity-shadows.js (sombras falsas), follow.js (contador de FPS), vision.js (noite escura: mapa de luz por tela)
   input/                  contract.js (contrato de input), keyboard.js (teclado+mouse), phone.js (código do celular),
                           gamepad.js (controles de videogame: Gamepad API, ids pad0…pad3)
   net/                    link.js (conexão direta WebRTC + RelayURL), host.js (tela: sala + conexões diretas), join.js (celular entra na sala)
@@ -78,7 +78,8 @@ src/shared/               peças prontas
   creatures/zombie-model.js  humanoide articulado (12 variações), base dos zumbis; look(material), e.puff (encher o peito), e.vault (pular janela)
   worldgen/               mundo: layout.js (estradas), town.js, city-lots.js, buildings.js, buildings-registry.js (portas, andares),
                           generator.js (monta um chunk), map.js (descritor do chunk), climate.js, signs*.js, names.js, water*.js,
-                          sidewalk.js (altura do chão), terrain.js, roadwear.js, props.js, poles.js, streetlights.js, assets*.js …
+                          sidewalk.js (altura do chão), terrain.js, roadwear.js, props.js, poles.js, streetlights.js, house-lights.js (casas
+                          acesas à noite), assets*.js …
   vehicles/               models.js (sedã, picape, jipe), vehicles.js (física, entrar/sair, atropelar)
   fx/                     effects.js, gore.js, water-fx.js (ondas e respingos)
   audio/                  sfx.js (efeitos soltos), soundscape.js (som contínuo)
@@ -101,6 +102,7 @@ src/games/survivor/       este jogo
   fuel.js                 gasolina (J8): carro gasta andando, abastecer com ⛽, bomba do posto (alarme), gasolina inicial dos carros
   siege.js                cerco (J5b): conta as noites, avisos do rádio, picos da horda, vitória no amanhecer do 3º dia
   tasks.js                "parado fazendo algo" (revistar, desmontar, barricar): cancelamento, barulho por segundo, anel de progresso
+  night.js                noite escura (só aparência): pinta o mapa de luz de cada tela (jogadores, lanternas, postes, casas acesas)
   bots.js                 ?bots=1..3: jogadores do computador SÓ PARA TESTE (contrato do celular; tecla B espalha/junta; só no dev)
   enemies/zombies.js      IA da horda: visão, audição, agarrão, renascer; especiais (e.kind): Berrador (J9), Labrego e Escoitador (J10)
   ui/hud.js               placar da partida: pílulas, cartão de cada jogador, mensagens em caixa (Dialog, Parts), achado, resultado, cartas da TV
@@ -139,7 +141,8 @@ Fora do balance de propósito: câmera/split screen, carros (`shared/vehicles/mo
 ## Contrato de input (proteger)
 Teclado e celular usam exatamente o mesmo formato. Não mude sem pedir.
 - `game.setInput(id, { mx, mz, ax, az, run, fire })` — mover (-1..1), mirar (-1..1; mirar inclinado = ataca), correr 0/1, `fire` só no mouse.
-- `game.act(id, ação)` — `b1` `b2` `b3` (botões da classe) · `shove` · `use` (carro) · `jump` · `reload` · `swap` · `carbine` `shotgun` `pistol` · `up1` `up2` `up3` (carta).
+- `game.act(id, ação)` — `b1` `b2` `b3` (botões da classe) · `shove` · `use` (carro) · `jump` · `reload` · `swap` · `carbine` `shotgun` `pistol` · `up1` `up2` `up3` (carta) ·
+  `light` (liga/desliga a lanterna: L no teclado, ▼ no controle, 🔦 no celular; vale caído também).
   Ações do menu da partida (o `main.js` trata, não chegam às regras): `menu` (☰ abre/fecha) · `resume` · `quit` (pede a votação) · `yes` `no` (vota).
   Com o menu aberto, nenhuma outra ação chega ao jogo. Teclado: Esc abre/fecha, Y/N votam. Controle: Start abre/fecha; no menu B fecha e Y pede
   para voltar; na votação A sim, B não.
@@ -149,7 +152,7 @@ Teclado e celular usam exatamente o mesmo formato. Não mude sem pedir.
   `rtc` (oferta/resposta) e `ice` (endereços). `ConnectHost` entrega ao jogo igual de onde vier (+ `onLink(id, direto)`).
 - Entrou no meio da partida (celular ou controle): nasce ao lado de alguém do grupo (`beside` em `survival.js`, o mesmo lugar do amanhecer);
   `game.sync(id)` manda o `state` na hora e, com o menu aberto, o `main.js` manda o `menu` (com a pausa o jogo não roda e o estado não sairia).
-- Tela → celular: `{t:'state', hp, max, cls, w, btn, car, dead, st, time, score, held, rv, u, inv, up}` a cada 0,15 s; `hit`, `lobby`, `kick`, `closed`;
+- Tela → celular: `{t:'state', hp, max, cls, w, btn, car, dead, st, time, score, held, rv, u, inv, lt, up}` a cada 0,15 s (`lt` = lanterna acesa, 0/1); `hit`, `lobby`, `kick`, `closed`;
   `{t:'menu', open, vote}` = menu da partida aberto (pausa); `vote` = 0 ou `{ by, yes, need, total, left, mine }` (mine: 'yes'/'no'/'').
   `{t:'buzz', ms}` = vibrar ms (tiro, explosão…: `buzz()`/`impact()` em `survival.js`, números em `balance.js · juice.buzz`).
   `up` = cartas para escolher (`[[título, texto], …]`, ou 0); tocar numa manda `{t:'act', a:'up1'|'up2'|'up3'}`. `cls` traz o nível ("🔫 Atirador · Nv 2").
@@ -163,7 +166,7 @@ Teclado e celular usam exatamente o mesmo formato. Não mude sem pedir.
 - Jogador do teclado tem id `'local'`. Bots de teste têm id `bot1`…`bot3` e usam o mesmo contrato (`games/survivor/bots.js`).
 - Controle de videogame (J14): id `pad0`…`pad3`; `engine/input/gamepad.js` lê a cada quadro e entrega `input` (stick esquerdo = mx/mz,
   direito = ax/az, LT ou L3 = run) e `button` (nomes do padrão). O `main.js` traduz: A jump · B shove · X use · LB b1 · RB b2 · Y b3 ·
-  direcional ◀ ▲ ▶ = up1/up2/up3 (cartas, mostradas na TV). No menu: qualquer botão entra (`lobby.addPad`), ◀ ▶ trocam a classe, Start começa.
+  direcional ◀ ▲ ▶ = up1/up2/up3 (cartas, mostradas na TV) · ▼ = light (lanterna). No menu: qualquer botão entra (`lobby.addPad`), ◀ ▶ trocam a classe, Start começa.
   Mensagens das regras para "celulares" com id `pad…` não vão ao relay: `hit` e `buzz` viram tremida (`rumble`), o resto é ignorado.
 
 ## Decisões tomadas (não reabra sem perguntar ao dono)
@@ -222,6 +225,25 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
 - Velocidades: andar 4,4 m/s, correr 7,6, mirando 3,1 (`player-movement.js`); sedã 23 m/s, picape 20, jipe 19 (`vehicles/models.js`).
 - Raio do barulho que atrai zumbis: tiro 30 m (pistola 22), granada 38, música do Bardo 18, onda 12, dardo 9, katana 7,
   carro andando 18, correr 8, andar 3. A noite muda visão (16 → 9 m) e quantidade (×1,3). Chuva e neblina não afetam os zumbis.
+- **Noite (PR iluminacao-noturna):** `engine/render/vision.js` troca o `onBeforeCompile` do protótipo de `MeshLambertMaterial` (uma vez) e põe
+  um trecho depois das luzes: longe de quem olha e de toda luz, a luz recebida é multiplicada por `night.floor`. As luzes ficam num
+  **mapa de luz** (imagem 256×256 de 150 m, vista de cima, pintada em canvas 2D por `PaintVision` logo antes de cada tela ser desenhada):
+  R = círculo de cada jogador · G = cone da lanterna ou dos faróis (some acima de ~3 m: não sobe no telhado) · B = postes (redondo) e casas
+  acesas (retângulo da casa; também clareia o cômodo com um tom quente; some acima de ~3,4 m). O shader consulta a imagem **uma vez** por
+  ponto. Posição no mundo = `cameraPosition + transpose(mat3(viewMatrix)) * (-vViewPosition)` (sem varying novo). De dia (`dark` = 0) o
+  trecho é pulado e nada é pintado. **Não voltar a somar luzes no shader nem a usar PointLight nas casas:** a 1ª versão somava até 14 luzes
+  por ponto e tinha 3 PointLight fixas; no navegador sem placa de vídeo o quadro passava de 1.057 → 1.753 ms de dia e 963 → 1.972 ms à
+  noite. Com o mapa: ~+15% de dia e ~+13% à noite (a medição oscila ~8%).
+  Material Lambert com `onBeforeCompile` próprio tem de chamar `VisionShader(sh)` (vento em `style.js`, `water-props.js`). Material sem luz
+  (`MeshBasicMaterial`: poças, placas, rabiscos de vento) usa `VisionUnlit(sh, quanto sobra à noite)`; a água chama `vis_factor` no shader
+  dela (`VisionDecl`). Medido: o chão iluminado fica com ~0,16 do brilho do dia, por isso os sem luz usam 0,15–0,25 (com 0,55 o lago
+  ficava claro no escuro). Brilho próprio (emissive) e efeitos (tiros, anéis, marcadores de saque) não escurecem, de propósito.
+  `games/survivor/night.js`: `update` (quão escuro, de onde cada jogador enxerga) e `paint(jogadores da tela)` (chamado no `split.render`);
+  no menu inicial `dark` = 0. Só aparência: os zumbis não ligam para a lanterna.
+  **Casas acesas** (`shared/worldgen/house-lights.js`): `hash` da posição da casa < 0,2; por andar e por janela também é sorteio fixo.
+  `buildings.js` registra todas as janelas no protótipo (`pr.panes`). Por chunk com casa acesa: 2 draw calls (vidros + luz no chão, aditivos,
+  instanciados). Casa com alguém dentro (telhado aberto): os vidros acesos somem (`uHide`). `LampTarget` (postes) decide a hora de acender.
+  `houseLights.around` / `streetLights.around(x, z, r, out)` dão as luzes perto de uma tela para o mapa.
 - **Sangue e chuva (PR sangue-chuva):** cada mancha (`gore.js`, anel de instâncias) guarda se está ao ar livre (fora de casa; face de
   fora das paredes) e quanto resta dela. `gore.update(dt, chuva)` encolhe as de fora até sumirem: `juice.bloodWash` s na tempestade
   (chuva 1), ~55 s na chuva comum (0,55). Olha 200 manchas por quadro (barato). A chuva chega pelas regras: `hooks.rain()` (`climate.rain`).
@@ -353,6 +375,10 @@ Decidido: a Etapa 3 vai em 3 PRs — F1 mover pastas + `npm run check` (+ cortar
 F2 estado global → instâncias com `reset()` + caches limpos por distância (medir antes) · F3 `balance.js` + `?bots=3`.
 
 ## Histórico de PRs
+- **iluminacao-noturna** — pedido do dono: 1 em cada 5 casas acesa à noite (vidro aceso, luz saindo pela janela com a sombra da cruz no chão,
+  cômodo iluminado), noite bem escura estilo Zomboid (círculo de 4,5 m + cone da lanterna de 14 m; faróis no carro) e lanterna que todo
+  personagem já tem (L · ▼ no controle · 🔦 no celular). Poças, placas, água e rabiscos de vento escurecem junto (bug das poças acesas).
+  Só aparência: zumbis iguais, mundo e replay iguais. Números em `balance.js · night`.
 - **barricar-janela** — bug achado pelo dono ("não consigo pôr barricada nas janelas"): no teclado e no controle não havia aviso nenhum de
   quando dava para barricar (só o celular mostrava o botão), janela com móvel na frente não deixava e por fora nada acontecia. Agora o cartão
   de quem joga sem celular mostra o que o Usar faz ("E 🪵 Barricar (2)"), o alcance cobre um móvel no meio e por fora aparece "só por dentro".

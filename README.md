@@ -28,7 +28,7 @@ Abra no PC `http://IP-DO-SEU-PC:5173` (não `localhost`, senão o QR code aponta
 No celular: escaneie o QR code ou abra `/controller.html` e digite o código. Na partida, o QR fica no menu (**Esc**, **Start** no controle ou **☰** no celular): o menu pausa o jogo para todos, mostra o desenho dos controles e tem "Voltar ao menu inicial", que abre uma votação (passa com a maioria dos jogadores).
 
 Letras: **Cinzel** (títulos) e **Marcellus** (texto), em `public/fonts/` com a licença OFL (livre para jogo pago); os números usam a letra serifada do sistema, porque nas duas o 1 parece um I.
-Teste sem celular: WASD + mouse (clique esquerdo ataca, direito só mira), E entra/sai do veículo, Q/F/G habilidades, **V empurra**, 1/2/3 armas, R recarrega.
+Teste sem celular: WASD + mouse (clique esquerdo ataca, direito só mira), E entra/sai do veículo, Q/F/G habilidades, **V empurra**, 1/2/3 armas, R recarrega, **L liga/desliga a lanterna**.
 Testar sozinho com 4 classes (só no `npm run dev`, como as teclas de teste N, K e T): abra o jogo com **`?bots=3`** no fim do endereço (3 jogadores do computador ocupam as vagas livres; tecla **B** espalha/junta, para ver a tela dividida). Só para teste.
 
 ## Controle de videogame (Xbox / PlayStation)
@@ -141,6 +141,17 @@ Ao abrir o jogo aparece o menu com 4 vagas. **Ninguém escolhe o aparelho: cada 
 
 ## Split screen
 Jogadores perto (< 13 unidades) dividem uma tela só; ao se afastar (> 19) ela se divide. Layout pelo número de telas: 2 = linha vertical · 3 = duas em cima + uma embaixo · 4 = 2x2. Quem cai assiste pela tela do grupo vivo mais próximo. Ajustes em `src/engine/render/splitscreen.js` (`MERGE`, `SPLIT`, `GAP`).
+
+## Noite: escuridão, lanterna e casas acesas
+À noite o mundo fica **bem escuro** longe da luz (estilo Project Zomboid). Cada jogador vê um **círculo de 4,5 m** em volta e, com a **lanterna**
+acesa, um **cone de 14 m** para onde mira (**L** no teclado · **▼** no controle · **🔦** no celular; todo personagem já começa com ela, acesa).
+Dentro do carro valem os **faróis** (20 m para a frente). Postes e casas acesas também deixam ver em volta deles. É só aparência: os zumbis
+enxergam e ouvem igual (9 m à noite), com ou sem lanterna. **1 em cada 5 casas** tem luz (sempre as mesmas; algumas piscam, como gerador
+falhando): o vidro das janelas fica aceso, a luz sai pela janela e desenha no chão a sombra da cruz da janela, e por dentro o cômodo fica
+iluminado. Poças, placas, água e rabiscos de vento escurecem junto (antes ficavam acesos no escuro). Números em `balance.js · night`.
+Código: `src/engine/render/vision.js` (o escuro: um mapa de luz pequeno, visto de cima, que o shader de todo material consulta uma vez por
+ponto — barato), `src/shared/worldgen/house-lights.js` (casas acesas) e `src/games/survivor/night.js` (pinta o mapa de cada tela com os
+jogadores, as lanternas, os postes e as casas). No menu inicial nada escurece.
 
 ## Visual (estilo diorama)
 Cores por vértice + malhas fundidas (poucos draw calls), balanço do vento na GPU, sombras de contato falsas (sem shadow map), tone mapping Neutral e desfoque "miniatura" via CSS (tecla **T** liga/desliga). Paleta e luz em `src/engine/render/style.js`, `src/shared/worldgen/assets.js` e `src/engine/render/light.js`.

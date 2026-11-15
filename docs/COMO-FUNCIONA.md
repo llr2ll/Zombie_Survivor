@@ -80,6 +80,7 @@ Exemplo: o mundo avisa "a porta abriu" e o jogo decide qual som tocar. O gerador
 | `src/games/survivor/barricades.js` | Portas e janelas: barricadas, zumbis batendo, vidro quebrando, zumbi pulando a janela | "⚠ Barricada sob ataque!" |
 | `src/games/survivor/base.js` | O rádio que marca a casa-base | 📻 no placar |
 | `src/games/survivor/siege.js` | O cerco: conta as noites, avisa pelo rádio, manda a horda contra a base à noite, decide a vitória | "🌙 Noite 1/2 · 🧟 pico!" |
+| `src/games/survivor/night.js` | A noite escura: o que cada jogador enxerga (círculo em volta, cone da lanterna, faróis) e as luzes de postes e casas | À noite só se vê perto do boneco e onde a lanterna aponta |
 | `src/games/survivor/bots.js` | Jogadores do computador, só para teste (`?bots=3`) | 🤖 Bot 1 no placar |
 | `src/games/survivor/levels.js` | XP, subir de nível e escolher melhorias (nomes das 28 em `config/upgrades.js`) | "⬆ Ana subiu para o nível 2!" |
 | `src/engine/input/gamepad.js` | Controle de videogame (Xbox/PlayStation) como jogador, igual a um celular | "🎮 Controle 1 · pronto" no menu |

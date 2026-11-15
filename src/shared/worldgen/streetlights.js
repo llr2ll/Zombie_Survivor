@@ -117,6 +117,11 @@ export function CreateStreetLights(scene) {
     add(list) { if (list && list.length) loaded.add(list) },
     remove(list) { loaded.delete(list) },
     reset() { loaded.clear() },
+    // postes acesos a até r de (x, z), para a visão noturna: { x, z, r, k (quão aceso) } entram em out
+    around(x, z, r, out) {
+      if (night.value <= 0) return
+      for (const list of loaded) for (const l of list) if (l.spot && Math.abs(l.x - x) < r && Math.abs(l.z - z) < r) out.push({ x: l.x, z: l.z, r: l.r * 1.15, k: night.value })
+    },
     // para o som: quão aceso (0..1) e a distância do poste aceso mais perto de alguém
     get lit() { return night.value },
     get near() { return near },

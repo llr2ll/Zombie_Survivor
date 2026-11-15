@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { WATER_Y, BridgesNear, WaterSD } from './water'
 import { wind } from '../../engine/render/style'
+import { VisionDecl } from '../../engine/render/vision'
 import { P, merge, box } from '../../engine/render/style'
 import { CHUNK_SIZE, ROAD_HALF } from './layout'
 
@@ -9,6 +10,7 @@ import { CHUNK_SIZE, ROAD_HALF } from './layout'
 // A profundidade (nível da água - chão) vai num atributo por vértice e a GPU interpola.
 export const WaterMat = new THREE.MeshBasicMaterial({ color: 0xffffff })
 WaterMat.onBeforeCompile = (sh) => {
+  VisionDecl(sh) // à noite a água também escurece longe da luz (e fica mais apagada)
   sh.uniforms.uTime = wind
   sh.vertexShader = sh.vertexShader
     .replace('#include <common>', '#include <common>\nattribute float aDepth;\nvarying float vD;\nvarying vec2 vW;')
@@ -26,9 +28,9 @@ WaterMat.onBeforeCompile = (sh) => {
       float r = sin(vW.x * 0.9 + sin(vW.y * 0.7 + uTime * 0.6) * 1.8 + uTime * 0.9) * sin(vW.y * 1.15 - uTime * 0.7 + sin(vW.x * 0.55) * 1.6);
       float spark = smoothstep(0.86, 0.93, r) * smoothstep(0.25, 0.6, vD);
       col = mix(col, vec3(1.0), clamp(max(max(foam, foam2), spark * 0.8), 0.0, 1.0));
-      vec4 diffuseColor = vec4(col, 1.0);`)
+      vec4 diffuseColor = vec4(col * vis_factor(vec3(vW.x, ${WATER_Y.toFixed(2)}, vW.y)) * mix(1.0, 0.2, uVisDark), 1.0);`) // 0.2 ≈ quanto o chão escurece à noite (a água não recebe a luz da cena)
 }
-WaterMat.customProgramCacheKey = () => 'water-la'
+WaterMat.customProgramCacheKey = () => 'water-la-vis'
 
 // malha da água do chunk: mesma grade de 1 m do terreno; só entram quadrados com algum canto abaixo da água
 // h(i, j) = altura do terreno no vértice (i, j) do chunk (0..CHUNK_SIZE)

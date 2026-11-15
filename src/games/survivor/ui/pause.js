@@ -11,7 +11,7 @@ const KEYS = [
   ['Esc', 'menu', 0, 0], ['1', 'carabina', 5.8, 0, 5.2], ['2', 'espingarda', 11.4, 0, 5.2], ['3', 'pistola', 17, 0, 5.2],
   ['Q', 'hab. 1', 6.9, 4.6, 0, 'cls'], ['W', '↑', 11.5, 4.6, 0, 'mv'], ['E', 'usar', 16.1, 4.6], ['R', 'recarregar', 20.7, 4.6],
   ['A', '←', 8, 9.2, 0, 'mv'], ['S', '↓', 12.6, 9.2, 0, 'mv'], ['D', '→', 17.2, 9.2, 0, 'mv'], ['F', 'hab. 2', 21.8, 9.2, 0, 'cls'], ['G', 'hab. 3', 26.4, 9.2, 0, 'cls'],
-  ['Shift', 'correr', 0, 13.8, 9.6], ['V', 'empurrar', 24.1, 13.8], ['Espaço', 'pular', 12, 18.4, 19],
+  ['L', 'lanterna', 31, 9.2], ['Shift', 'correr', 0, 13.8, 9.6], ['V', 'empurrar', 24.1, 13.8], ['Espaço', 'pular', 12, 18.4, 19],
 ]
 const KEYBOARD = `<div class="kb">${KEYS.map(([k, a, x, y, w, t]) => `<div class="k ${t || ''}" style="left:${x}em;top:${y}em${w ? `;width:${w}em` : ''}"><b>${k}</b><i>${a}</i></div>`).join('')}</div>
   <div class="mouse"><span class="l">clique<br>atacar</span><span class="r">direito<br>só mirar</span></div>
@@ -26,7 +26,7 @@ const GAMEPAD = `<svg viewBox="0 0 560 262" aria-label="Controle de videogame">
   <rect x="296" y="104" width="22" height="10" rx="5" fill="#f1c56b"/>
   <g stroke="#e8c27a" stroke-opacity=".5" fill="none"><path d="M190 52V30H120"/><path d="M370 52V30H440"/><path d="M168 118H60"/><path d="M247 175V236H160"/><path d="M330 182V236H380"/><path d="M400 98L470 70"/><path d="M380 118L470 100"/><path d="M420 118L470 130"/><path d="M398 142L470 160"/><path d="M307 104V20H280"/></g>
   <text x="116" y="34" text-anchor="end" class="lbl g">LB · hab. 1 · LT correr</text><text x="444" y="34" class="lbl g">RB · hab. 2</text>
-  <text x="56" y="122" text-anchor="end" class="lbl">andar</text><text x="156" y="240" text-anchor="end" class="lbl">◀ ▲ ▶ cartas</text><text x="384" y="240" class="lbl">mirar e atacar</text>
+  <text x="56" y="122" text-anchor="end" class="lbl">andar</text><text x="156" y="240" text-anchor="end" class="lbl">◀ ▲ ▶ cartas · ▼ lanterna</text><text x="384" y="240" class="lbl">mirar e atacar</text>
   <text x="474" y="74" class="lbl">Y · hab. 3</text><text x="474" y="104" class="lbl">X · usar</text><text x="474" y="134" class="lbl">B · empurrar</text><text x="474" y="164" class="lbl">A · pular</text>
   <text x="276" y="24" text-anchor="end" class="lbl g">Start · menu</text></svg>`
 const PHONE = `<svg viewBox="0 0 560 262" aria-label="Controle no celular">
@@ -34,6 +34,7 @@ const PHONE = `<svg viewBox="0 0 560 262" aria-label="Controle no celular">
   <circle cx="170" cy="120" r="34" fill="none" stroke="#bfe3ff" stroke-dasharray="4 4" stroke-opacity=".7"/><circle cx="380" cy="120" r="34" fill="none" stroke="#ff9d3f" stroke-dasharray="4 4" stroke-opacity=".8"/>
   <text x="170" y="124" text-anchor="middle" class="lbl">andar</text><text x="380" y="118" text-anchor="middle" class="lbl">mirar e</text><text x="380" y="132" text-anchor="middle" class="lbl">atacar</text>
   <circle cx="112" cy="196" r="18" fill="#5e3e2b"/><text x="112" y="200" text-anchor="middle" class="lbl" style="font-size:9px">Correr</text>
+  <circle cx="116" cy="152" r="14" fill="#f0c040"/><text x="116" y="155" text-anchor="middle" style="font:700 7.5px system-ui;fill:#1b1512">Lanterna</text>
   <circle cx="404" cy="196" r="18" fill="#5e3e2b" stroke="#e25555" stroke-opacity=".7"/><text x="404" y="200" text-anchor="middle" class="lbl" style="font-size:8px">Empurrar</text>
   <circle cx="448" cy="196" r="18" fill="#5e3e2b"/><text x="448" y="200" text-anchor="middle" class="lbl" style="font-size:9px">Pular</text>
   <circle cx="448" cy="150" r="20" fill="#1f4f78" stroke="#7fd0ff"/><text x="448" y="154" text-anchor="middle" class="lbl" style="font-size:9px">Usar</text>

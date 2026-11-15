@@ -1,12 +1,12 @@
 [0s] 1/4 compilando o jogo…
 [1s] 2/4 subindo relay e página…
-[2s] 3/4 abrindo o jogo no navegador sem tela…
-[6s]    sala VLLL aberta no relay
-[77s] 4/4 jogando 60 s…
-[105s]    captura 02-inicio.jpg
-[171s]    captura 03-acao.jpg
-[196s]    captura 04-noite.jpg
-[213s]    captura 05-fim.jpg
-[228s]    HUD: {"topo":"🌙 Noite 1/2\n🧟 31\n⭐ 0\n🪵 0 🩹 0\n🌙 00:10 · Limpo","jogadores":"🔫\nJogador 1\nNV 1\nEspingarda 6/30Granada 2s\n🪕\nCelular\nNV 1\nAlaúdeCanção de cura 8s\n🔮\nControle 1\nNV 1\nMana 100Nova de gelo 6s"}
+[3s] 3/4 abrindo o jogo no navegador sem tela…
+[10s]    sala PCKZ aberta no relay
+[88s] 4/4 jogando 60 s…
+[124s]    captura 02-inicio.jpg
+[192s]    captura 03-acao.jpg
+[218s]    captura 04-noite.jpg
+[236s]    captura 05-fim.jpg
+[252s]    HUD: {"topo":"🌙 Noite 1/2\n🧟 29\n⭐ 0\n🪵 0 🩹 0\n🌙 00:10 · Limpo","jogadores":"🔫\nJogador 1\nNV 1\nEspingarda 6/30Granada 3s\n🪕\nCelular\nNV 1\nAlaúdeCanção de cura 9s\n🔮\nControle 1\nNV 1\nMana 100Meteoro 3s"}
 
 PASSOU

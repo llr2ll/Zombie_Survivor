@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { P, merge, box, cyl, sph, wind } from '../../engine/render/style'
+import { VisionShader } from '../../engine/render/vision'
 import { WATER_Y } from './water'
 import { DECK_Y, BridgeY, STONE_Y } from './water-life'
 
@@ -64,6 +65,7 @@ export function BuildWaterStructs(g, list, dispose, MAT) {
 function bobMat() {
   const m = new THREE.MeshLambertMaterial({ vertexColors: true })
   m.onBeforeCompile = (sh) => {
+    VisionShader(sh)
     sh.uniforms.uWind = wind
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uWind;').replace('#include <begin_vertex>', `#include <begin_vertex>
       vec2 bp = instanceMatrix[3].xz;
@@ -100,6 +102,7 @@ export const BOAT_TINTS = [new THREE.Color(1, 1, 1), new THREE.Color(0.55, 0.85,
 // instanceColor = (raio/4, fase/2π, velocidade 0..1 com sinal pela fase); a cor real do bicho vem dos vértices
 function swimMat(base, { jump = false, wiggle = true, key }) {
   base.onBeforeCompile = (sh) => {
+    VisionShader(sh)
     sh.uniforms.uWind = wind
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nuniform float uWind;')
