@@ -111,14 +111,17 @@ export function CreateStreetLights(scene) {
     spots.push(s)
   }
   let t = 0, scanT = 0, near = Infinity
-  const glows = [] // postes com luz de verdade agora: { x, z, r } (a visão noturna deixa ver embaixo deles)
   const cand = []
   const loaded = new Set() // postes dos chunks carregados (o jogo põe e tira junto com os chunks)
   return {
     add(list) { if (list && list.length) loaded.add(list) },
     remove(list) { loaded.delete(list) },
     reset() { loaded.clear() },
-    glows,
+    // postes acesos a até r de (x, z), para a visão noturna: { x, z, r, k (quão aceso) } entram em out
+    around(x, z, r, out) {
+      if (night.value <= 0) return
+      for (const list of loaded) for (const l of list) if (l.spot && Math.abs(l.x - x) < r && Math.abs(l.z - z) < r) out.push({ x: l.x, z: l.z, r: l.r * 1.15, k: night.value })
+    },
     // para o som: quão aceso (0..1) e a distância do poste aceso mais perto de alguém
     get lit() { return night.value },
     get near() { return near },
@@ -145,12 +148,10 @@ export function CreateStreetLights(scene) {
         }
         cand.sort((a, b) => a[0] - b[0])
         near = cand.length ? Math.sqrt(cand[0][0]) : Infinity
-        glows.length = 0
         spots.forEach((s, i) => {
           const l = cand[i] && cand[i][1]
           if (!l) { s.userData.l = null; return }
           s.userData.l = l
-          glows.push({ x: l.x, z: l.z, r: l.r * 1.15, top: l.y + 0.5 })
           s.position.set(l.x, l.y - 0.05, l.z)
           s.target.position.set(l.x, l.gy, l.z)
         })

@@ -8,14 +8,13 @@ import { LampTarget } from './streetlights'
 //  Barato, como os postes:
 //  - vidro aceso e a luz que sai pela janela no chão (com a sombra da cruz da janela): instanciados por chunk,
 //    shader aditivo de poucas linhas (2 draw calls por chunk com casa acesa)
-//  - luz de verdade (PointLight) só num punhado fixo (POOL) que vai para as casas acesas mais perto dos jogadores:
-//    com o telhado aberto, o cômodo aparece iluminado; a quantidade de luzes nunca muda (sem recompilar shaders)
+//  - o cômodo aceso (com o telhado aberto) é clareado pela visão noturna (engine/render/vision.js): a casa entra no mapa de luz.
+//    (A 1ª versão usava 3 PointLight fixas: pesavam ~15% de cada quadro, de dia e de noite.)
 //  Algumas piscam (gerador falhando): a casa toda pisca junto.
 // =====================================================================================
 
 const SHARE = 0.2 // ~1 em 5 casas/prédios acesos
 const FLICKER = 0.25 // das acesas, quantas piscam
-const POOL = 3, POOL_I = 9, POOL_RANGE = 9, POOL_DECAY = 1.6, POOL_NEAR = 28
 const WARM = new THREE.Color(1.0, 0.7, 0.36)
 const night = { value: 0 } // 0 = apagado, 1 = aceso (todos os shaders abaixo)
 const hide = { value: Array.from({ length: 4 }, () => new THREE.Vector4()) } // casas com alguém dentro (x0, z0, x1, z1): o telhado abre e o vidro aceso some
@@ -62,7 +61,7 @@ const PANE_GEO = new THREE.PlaneGeometry(1, 1) // virado para +z
 const SPILL_GEO = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0, 0, 0.5) // deitado; z = 0 na parede, 1 longe
 
 // casas acesas de um chunk: recebe a lista de casas do gerador ({ x, z, y, cs, sn, pr }) e devolve as acesas no mundo:
-// { x, z, y, r (raio para a visão), ly (altura da luz), fl (fase do pisca), panes: [{ x, y, z, nx, nz, w, h, k }] }
+// { x, z, y, hw, hd (meio tamanho, para a visão), fl (fase do pisca), panes: [{ x, y, z, nx, nz, w, h, k }] }
 export function LitHouses(list) {
   const out = []
   for (const b of list) {
@@ -80,9 +79,9 @@ export function LitHouses(list) {
       panes.push({ x: wx, z: wz, y: b.y + o.y, nx: o.nx * b.cs + o.nz * b.sn, nz: -o.nx * b.sn + o.nz * b.cs, w: o.w, h: o.h, k: o.k })
     }
     if (!panes.length) continue
-    const low = panes.reduce((m, p) => Math.min(m, p.k), 9)
     out.push({
-      x: b.x, z: b.z, y: b.y, r: Math.max(b.pr.w, b.pr.d) / 2 + 2.5, ly: panes.find((p) => p.k === low).y + 0.7,
+      x: b.x, z: b.z, y: b.y, // hw, hd = meia largura e meia profundidade no mundo (para a visão noturna clarear o cômodo)
+      hw: (Math.abs(b.cs) * b.pr.w + Math.abs(b.sn) * b.pr.d) / 2, hd: (Math.abs(b.sn) * b.pr.w + Math.abs(b.cs) * b.pr.d) / 2,
       fl: hash(kx, kz, 7600) < FLICKER ? 0.05 + hash(kx, kz, 7601) * 0.95 : 0, panes,
     })
   }
@@ -116,55 +115,26 @@ export function BuildHouseLightFx(g, houses, dispose) {
   })
 }
 
-export function CreateHouseLights(scene) {
-  const pool = []
-  for (let i = 0; i < POOL; i++) {
-    const l = new THREE.PointLight(WARM, 0, POOL_RANGE, POOL_DECAY)
-    l.position.set(0, -50, 0)
-    scene.add(l)
-    pool.push(l)
-  }
+export function CreateHouseLights() {
   const loaded = new Set() // casas acesas dos chunks carregados (o jogo põe e tira junto com os chunks)
-  const glows = [] // casas com luz de verdade agora: { x, z, r } (a visão noturna deixa ver em volta delas)
-  let scanT = 0
   const hz = (a, b) => { const v = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return v - Math.floor(v) }
+  // pisca junto com as janelas (mesma conta do shader, aproximada)
+  const flick = (h) => { if (!(h.fl > 0)) return 1; const n = hz(Math.floor(wind.value * 7), h.fl * 97); return n > 0.86 ? 0.15 : n > 0.74 ? 0.55 : 1 }
   return {
-    glows,
     add(list) { if (list && list.length) loaded.add(list) },
     remove(list) { loaded.delete(list) },
     reset() { loaded.clear() },
-    // time = hora do clima (0..1), over = céu fechado, focus = jogadores (ou o centro do menu), inside = casas com alguém dentro
-    update(dt, time, over, focus, inside = []) {
+    // casas acesas a até r de (x, z), para a visão noturna (deixa ver e clareia o cômodo): { x, z, hw, hd, k (força, com o pisca) } entram em out
+    around(x, z, r, out) {
+      if (night.value <= 0) return
+      for (const list of loaded) for (const h of list) if (Math.abs(h.x - x) < r && Math.abs(h.z - z) < r) out.push({ x: h.x, z: h.z, hw: h.hw, hd: h.hd, k: night.value * flick(h) })
+    },
+    // time = hora do clima (0..1), over = céu fechado, inside = casas com alguém dentro (o telhado abre e o vidro aceso some)
+    update(dt, time, over, inside = []) {
       hide.value.forEach((v, i) => { const b = inside[i]; if (b) v.set(b.x0 - 0.6, b.z0 - 0.6, b.x1 + 0.6, b.z1 + 0.6); else v.set(0, 0, 0, 0) })
       night.value += (LampTarget(time, over) - night.value) * (1 - Math.exp(-dt * 1.2))
       if (night.value < 0.002) night.value = 0
-      const on = night.value > 0
-      PaneMat.visible = SpillMat.visible = on
-      if ((scanT -= dt) <= 0) {
-        scanT = 0.3
-        const cand = []
-        if (on) for (const list of loaded) for (const h of list) {
-          let d = Infinity
-          for (const f of focus) d = Math.min(d, (f.x - h.x) ** 2 + (f.z - h.z) ** 2)
-          if (d < POOL_NEAR * POOL_NEAR) cand.push([d, h])
-        }
-        cand.sort((a, b) => a[0] - b[0])
-        glows.length = 0
-        pool.forEach((l, i) => {
-          const h = cand[i] && cand[i][1]
-          l.userData.h = h || null
-          if (!h) return
-          l.position.set(h.x, h.ly, h.z)
-          glows.push({ x: h.x, z: h.z, r: h.r, top: h.ly + 0.8 }) // até o teto do cômodo aceso (o telhado fica escuro)
-        })
-      }
-      // pisca junto com as janelas (mesma conta do shader, aproximada)
-      for (const l of pool) {
-        const h = l.userData.h
-        let f = 1
-        if (h && h.fl > 0) { const n = hz(Math.floor(wind.value * 7), h.fl * 97); f = n > 0.86 ? 0.15 : n > 0.74 ? 0.55 : 1 }
-        l.intensity = h ? POOL_I * night.value * f : 0
-      }
+      PaneMat.visible = SpillMat.visible = night.value > 0
     },
   }
 }

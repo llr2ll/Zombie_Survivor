@@ -149,8 +149,9 @@ Dentro do carro valem os **faróis** (20 m para a frente). Postes e casas acesas
 enxergam e ouvem igual (9 m à noite), com ou sem lanterna. **1 em cada 5 casas** tem luz (sempre as mesmas; algumas piscam, como gerador
 falhando): o vidro das janelas fica aceso, a luz sai pela janela e desenha no chão a sombra da cruz da janela, e por dentro o cômodo fica
 iluminado. Poças, placas, água e rabiscos de vento escurecem junto (antes ficavam acesos no escuro). Números em `balance.js · night`.
-Código: `src/engine/render/vision.js` (o escuro, num trecho do shader de todo material), `src/shared/worldgen/house-lights.js` (casas acesas)
-e `src/games/survivor/night.js` (liga os jogadores, postes e casas à visão). No menu inicial nada escurece.
+Código: `src/engine/render/vision.js` (o escuro: um mapa de luz pequeno, visto de cima, que o shader de todo material consulta uma vez por
+ponto — barato), `src/shared/worldgen/house-lights.js` (casas acesas) e `src/games/survivor/night.js` (pinta o mapa de cada tela com os
+jogadores, as lanternas, os postes e as casas). No menu inicial nada escurece.
 
 ## Visual (estilo diorama)
 Cores por vértice + malhas fundidas (poucos draw calls), balanço do vento na GPU, sombras de contato falsas (sem shadow map), tone mapping Neutral e desfoque "miniatura" via CSS (tecla **T** liga/desliga). Paleta e luz em `src/engine/render/style.js`, `src/shared/worldgen/assets.js` e `src/engine/render/light.js`.

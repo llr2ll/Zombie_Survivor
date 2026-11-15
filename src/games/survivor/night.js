@@ -1,7 +1,7 @@
-// Noite estilo Zomboid (só aparência: os zumbis enxergam igual). A cada quadro preenche a visão noturna do motor
-// (engine/render/vision.js): cada jogador vê um círculo em volta e, com a lanterna acesa, um cone para onde mira
-// (no carro: os faróis, para a frente); postes e casas acesas perto dos jogadores também deixam ver em volta deles.
-import { VISION, VISION_SLOTS } from '../../engine/render/vision'
+// Noite estilo Zomboid (só aparência: os zumbis enxergam igual). Cada jogador vê um círculo em volta e, com a lanterna
+// acesa, um cone para onde mira (no carro: os faróis, para a frente); postes e casas acesas também deixam ver em volta deles.
+// Isso vira um mapa de luz por tela (engine/render/vision.js), pintado logo antes de cada tela ser desenhada.
+import { VISION, PaintVision } from '../../engine/render/vision'
 import { BALANCE } from './config/balance'
 
 const N = BALANCE.night
@@ -11,27 +11,31 @@ const amount = (t) => (t < 0.5 ? 1 - sm(0.22, 0.27, t) : sm(0.745, 0.79, t))
 
 export function CreateNight({ streetLights, houseLights }) {
   let dark = 0
+  const eyes = [], glows = []
   return {
-    // players = jogadores da partida; time = hora do clima; playing = false no menu (lá nada escurece)
+    // a cada quadro: quão escuro está e de onde cada jogador enxerga. playing = false no menu (lá nada escurece)
     update(dt, players, time, playing) {
       const target = playing ? amount(time) * N.dark : 0
       dark += (target - dark) * (1 - Math.exp(-dt * 2))
       VISION.dark.value = dark < 0.003 ? 0 : dark
       VISION.floor.value = N.floor
-      const eyes = VISION.eyes.value, beams = VISION.beams.value, cos = Math.cos(N.lamp.angle)
-      for (let i = 0; i < VISION_SLOTS.eyes; i++) {
-        const p = players[i]
-        if (!p) { eyes[i].z = 0; beams[i].z = 0; continue }
-        eyes[i].set(p.x, p.z, N.circle, p.gy || 0)
+      eyes.length = 0
+      if (!VISION.dark.value) return
+      for (const p of players) {
         const car = p.vehicle, a = car ? car.yaw : p.aimAngle
-        beams[i].set(Math.sin(a), Math.cos(a), car ? N.lamp.car : p.lamp && !p.dead ? N.lamp.range : 0, cos)
+        eyes.push({ x: p.x, z: p.z, r: N.circle, dx: Math.sin(a), dz: Math.cos(a), range: car ? N.lamp.car : p.lamp && !p.dead ? N.lamp.range : 0, half: N.lamp.angle })
       }
-      const glows = VISION.glows.value, list = [...houseLights.glows, ...streetLights.glows]
-      for (let i = 0; i < VISION_SLOTS.glows; i++) {
-        const g = list[i]
-        if (g) glows[i].set(g.x, g.z, g.r, g.top)
-        else glows[i].z = 0
-      }
+    },
+    // antes de desenhar cada tela: o mapa de luz em volta dela (members = jogadores dessa tela). De dia não faz nada
+    paint(members) {
+      if (!VISION.dark.value || !members.length) return
+      let x = 0, z = 0, y = 0
+      for (const p of members) { x += p.x; z += p.z; y += p.gy || 0 }
+      x /= members.length; z /= members.length; y /= members.length
+      glows.length = 0
+      houseLights.around(x, z, 90, glows)
+      streetLights.around(x, z, 90, glows)
+      PaintVision(x, z, y, eyes, glows)
     },
   }
 }

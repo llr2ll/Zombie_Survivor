@@ -73,7 +73,7 @@ export async function LoadGame() {
   const climate = CreateClimate(scene, Light(scene, renderer), { daySeconds: BALANCE.day.seconds }) // dia/noite, chuva, neblina, vento
   const entityShadows = CreateEntityShadows(scene)
   const streetLights = CreateStreetLights(scene) // postes acendem à noite, semáforos trocam de cor
-  const houseLights = CreateHouseLights(scene) // algumas casas acesas à noite (vidro, luz da janela no chão, luz dentro)
+  const houseLights = CreateHouseLights() // algumas casas acesas à noite (vidro, luz da janela no chão, cômodo claro)
   const night = CreateNight({ streetLights, houseLights }) // noite escura: cada jogador vê em volta e no cone da lanterna
   // mapa em pedaços: casas e postes entram e saem junto com cada chunk; os caches do mundo esquecem o que ficou para trás
   // (para recomeçar em outro lugar: game.clear(), chunks.reset(), ResetColliders/ResetBuildings/ResetSignAtlas, streetLights.reset(), houseLights.reset())
@@ -242,7 +242,7 @@ export async function LoadGame() {
     climate.update(gdt, list.length ? list.filter((p) => !p.dead) : [{ x: 8, z: -6 }])
     entityShadows.update(list, game.enemies, game.vehicles.list)
     streetLights.update(gdt, climate.time, climate.weather.over, pts)
-    houseLights.update(gdt, climate.time, climate.weather.over, pts, list.map((p) => BuildingAt(p.x, p.z)).filter(Boolean))
+    houseLights.update(gdt, climate.time, climate.weather.over, list.map((p) => BuildingAt(p.x, p.z)).filter(Boolean))
     night.update(dt, list, climate.time, phase === 'playing')
     UpdateDoors(gdt, list, game.enemies) // portas abrem quando alguém chega perto
     sound.update(gdt, game, climate, streetLights, phase === 'lobby')
@@ -264,7 +264,7 @@ export async function LoadGame() {
       chunks.update(pts, views.length > 1 ? 2 : 3)
       chunks.process(1)
       hud.update(dt)
-      split.render(views, (v) => { UpdateBuildings(v.group.members); climate.view(v.cam) }) // cada tela mostra o andar de quem está nela (telhado some)
+      split.render(views, (v) => { UpdateBuildings(v.group.members); climate.view(v.cam); night.paint(v.group.members) }) // cada tela mostra o andar de quem está nela (telhado some)
     }
     Fps()
   }
