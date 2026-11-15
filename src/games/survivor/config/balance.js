@@ -300,6 +300,14 @@ export const BALANCE = {
     { j: 30, nights: 3, bruteFrom: 1, loot: 0.6, horde: 1.2 }, // Cerco 5: tudo junto (e uma horda maior)
   ],
 
+  // ---------------------------------------------------------------- noite estilo Zomboid: só aparência (os zumbis enxergam igual)
+  night: {
+    dark: 1, // quão escuro fica longe da luz à noite: 0 desliga, 1 = bem escuro (postes e janelas acesas continuam aparecendo)
+    floor: 0.14, // quanto de luz sobra longe de tudo (0 = preto total)
+    circle: 4.5, // metros que cada jogador vê em volta, mesmo com a lanterna apagada
+    lamp: { range: 14, angle: 0.42, car: 20 }, // lanterna (L · ▼ no controle · 🔦 no celular): alcance (m) · meia-abertura (rad, 0,42 ≈ 24°) · faróis do carro (m)
+  },
+
   // ---------------------------------------------------------------- sensação ("juice"): só aparência, a não ser a pausa
   juice: {
     // tremor de tela: quanto a câmera balança (metros) em cada caso; scale 0 desliga todos. Só treme a tela de quem está perto (radius)

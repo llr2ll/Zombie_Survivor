@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { VisionUnlit } from '../../engine/render/vision'
 import { hash } from '../../engine/world/noise'
 import { CHUNK_SIZE, RoadRects } from './layout'
 
@@ -19,6 +20,7 @@ function SoftMat(alpha) {
 }
 // poça no estilo da referência: água "de desenho" — azul vivo, borda clara e um risco de brilho branco (sem reflexo PBR)
 const PuddleMat = new THREE.MeshBasicMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 })
+PuddleMat.onBeforeCompile = (sh) => VisionUnlit(sh, 0.2) // à noite a poça escurece com a rua (antes ficava azul acesa no escuro)
 
 // ---------- construtor de decalques planos ----------
 export class FlatBuilder {

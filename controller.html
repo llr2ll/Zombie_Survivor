@@ -120,6 +120,10 @@
       #run { left: calc(16px + var(--sl)) } #jump { right: calc(16px + var(--sr)) }
       #shove { right: calc(112px + var(--sr)); box-shadow: inset 0 0 0 3px #e2555599, inset 0 2px 0 #ffffff2e, 0 5px 0 #0b0706, 0 8px 14px #0006 }
       #run.on { color: var(--ground); background: radial-gradient(circle at 50% 30%, #ffc98a, var(--fire) 75%); box-shadow: inset 0 0 0 3px #ffe2bf, 0 5px 0 #8a4a14, 0 0 20px #ff9d3f88 }
+      /* lanterna (à noite: cone de luz para onde mira) */
+      #light { left: calc(26px + var(--sl)); bottom: 118px; width: 64px; height: 64px; font-size: 10px }
+      #light svg { width: 20px; height: 20px }
+      #light.on { color: var(--ground); background: radial-gradient(circle at 50% 30%, #fff2b0, #f0c040 75%); box-shadow: inset 0 0 0 3px #fff6d0, 0 5px 0 #8a6a10, 0 0 18px #f0c04088 }
       #shove.alert { background: radial-gradient(circle at 50% 30%, #ff9a9a, var(--danger) 75%); animation: shake .22s infinite alternate }
       @keyframes shake { from { transform: rotate(-7deg) scale(1.06) } to { transform: rotate(7deg) scale(1.12) } }
 
@@ -223,6 +227,7 @@
       <div id="btns"><button id="b1" class="hide"></button><button id="b2" class="hide"></button><button id="b3" class="hide"></button></div>
       <button class="round" id="run"><svg viewBox="0 0 24 24"><path d="M5 6l6 6-6 6M12 6l6 6-6 6" /></svg>Correr</button>
       <button class="round" id="shove"><svg viewBox="0 0 24 24"><path d="M3 12h11M10 7l5 5-5 5M20 4v16" /></svg>Empurrar</button>
+      <button class="round on" id="light"><svg viewBox="0 0 24 24"><path d="M3 10h8l5-4v12l-5-4H3zM19 7l2-1M19 12h3M19 17l2 1" /></svg>Lanterna</button>
       <button class="round" id="jump"><svg viewBox="0 0 24 24"><path d="M6 13l6-6 6 6M6 19l6-6 6 6" /></svg>Pular</button>
       <button id="use"><span class="ico"></span><span class="lbl"></span></button>
       <div id="state"><div id="ring"><svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="44" /><circle class="left" cx="50" cy="50" r="44" /></svg><b></b></div>

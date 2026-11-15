@@ -7,7 +7,7 @@ import { events } from '../../engine/core/events'
 import { StartLoop } from '../../engine/core/loop'
 import { TrimCaches } from '../../engine/core/memo'
 import { PrewarmBuildings, PrewarmStep } from '../../shared/worldgen/buildings'
-import { UpdateBuildings, UpdateDoors, AddBuildings, RemoveBuildings, PointInBuilding, ChaseTarget } from '../../shared/worldgen/buildings-registry'
+import { UpdateBuildings, UpdateDoors, AddBuildings, RemoveBuildings, PointInBuilding, ChaseTarget, BuildingAt } from '../../shared/worldgen/buildings-registry'
 import { GenerateChunk } from '../../shared/worldgen/generator'
 import { CHUNK_SIZE } from '../../shared/worldgen/map'
 import { TooDeep } from '../../shared/worldgen/sidewalk'
@@ -17,6 +17,7 @@ import { Light } from '../../engine/render/light'
 import { CreateEntityShadows } from '../../engine/render/entity-shadows'
 import { CreateClimate } from '../../shared/worldgen/climate'
 import { CreateStreetLights } from '../../shared/worldgen/streetlights'
+import { CreateHouseLights } from '../../shared/worldgen/house-lights'
 import { wind } from '../../engine/render/style'
 import { ConnectHost } from '../../engine/net/host'
 import { CreateGame } from './rules/survival'
@@ -27,6 +28,7 @@ import { CreateHud } from './ui/hud'
 import { CreateCollection } from './ui/collection'
 import { CreateCercoPicker } from './ui/cercos'
 import { CreatePause } from './ui/pause'
+import { CreateNight } from './night'
 import { CreateSave } from './save'
 import { UPGRADES } from './config/upgrades'
 import { FINDS } from './config/finds'
@@ -37,7 +39,7 @@ import { CreateSoundscape } from '../../shared/audio/soundscape'
 import { sfx, gate } from '../../shared/audio/sfx'
 
 const CLASS_LABELS = CLASS_ORDER.map((k) => `${CLASSES[k].icon} ${CLASSES[k].name}`) // cada vaga escolhe uma (◀ ▶ no menu); repetir pode
-const KEYS = { r: 'reload', 1: 'carbine', 2: 'shotgun', 3: 'pistol' } // teclas do Atirador (as outras são padrão do motor)
+const KEYS = { r: 'reload', 1: 'carbine', 2: 'shotgun', 3: 'pistol', l: 'light' } // teclas do Atirador + L = lanterna (as outras são padrão do motor)
 // teclas e opções de teste (N +1 hora, K tempo, T desfoque, ?bots=): só no npm run dev ou num build com VITE_TEST_KEYS (o smoke)
 const TEST = !!(import.meta.env.DEV || import.meta.env.VITE_TEST_KEYS)
 // ?bots=1..3 na URL: jogadores controlados pelo computador, só para teste (bots.js)
@@ -71,12 +73,14 @@ export async function LoadGame() {
   const climate = CreateClimate(scene, Light(scene, renderer), { daySeconds: BALANCE.day.seconds }) // dia/noite, chuva, neblina, vento
   const entityShadows = CreateEntityShadows(scene)
   const streetLights = CreateStreetLights(scene) // postes acendem à noite, semáforos trocam de cor
+  const houseLights = CreateHouseLights(scene) // algumas casas acesas à noite (vidro, luz da janela no chão, luz dentro)
+  const night = CreateNight({ streetLights, houseLights }) // noite escura: cada jogador vê em volta e no cone da lanterna
   // mapa em pedaços: casas e postes entram e saem junto com cada chunk; os caches do mundo esquecem o que ficou para trás
-  // (para recomeçar em outro lugar: game.clear(), chunks.reset(), ResetColliders/ResetBuildings/ResetSignAtlas, streetLights.reset())
+  // (para recomeçar em outro lugar: game.clear(), chunks.reset(), ResetColliders/ResetBuildings/ResetSignAtlas, streetLights.reset(), houseLights.reset())
   const chunks = CreateChunks({
     scene, colliders, size: CHUNK_SIZE, generate: GenerateChunk,
-    onLoad: (c) => { AddBuildings(c.userData.buildings); streetLights.add(c.userData.lamps) },
-    onUnload: (c) => { RemoveBuildings(c.userData.buildings); streetLights.remove(c.userData.lamps) },
+    onLoad: (c) => { AddBuildings(c.userData.buildings); streetLights.add(c.userData.lamps); houseLights.add(c.userData.houses) },
+    onUnload: (c) => { RemoveBuildings(c.userData.buildings); streetLights.remove(c.userData.lamps); houseLights.remove(c.userData.houses) },
     afterUnload: TrimCaches,
   })
 
@@ -144,7 +148,7 @@ export async function LoadGame() {
   })
   // controles de videogame (J14): A (ou Start) entra no menu; ◀ ▶ trocam a classe; Start começa. Na partida, o mesmo contrato do
   // celular: sticks no setInput e os botões viram ações (o direcional escolhe as cartas de melhoria)
-  const PAD = { a: 'jump', b: 'shove', x: 'use', lb: 'b1', rb: 'b2', y: 'b3', left: 'up1', up: 'up2', right: 'up3' }
+  const PAD = { a: 'jump', b: 'shove', x: 'use', lb: 'b1', rb: 'b2', y: 'b3', left: 'up1', up: 'up2', right: 'up3', down: 'light' }
   const pads = CreateGamepads({
     join: (id) => { // A ou Start de um controle novo: ocupa uma vaga (na partida, já nasce jogando)
       const slot = lobby.addPad(id, `Controle ${+id.slice(3) + 1}`)
@@ -238,6 +242,8 @@ export async function LoadGame() {
     climate.update(gdt, list.length ? list.filter((p) => !p.dead) : [{ x: 8, z: -6 }])
     entityShadows.update(list, game.enemies, game.vehicles.list)
     streetLights.update(gdt, climate.time, climate.weather.over, pts)
+    houseLights.update(gdt, climate.time, climate.weather.over, pts, list.map((p) => BuildingAt(p.x, p.z)).filter(Boolean))
+    night.update(dt, list, climate.time, phase === 'playing')
     UpdateDoors(gdt, list, game.enemies) // portas abrem quando alguém chega perto
     sound.update(gdt, game, climate, streetLights, phase === 'lobby')
     PrewarmStep()

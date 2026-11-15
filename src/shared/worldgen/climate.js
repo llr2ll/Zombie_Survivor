@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { VisionUnlit } from '../../engine/render/vision'
 import { gust, shade } from '../../engine/render/style'
 import { events } from '../../engine/core/events'
 
@@ -163,6 +164,7 @@ function CreateWisps(scene, max = 10) {
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
     geo.setIndex(idx)
     const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false, toneMapped: false })
+    mat.onBeforeCompile = (sh) => VisionUnlit(sh, 0.15) // à noite o rabisco de vento não brilha no escuro
     const mesh = new THREE.Mesh(geo, mat)
     mesh.frustumCulled = false
     mesh.renderOrder = 4

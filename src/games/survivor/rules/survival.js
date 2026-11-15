@@ -124,7 +124,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     const p = {
       id, name, idx, cls, model, ring, x: origin.x + (idx - 1.5) * 1.3, z: origin.z, vx: 0, vz: 0, aimAngle: Math.PI, facing: Math.PI, turn: 0, speed: 0, aiming: false, firing: false,
       jy: 0, vy: 0, gy: 0, y: 0, lv: 0, stamina: 100, tired: false, running: false, cool: 0, kills: 0, lastIn: performance.now(),
-      dead: false, out: false, downT: 0, knocked: 0, chill: 0, marked: 0, vehicle: null, seat: null, pad: 0, hurtCar: 0, held: 0, struggle: 0, shoveCd: 0,
+      lamp: true, dead: false, out: false, downT: 0, knocked: 0, chill: 0, marked: 0, vehicle: null, seat: null, pad: 0, hurtCar: 0, held: 0, struggle: 0, shoveCd: 0,
       input: { mx: 0, mz: 0, ax: 0, az: 0, run: 0 },
     }
     // entrou no meio da partida: nasce ao lado de alguém do grupo (de pé, se houver), não na largada
@@ -154,6 +154,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
     const p = players.get(id)
     if (!p) return
     if (a === 'up1' || a === 'up2' || a === 'up3') return levels.choose(p, +a[2] - 1) // carta de melhoria (vale caído também)
+    if (a === 'light') { p.lamp = !p.lamp; sfx('swap', { x: p.x, z: p.z }); return } // lanterna: só ilumina (os zumbis não ligam para ela)
     if (p.dead) { if (a === 'use') fall.use(p); return } // caído: só Usar (no solo, levantar sozinho)
     if (p.knocked > 0) return // derrubado pelo Labrego: um instante sem controle
     if (a === 'shove') return horde.shove(p)
@@ -359,7 +360,7 @@ export function CreateGame(scene, colliders, net, hooks = {}) {
   function sendState(p) {
     const inf = abilities.info(p)
     const car = p.vehicle ? 2 : !p.dead && vehicles.nearest(p) ? 1 : 0
-    net.send(p.id, { t: 'state', hp: Math.ceil(p.hp), max: p.max, cls: `${p.cls.icon} ${p.cls.name} · Nv ${p.level}`, w: p.vehicle ? `${inf.text} · ${fuel.text(p.vehicle)}` : inf.text, btn: inf.buttons.map((b) => [b.l, +b.cd.toFixed(2)]), car, dead: p.dead, st: Math.round(p.stamina), time: Math.floor(st.time), score: st.score, held: p.held ? 1 : 0, rv: p.dead && !st.over ? (p.out ? -1 : Math.ceil(p.downT)) : 0, u: useNow(p) || (car ? '' : bars.hint(p)), inv: invText(), up: p.cards ? p.cards.map((u) => [`${u.icon} ${u.name}`, u.text]) : 0 })
+    net.send(p.id, { t: 'state', hp: Math.ceil(p.hp), max: p.max, cls: `${p.cls.icon} ${p.cls.name} · Nv ${p.level}`, w: p.vehicle ? `${inf.text} · ${fuel.text(p.vehicle)}` : inf.text, btn: inf.buttons.map((b) => [b.l, +b.cd.toFixed(2)]), car, dead: p.dead, st: Math.round(p.stamina), time: Math.floor(st.time), score: st.score, held: p.held ? 1 : 0, rv: p.dead && !st.over ? (p.out ? -1 : Math.ceil(p.downT)) : 0, u: useNow(p) || (car ? '' : bars.hint(p)), inv: invText(), lt: p.lamp ? 1 : 0, up: p.cards ? p.cards.map((u) => [`${u.icon} ${u.name}`, u.text]) : 0 })
   }
 
   // estoque do grupo + base marcada (placar e celular)

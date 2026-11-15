@@ -342,6 +342,7 @@ function build(id, s, vr, vi) {
   for (let k = 0; k < F; k++) { shell.push([]); cutw.push([]); inside.push([]); ext.push([]) }
   const cols = []
   const windows = [] // janelas do térreo (entradas de zumbi): { x, z (centro na parede), nx, nz (para fora), w (largura), y (centro) }
+  const panes = [] // todas as janelas (luz acesa à noite): { x, z, nx, nz, w, h (vidro), y (centro), k (andar) }
   const spots = [] // móveis (para saque): { x, z (centro), fx, fz (frente), y, k (andar), key, room, r } em coordenadas da casa
   const top = (k) => (k === F - 1 ? H : (k + 1) * FLOOR_H)
   const trim = stone ? 0xfff4dc : vr.trim
@@ -408,7 +409,9 @@ function build(id, s, vr, vi) {
   const onFace = (list, parts, face, u, y) => { const [a, px, pz] = FACE[face](u); for (const g of parts) list.push(g.rotateY(a).translate(px, y, pz)) }
   const win = (k, face, u, y, o = {}) => {
     onFace(shell[k], windowParts({ arch, shut: s.shutters ? vr.acc : null, trim, seed: Math.floor(hash(k, u * 10, seed) * 3), ...o }), face, u, y)
-    if (k === 0) { const [a, px, pz] = FACE[face](u); windows.push({ x: px, z: pz, nx: Math.round(Math.sin(a)), nz: Math.round(Math.cos(a)), w: o.wide ? 2.1 : o.tall ? 1.15 : 1.0, y }) }
+    const [a, px, pz] = FACE[face](u), nx = Math.round(Math.sin(a)), nz = Math.round(Math.cos(a))
+    panes.push({ x: px, z: pz, nx, nz, w: o.wide ? 2.1 : o.tall ? 1.15 : 1.0, h: o.wide ? 1.5 : o.tall ? 2.0 : 1.15, y, k })
+    if (k === 0) windows.push({ x: px, z: pz, nx, nz, w: o.wide ? 2.1 : o.tall ? 1.15 : 1.0, y })
   }
   const xsUp = w >= 8.5 ? [-w / 2 + 1.7, 0, w / 2 - 1.7] : [-w / 4 - 0.2, w / 4 + 0.2]
   for (let k = 0; k < F; k++) {
@@ -692,7 +695,7 @@ function build(id, s, vr, vi) {
   for (let k = 0; k < F; k++) cuts.push(merge([...common, ...shell.slice(0, k).flat(), ...ext.slice(0, k + 1).flat(), ...inside.slice(0, k + 1).flat(), ...cutw[k], ...(k === 0 ? doorStub : [])]))
   return {
     closed, cuts, door: doorLeaf(arch, vr.door), hinge: { x: dl + 0.04, z: zf }, doorCol: { x: dx, z: zf, hw: DOOR_W / 2, hd: T / 2 - 0.04 },
-    cols, spots, windows, w, d, doorX: dx, floors: F, ix, iz, ramps, top: H + rise + 0.6,
+    cols, spots, windows, panes, w, d, doorX: dx, floors: F, ix, iz, ramps, top: H + rise + 0.6,
   }
 }
 // Pré-geração espalhada: PrewarmBuildings só enfileira; PrewarmStep (a cada quadro) gera um protótipo pendente.

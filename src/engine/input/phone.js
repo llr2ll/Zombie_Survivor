@@ -142,6 +142,7 @@ function onState(m) {
   $('#inv').textContent = m.inv || ''
   $('#time').textContent = `⏱ ${String(Math.floor(m.time / 60)).padStart(2, '0')}:${String(m.time % 60).padStart(2, '0')}`
   $('#shove').classList.toggle('alert', !!m.held)
+  if (m.lt !== undefined) $('#light').classList.toggle('on', !!m.lt)
   $('#st i').style.width = `${m.st}%`
   if (m.st <= 0 && input.run) { input.run = 0; $('#run').classList.remove('on') }
 
@@ -231,6 +232,7 @@ for (const [id, a] of [['#b1', 'b1'], ['#b2', 'b2'], ['#b3', 'b3'], ['#use', 'us
 $('#run').addEventListener('pointerdown', (e) => { e.stopPropagation(); input.run = input.run ? 0 : 1; $('#run').classList.toggle('on', !!input.run); vibe(15) })
 $('#jump').addEventListener('pointerdown', (e) => { e.stopPropagation(); send({ t: 'act', a: 'jump' }); vibe(15) })
 $('#shove').addEventListener('pointerdown', (e) => { e.stopPropagation(); send({ t: 'act', a: 'shove' }); vibe(25) })
+$('#light').addEventListener('pointerdown', (e) => { e.stopPropagation(); send({ t: 'act', a: 'light' }); vibe(15) })
 // menu da partida: ☰ abre/fecha na TV; os dois botões grandes mudam com o que a TV mandar (onMenu)
 $('#menu').addEventListener('pointerdown', (e) => { e.stopPropagation(); send({ t: 'act', a: 'menu' }); vibe(15) })
 $('#mu-a').addEventListener('pointerdown', (e) => { e.stopPropagation(); if (menuA) send({ t: 'act', a: menuA }); vibe(15) })
