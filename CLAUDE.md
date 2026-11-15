@@ -340,6 +340,10 @@ Não implementar online com uma tela por jogador. Não mexer na câmera (exceç�
   Servidor: celular só pode mandar `in`, `act`, `rtc`, `ice` (antes um `join` repetido ocupava outra vaga); mensagem > 64 KB derruba.
   Próximos passos combinados com o dono: servidor da sala num plano grátis na internet (2º PR; onde hospedar o site: decidir) ·
   celular volta sozinho à vaga · Electron pela rede de casa. Amigos longe na Steam: Remote Play Together + controle (J14).
+- **Celular em pé e nomes (PR celular-e-tela):** o aviso "↻ Vire o celular de lado" (`#turn`) nunca aparecia: o `display: none` padrão vinha
+  depois da regra do celular em pé e ganhava dela (ordem no CSS). Em pé: o alto fica só com classe, vida e ☰; `#btns` vira uma fileira própria.
+  Celular sem nome manda "Jogador": a vaga vira "Jogador N" (`lobby.addPhone`) e quem entra no meio usa o nome da vaga. Tela dividida:
+  `CreateSplitScreen(…, { labelTop(x) })` — o jogo diz quantos px do alto estão ocupados naquela coluna (pílulas, caixa de mensagem).
 - **Controle do celular (PR controle-novo):** modos em `#pad[data-mode]`: `wait` (menu), `play`, `msg` (removido/encerrado/desconectado).
   O fundo de triângulos é um SVG gerado em texto no `phone.js`. **Não usar canvas na abertura do controle:** canvas + JPEG levava 1 s sozinho
   e 14–19 s com a TV aberta no smoke (a placa de vídeo ocupada); o 2º celular do smoke passava do tempo. Com SVG: 0,1 s, igual ao antigo.
@@ -375,6 +379,9 @@ Decidido: a Etapa 3 vai em 3 PRs — F1 mover pastas + `npm run check` (+ cortar
 F2 estado global → instâncias com `reset()` + caches limpos por distância (medir antes) · F3 `balance.js` + `?bots=3`.
 
 ## Histórico de PRs
+- **celular-e-tela** — achados no teste geral: com o celular em pé os botões de habilidade ficavam espremidos, o placar cortava e o ☰ sumia
+  (o aviso para virar o celular existia, mas uma regra de estilo o escondia sempre); celulares sem nome viravam todos "Jogador"; na tela
+  dividida o nome de cada tela ficava por cima das pílulas do placar. Tudo corrigido. Só interface: replay igual.
 - **iluminacao-noturna** — pedido do dono: 1 em cada 5 casas acesa à noite (vidro aceso, luz saindo pela janela com a sombra da cruz no chão,
   cômodo iluminado), noite bem escura estilo Zomboid (círculo de 4,5 m + cone da lanterna de 14 m; faróis no carro) e lanterna que todo
   personagem já tem (L · ▼ no controle · 🔦 no celular). Poças, placas, água e rabiscos de vento escurecem junto (bug das poças acesas).

@@ -10,7 +10,8 @@ const MERGE = 13, SPLIT = 19 // distâncias (unidades do mundo)
 const GAP = 4 // divisória em px
 const CAM_Y = 15, CAM_Z = 10, BASE_DIST = Math.hypot(CAM_Y, CAM_Z), PITCH_SIN = Math.sin(Math.atan2(CAM_Y - 0.5, CAM_Z))
 
-export function CreateSplitScreen(renderer, scene) {
+// labelTop(x) = px ocupados no alto da tela, na coluna x, por algo do jogo (ex.: o placar): o nome das telas de cima desce esse tanto
+export function CreateSplitScreen(renderer, scene, { labelTop = () => 0 } = {}) {
   const cams = [0, 1, 2, 3].map(() => new THREE.PerspectiveCamera(55, 1, 0.4, 150))
   const state = new Map() // id do líder -> { f: foco suavizado, z: zoom }
   const linked = new Set() // pares "a|b" atualmente juntos (histerese)
@@ -199,7 +200,7 @@ export function CreateSplitScreen(renderer, scene) {
       el.textContent = names
       el.style.borderLeftColor = PLAYER_COLORS[(v.group.core[0] || v.group.members[0] || { idx: 0 }).idx % 4]
       el.style.left = `${v.rect.x + 10}px`
-      el.style.top = `${v.rect.y + 10}px`
+      el.style.top = `${v.rect.y + (v.rect.y < 4 ? labelTop(v.rect.x + 10) : 0) + 10}px`
       el.style.display = 'block'
     })
   }

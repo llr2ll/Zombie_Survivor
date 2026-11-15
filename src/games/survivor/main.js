@@ -84,7 +84,12 @@ export async function LoadGame() {
     afterUnload: TrimCaches,
   })
 
-  const split = CreateSplitScreen(renderer, scene)
+  // tela dividida: o nome de cada tela de cima fica abaixo das pílulas do placar e, se a caixa de mensagem estiver na frente, abaixo dela
+  const labelTop = (x) => {
+    const top = document.getElementById('top')?.getBoundingClientRect().bottom || 0, m = document.querySelector('#msg.on')?.getBoundingClientRect()
+    return m && x > m.left - 220 && x < m.right ? Math.max(top, m.bottom) : top
+  }
+  const split = CreateSplitScreen(renderer, scene, { labelTop })
   const sound = CreateSoundscape() // vento, chuva, água, motores, passos, zumbis… (efeitos soltos: audio/sfx.js)
   let hud, game, net, bots, pause, room
   let phase = 'lobby' // 'lobby' | 'playing'
@@ -136,7 +141,8 @@ export async function LoadGame() {
       const slot = lobby.addPhone(id, name)
       if (slot < 0) return net.send(id, { t: 'kick', msg: 'Sala cheia' })
       if (phase !== 'playing') return
-      game.addPlayer(id, name, slot, lobby.entries().find((e) => e.id === id)?.choice) // entrada tardia: já nasce na partida, ao lado do grupo
+      const e = lobby.entries().find((q) => q.id === id) // o nome é o da vaga (celular sem nome = "Jogador N")
+      game.addPlayer(id, e.name, slot, e.choice) // entrada tardia: já nasce na partida, ao lado do grupo
       game.sync(id) // o controle aparece na hora (com o menu aberto o jogo não roda e o estado não sairia)
       if (pause.isOpen()) net.send(id, { t: 'menu', ...pause.info(id) }) // entrou com o menu aberto: vê a pausa
     },
